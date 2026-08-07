@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel – CyberShield AI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <i class="fas fa-shield-halved"></i>
+        <h2>CyberShield</h2>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html"><i class="fas fa-chart-pie"></i> <span>Dashboard</span></a></li>
+        <li><a href="scanner.html"><i class="fas fa-shield-virus"></i> <span>Security Scanners</span></a></li>
+        <li><a href="password.html"><i class="fas fa-key"></i> <span>Password Analyzer</span></a></li>
+        <li><a href="reports.html"><i class="fas fa-file-invoice"></i> <span>Audit Reports</span></a></li>
+        <li><a href="profile.html"><i class="fas fa-user-cog"></i> <span>Profile & Settings</span></a></li>
+        <li class="active"><a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
+      </ul>
+
+      <div class="sidebar-user">
+        <div class="user-info">
+          <div class="name" id="user-display-name">SecAnalyst</div>
+          <div class="role" id="user-display-role">ADMINISTRATOR</div>
+        </div>
+        <a href="#" id="logout-btn" style="margin-left: auto; color: var(--neon-red);" title="Logout"><i class="fas fa-power-off"></i></a>
+      </div>
+    </aside>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1>System Administrator Control Center</h1>
+        </div>
+      </header>
+
+      <main class="content-body">
+
+        <!-- User Management Table Card -->
+        <div class="glass-card" style="margin-bottom: 28px;">
+          <h2 style="font-size: 18px; margin-bottom: 16px;"><i class="fas fa-users-cog" style="color: var(--neon-cyan);"></i> User Management & Role Control</h2>
+
+          <div class="table-responsive">
+            <table class="cyber-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Joined Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-tbody">
+                <!-- Dynamically loaded by admin.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Security Tips Publisher Form -->
+        <div class="glass-card" style="margin-bottom: 28px;">
+          <h2 style="font-size: 18px; margin-bottom: 16px;"><i class="fas fa-bullhorn" style="color: var(--neon-purple);"></i> Publish Cyber Security Advisory Tip</h2>
+
+          <form id="admin-tip-form" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px;">
+            <div class="form-group" style="grid-column: span 2;">
+              <label>Tip Title</label>
+              <input type="text" id="tip-title" class="form-control" placeholder="Beware of Spear Phishing Attachments" required>
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="tip-category" class="form-control" style="background: rgba(15,20,36,0.9); color: #fff;">
+                <option value="Phishing Awareness">Phishing Awareness</option>
+                <option value="Password Safety">Password Safety</option>
+                <option value="Safe Browsing">Safe Browsing</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>Tip Content</label>
+              <input type="text" id="tip-content" class="form-control" placeholder="Inspect sender email headers before opening PDF/DOCX attachments..." required>
+            </div>
+            <div class="form-group">
+              <label>Severity</label>
+              <select id="tip-severity" class="form-control" style="background: rgba(15,20,36,0.9); color: #fff;">
+                <option value="INFO">INFO</option>
+                <option value="IMPORTANT">IMPORTANT</option>
+                <option value="CRITICAL">CRITICAL</option>
+              </select>
+            </div>
+            <div style="grid-column: span 3; text-align: right;">
+              <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Publish Advisory Tip</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Global Activity Audit Logs -->
+        <div class="glass-card">
+          <h2 style="font-size: 18px; margin-bottom: 16px;"><i class="fas fa-history" style="color: var(--neon-green);"></i> System Audit Logs</h2>
+
+          <div class="table-responsive">
+            <table class="cyber-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                  <th>IP Address</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="admin-logs-tbody">
+                <!-- Dynamically loaded by admin.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

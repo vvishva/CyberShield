@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – CyberShield AI Security</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+
+  <div class="glass-card auth-box">
+    <div style="text-align: center; margin-bottom: 28px;">
+      <i class="fas fa-shield-halved" style="font-size: 42px; color: var(--neon-cyan); filter: drop-shadow(0 0 12px var(--neon-cyan));"></i>
+      <h2 style="font-size: 24px; font-weight: 700; margin-top: 12px;">CyberShield Login</h2>
+      <p style="color: var(--text-muted); font-size: 13px;">Sign in to access your Security Dashboard</p>
+    </div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Email Address</label>
+        <input type="email" id="login-email" class="form-control" placeholder="admin@cybershield.io" required>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-lock"></i> Password</label>
+        <input type="password" id="login-password" class="form-control" placeholder="••••••••••••" required>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 13px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-muted);">
+          <input type="checkbox" id="login-remember"> Remember Me
+        </label>
+        <a href="#" onclick="showToast('Password reset instructions sent to your email.', 'info')">Forgot Password?</a>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px;">
+        <i class="fas fa-sign-in-alt"></i> Authenticate & Enter
+      </button>
+    </form>
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-glass); font-size: 12px; color: var(--text-dim); text-align: center;">
+      <strong>Demo Credentials:</strong> admin@cybershield.io / Admin@123456
+    </div>
+
+    <div style="text-align: center; margin-top: 20px; font-size: 14px; color: var(--text-muted);">
+      Don't have an account? <a href="register.html">Register here</a>
+    </div>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/auth.js"></script>
+</body>
+</html>

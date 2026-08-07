@@ -1,0 +1,27 @@
+services:
+  # Node.js Express Backend
+  - type: web
+    name: cybershield-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server/server.js
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false  # You will set this manually in Render dashboard
+      - key: JWT_SECRET
+        value: cybershield_super_secret_jwt_key_2026_cse_final_year
+      - key: PYTHON_AI_URL
+        sync: false  # You will set this after deploying Flask service
+
+  # Python Flask AI Microservice
+  - type: web
+    name: cybershield-ai
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python train_model.py
+    startCommand: python app.py
+    rootDir: python-ai
+    envVars:
+      - key: PORT
+        value: 5001
