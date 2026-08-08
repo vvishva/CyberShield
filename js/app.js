@@ -95,11 +95,21 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
 document.addEventListener('DOMContentLoaded', () => {
   const currentUser = getUser();
   
-  // Update sidebar user details
+  // Update sidebar user details & developer credit badge
   const nameEl = document.getElementById('user-display-name');
   const roleEl = document.getElementById('user-display-role');
   if (nameEl) nameEl.textContent = currentUser.username || 'SecAnalyst';
   if (roleEl) roleEl.textContent = (currentUser.role || 'user').toUpperCase();
+
+  // Inject Developer Credit Badge (Vishva) into Sidebar
+  const sidebarUser = document.querySelector('.sidebar-user');
+  if (sidebarUser && !document.querySelector('.dev-credit-tag')) {
+    const devTag = document.createElement('div');
+    devTag.className = 'dev-credit-tag';
+    devTag.style.cssText = 'font-size: 11px; color: var(--neon-cyan); margin-top: 10px; padding: 6px 10px; background: rgba(0,240,255,0.08); border-radius: 6px; border: 1px solid rgba(0,240,255,0.2); width: 100%; text-align: center; font-weight: 500;';
+    devTag.innerHTML = '<i class="fas fa-shield-halved"></i> Architect: <strong>Vishva</strong>';
+    sidebarUser.parentNode.insertBefore(devTag, sidebarUser.nextSibling);
+  }
 
   // Active page highlight
   const currentPath = window.location.pathname.split('/').pop() || 'index.html';
@@ -109,30 +119,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Mobile navigation hamburger menu toggle
+  // Inject System Status Indicator & Mobile Hamburger Toggle into Topbar
   const topbar = document.querySelector('.topbar');
-  if (topbar && !document.querySelector('.mobile-nav-toggle')) {
-    const toggleBtn = document.createElement('button');
-    toggleBtn.className = 'mobile-nav-toggle btn btn-secondary';
-    toggleBtn.style.marginRight = '12px';
-    toggleBtn.style.padding = '8px 12px';
-    toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
-    topbar.insertBefore(toggleBtn, topbar.firstChild);
+  if (topbar) {
+    if (!document.querySelector('.system-status-pill')) {
+      const statusPill = document.createElement('div');
+      statusPill.className = 'system-status-pill';
+      statusPill.innerHTML = '<span class="pulse-dot"></span> <span>AI SHIELD: ACTIVE</span>';
+      topbar.querySelector('.topbar-title')?.appendChild(statusPill);
+    }
 
-    const sidebar = document.querySelector('.sidebar');
-    toggleBtn.addEventListener('click', () => {
-      if (sidebar) sidebar.classList.toggle('active');
-    });
+    if (!document.querySelector('.mobile-nav-toggle')) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'mobile-nav-toggle btn btn-secondary';
+      toggleBtn.style.marginRight = '12px';
+      toggleBtn.style.padding = '8px 12px';
+      toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+      topbar.insertBefore(toggleBtn, topbar.firstChild);
 
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', (e) => {
-      if (sidebar && sidebar.classList.contains('active')) {
-        if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-          sidebar.classList.remove('active');
+      const sidebar = document.querySelector('.sidebar');
+      toggleBtn.addEventListener('click', () => {
+        if (sidebar) sidebar.classList.toggle('active');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (sidebar && sidebar.classList.contains('active')) {
+          if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+            sidebar.classList.remove('active');
+          }
         }
-      }
-    });
+      });
+    }
   }
+
+  // Inject Global CyberBot AI Assistant Widget
+  initCyberBotAI();
 
   // Logout button binder
   const logoutBtn = document.getElementById('logout-btn');
@@ -147,3 +168,84 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// Interactive CyberBot AI Assistant Handler
+function initCyberBotAI() {
+  if (document.getElementById('cyberbot-fab')) return;
+
+  const fab = document.createElement('button');
+  fab.id = 'cyberbot-fab';
+  fab.title = 'Ask CyberBot AI Assistant';
+  fab.innerHTML = '<i class="fas fa-robot"></i>';
+  document.body.appendChild(fab);
+
+  const modal = document.createElement('div');
+  modal.id = 'cyberbot-modal';
+  modal.innerHTML = `
+    <div class="cyberbot-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="fas fa-brain" style="color: var(--neon-cyan); font-size: 20px;"></i>
+        <div>
+          <h4 style="font-size: 14px; font-weight: 700; margin: 0;">CyberBot AI Security Advisor</h4>
+          <span style="font-size: 11px; color: var(--neon-green);">● Online | Created by Vishva</span>
+        </div>
+      </div>
+      <button id="cyberbot-close" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="cyberbot-messages" id="cyberbot-messages">
+      <div class="chat-msg bot">
+        👋 Hello! I am <strong>CyberBot AI</strong>, your real-time security assistant for <strong>CyberShield</strong> (engineered by <strong>Vishva</strong>). Ask me about phishing detection, password entropy, SSL audits, or project specs!
+      </div>
+    </div>
+    <div class="cyberbot-input-area">
+      <input type="text" id="cyberbot-input" class="form-control" placeholder="Ask CyberBot anything..." style="font-size: 13px;">
+      <button id="cyberbot-send" class="btn btn-primary" style="padding: 8px 14px;"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  fab.addEventListener('click', () => modal.classList.toggle('active'));
+  document.getElementById('cyberbot-close').addEventListener('click', () => modal.classList.remove('active'));
+
+  const sendBtn = document.getElementById('cyberbot-send');
+  const inputEl = document.getElementById('cyberbot-input');
+  const msgContainer = document.getElementById('cyberbot-messages');
+
+  function handleSend() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    // User Message
+    const userMsg = document.createElement('div');
+    userMsg.className = 'chat-msg user';
+    userMsg.textContent = text;
+    msgContainer.appendChild(userMsg);
+    inputEl.value = '';
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+
+    // Bot Response Logic
+    setTimeout(() => {
+      const botMsg = document.createElement('div');
+      botMsg.className = 'chat-msg bot';
+
+      const q = text.toLowerCase();
+      if (q.includes('creator') || q.includes('who made') || q.includes('author') || q.includes('vishva')) {
+        botMsg.innerHTML = '🛡️ <strong>CyberShield</strong> is designed and engineered by <strong>Vishva</strong> as a final-year Computer Science Engineering capstone project.';
+      } else if (q.includes('phish') || q.includes('url')) {
+        botMsg.innerHTML = '🎣 <strong>Phishing Detection:</strong> CyberShield uses a Scikit-learn Random Forest Machine Learning model that extracts 9 lexical URL features (IP address usage, SSL, subdomains, dot counts).';
+      } else if (q.includes('password') || q.includes('security')) {
+        botMsg.innerHTML = '🔑 <strong>Password Analyzer:</strong> Measures password entropy, checks against 10M+ leaked passwords, and estimates brute-force crack times.';
+      } else if (q.includes('ssl') || q.includes('audit')) {
+        botMsg.innerHTML = '🔒 <strong>SSL & Security Headers Audit:</strong> Evaluates HSTS, X-Frame-Options, Content-Security-Policy (CSP), and certificate expiration.';
+      } else {
+        botMsg.innerHTML = `🛡️ <strong>CyberBot Answer:</strong> CyberShield continuously monitors network assets. For advanced scans, navigate to <strong>Security Scanners</strong> in the sidebar menu!`;
+      }
+
+      msgContainer.appendChild(botMsg);
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+    }, 600);
+  }
+
+  sendBtn.addEventListener('click', handleSend);
+  inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
+}
