@@ -5,7 +5,7 @@
 // Auto-detect: local development uses /api, production uses full Render URL
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? '/api'
-  : 'https://cybershield-backend.onrender.com/api'; // <-- Replace with your actual Render URL
+  : 'https://cybershield-backend-uhwn.onrender.com/api';
 
 // Toast Notification Manager
 function showToast(message, type = 'info') {
@@ -108,6 +108,31 @@ document.addEventListener('DOMContentLoaded', () => {
       a.parentElement.classList.add('active');
     }
   });
+
+  // Mobile navigation hamburger menu toggle
+  const topbar = document.querySelector('.topbar');
+  if (topbar && !document.querySelector('.mobile-nav-toggle')) {
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'mobile-nav-toggle btn btn-secondary';
+    toggleBtn.style.marginRight = '12px';
+    toggleBtn.style.padding = '8px 12px';
+    toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+    topbar.insertBefore(toggleBtn, topbar.firstChild);
+
+    const sidebar = document.querySelector('.sidebar');
+    toggleBtn.addEventListener('click', () => {
+      if (sidebar) sidebar.classList.toggle('active');
+    });
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+      if (sidebar && sidebar.classList.contains('active')) {
+        if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+          sidebar.classList.remove('active');
+        }
+      }
+    });
+  }
 
   // Logout button binder
   const logoutBtn = document.getElementById('logout-btn');
