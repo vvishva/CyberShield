@@ -32,6 +32,14 @@ app.use('/api', limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Disable caching so users always get fresh CSS/JS updates
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
 // Serve Static Assets (Frontend)
 const rootDir = path.join(__dirname, '..');
 app.use(express.static(path.join(rootDir, 'client')));
