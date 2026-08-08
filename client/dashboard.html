@@ -7,8 +7,37 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=3.0">
+  <link rel="stylesheet" href="/css/style.css?v=4.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Clickable stat cards */
+    .stat-card-link { text-decoration: none; color: inherit; display: block; }
+    .stat-card { cursor: pointer; transition: all 0.25s ease; }
+    .stat-card:hover { transform: translateY(-4px); border-color: rgba(0,240,255,0.4); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+
+    /* Recent scans table */
+    .scan-row { cursor: pointer; transition: background 0.15s; }
+    .scan-row:hover { background: rgba(0,240,255,0.05) !important; }
+
+    /* Expandable detail panel */
+    .scan-detail-panel {
+      display: none;
+      background: rgba(0,240,255,0.03);
+      border: 1px solid rgba(0,240,255,0.12);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 4px 0 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      animation: slideDown 0.2s ease;
+    }
+    .scan-detail-panel.open { display: block; }
+    @keyframes slideDown { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform: translateY(0); } }
+
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .detail-item label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px; }
+    .detail-item span { color: #fff; font-weight: 600; font-size: 14px; }
+  </style>
 </head>
 <body>
   <div class="app-container">
@@ -21,16 +50,14 @@
         <li class="nav-section-label">MONITORING</li>
         <li class="active"><a href="dashboard.html"><i class="fas fa-gauge-high"></i> <span>Dashboard</span></a></li>
         <li class="nav-section-label">SECURITY TOOLS</li>
-        <li class="has-submenu">
-          <a href="scanner.html"><i class="fas fa-shield-virus"></i> <span>Security Scanners</span></a>
-        </li>
+        <li><a href="scanner.html"><i class="fas fa-shield-virus"></i> <span>Security Scanners</span></a></li>
         <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i> <span>Threat Intelligence</span></a></li>
         <li><a href="password.html"><i class="fas fa-key"></i> <span>Password Analyzer</span></a></li>
         <li class="nav-section-label">REPORTS</li>
         <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i> <span>Scan History</span></a></li>
         <li><a href="reports.html"><i class="fas fa-file-lines"></i> <span>Audit Reports</span></a></li>
         <li class="nav-section-label">ACCOUNT</li>
-        <li><a href="notifications.html"><i class="fas fa-bell"></i> <span>Notifications</span> <span class="nav-badge" id="notif-count"></span></a></li>
+        <li><a href="notifications.html"><i class="fas fa-bell"></i> <span>Notifications</span></a></li>
         <li><a href="profile.html"><i class="fas fa-user-cog"></i> <span>Profile & Settings</span></a></li>
         <li><a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
       </ul>
@@ -56,10 +83,6 @@
           </div>
         </div>
         <div class="topbar-actions">
-          <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" id="global-search" placeholder="Search threats, URLs...">
-          </div>
           <a href="scanner.html" class="btn btn-primary"><i class="fas fa-plus"></i> New Scan</a>
           <a href="notifications.html" class="topbar-icon" title="Notifications"><i class="fas fa-bell"></i></a>
           <a href="profile.html" class="topbar-icon" title="Profile"><i class="fas fa-user-circle"></i></a>
@@ -67,78 +90,128 @@
       </header>
 
       <main class="content-body">
+
+        <!-- ── Stat Cards (all clickable) ── -->
         <div class="grid-stats">
-          <div class="stat-card glass-card">
-            <div class="stat-icon cyan"><i class="fas fa-search"></i></div>
-            <div class="stat-info">
-              <h3 id="stat-total-scans"><span class="skeleton-text">...</span></h3>
-              <p>Total Scans</p>
+          <a href="history.html" class="stat-card-link">
+            <div class="stat-card glass-card">
+              <div class="stat-icon cyan"><i class="fas fa-search"></i></div>
+              <div class="stat-info">
+                <h3 id="stat-total-scans"><span class="skeleton-text">...</span></h3>
+                <p>Total Scans</p>
+                <span style="font-size:11px; color:var(--neon-cyan);"><i class="fas fa-arrow-right"></i> View All</span>
+              </div>
             </div>
-          </div>
-          <div class="stat-card glass-card">
-            <div class="stat-icon red"><i class="fas fa-triangle-exclamation"></i></div>
-            <div class="stat-info">
-              <h3 id="stat-threats"><span class="skeleton-text">...</span></h3>
-              <p>Threats Detected</p>
+          </a>
+
+          <a href="history.html?filter=threat" class="stat-card-link">
+            <div class="stat-card glass-card">
+              <div class="stat-icon red"><i class="fas fa-triangle-exclamation"></i></div>
+              <div class="stat-info">
+                <h3 id="stat-threats"><span class="skeleton-text">...</span></h3>
+                <p>Threats Detected</p>
+                <span style="font-size:11px; color:var(--neon-red);"><i class="fas fa-arrow-right"></i> View Threats</span>
+              </div>
             </div>
-          </div>
-          <div class="stat-card glass-card">
-            <div class="stat-icon purple"><i class="fas fa-shield-halved"></i></div>
-            <div class="stat-info">
-              <h3 id="stat-blocked"><span class="skeleton-text">...</span></h3>
-              <p>Threats Blocked</p>
+          </a>
+
+          <a href="history.html?filter=blocked" class="stat-card-link">
+            <div class="stat-card glass-card">
+              <div class="stat-icon purple"><i class="fas fa-shield-halved"></i></div>
+              <div class="stat-info">
+                <h3 id="stat-blocked"><span class="skeleton-text">...</span></h3>
+                <p>Threats Blocked</p>
+                <span style="font-size:11px; color:var(--neon-purple);"><i class="fas fa-arrow-right"></i> View Blocked</span>
+              </div>
             </div>
-          </div>
-          <div class="stat-card glass-card">
-            <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
-            <div class="stat-info">
-              <h3 id="stat-safe"><span class="skeleton-text">...</span></h3>
-              <p>Safe Assets</p>
+          </a>
+
+          <a href="history.html?filter=safe" class="stat-card-link">
+            <div class="stat-card glass-card">
+              <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
+              <div class="stat-info">
+                <h3 id="stat-safe"><span class="skeleton-text">...</span></h3>
+                <p>Safe Assets</p>
+                <span style="font-size:11px; color:var(--neon-green);"><i class="fas fa-arrow-right"></i> View Safe</span>
+              </div>
             </div>
-          </div>
-          <div class="stat-card glass-card">
-            <div class="stat-icon amber"><i class="fas fa-globe"></i></div>
-            <div class="stat-info">
-              <h3 id="stat-monitored"><span class="skeleton-text">...</span></h3>
-              <p>Monitored Sites</p>
+          </a>
+
+          <a href="scanner.html" class="stat-card-link">
+            <div class="stat-card glass-card">
+              <div class="stat-icon amber"><i class="fas fa-globe"></i></div>
+              <div class="stat-info">
+                <h3 id="stat-monitored"><span class="skeleton-text">...</span></h3>
+                <p>Unique Targets</p>
+                <span style="font-size:11px; color:var(--neon-amber);"><i class="fas fa-arrow-right"></i> New Scan</span>
+              </div>
             </div>
-          </div>
-          <div class="stat-card glass-card">
-            <div class="stat-icon cyan"><i class="fas fa-chart-bar"></i></div>
-            <div class="stat-info">
-              <h3 id="stat-score"><span class="skeleton-text">...</span></h3>
-              <p>Global Security Score</p>
+          </a>
+
+          <a href="reports.html" class="stat-card-link">
+            <div class="stat-card glass-card">
+              <div class="stat-icon cyan"><i class="fas fa-chart-bar"></i></div>
+              <div class="stat-info">
+                <h3 id="stat-score"><span class="skeleton-text">...</span></h3>
+                <p>Avg Security Score</p>
+                <span style="font-size:11px; color:var(--neon-cyan);"><i class="fas fa-arrow-right"></i> View Report</span>
+              </div>
             </div>
-          </div>
+          </a>
         </div>
 
+        <!-- ── Charts Row ── -->
         <div class="charts-grid">
           <div class="chart-card glass-card">
             <h3>Threat Distribution</h3>
-            <div style="position:relative; height:250px;">
+            <div style="position:relative; height:240px;">
               <canvas id="threatPieChart"></canvas>
             </div>
           </div>
           <div class="chart-card glass-card">
-            <h3>Monthly Volume</h3>
-            <div style="position:relative; height:250px;">
+            <h3>Scan Activity</h3>
+            <div style="position:relative; height:240px;">
               <canvas id="scansBarChart"></canvas>
             </div>
           </div>
         </div>
 
-        <div class="charts-grid" style="grid-template-columns: 2fr 1fr;">
-          <div class="chart-card glass-card">
-            <h3>Risk Score Trend</h3>
-            <div style="position:relative; height:250px;">
-              <canvas id="riskLineChart"></canvas>
+        <!-- ── Recent Scans Table (expandable rows) ── -->
+        <div class="glass-card" style="margin-top: 24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0;"><i class="fas fa-clock-rotate-left" style="color:var(--neon-cyan); margin-right:10px;"></i>Recent Scans</h3>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <span id="scan-count-badge" style="font-size:12px; color:var(--text-muted);"></span>
+              <a href="history.html" class="btn btn-secondary" style="padding:6px 14px; font-size:13px;"><i class="fas fa-list"></i> Full History</a>
+              <a href="scanner.html" class="btn btn-primary" style="padding:6px 14px; font-size:13px;"><i class="fas fa-plus"></i> New Scan</a>
             </div>
           </div>
-          <div class="glass-card">
-            <h3>Recent Events</h3>
-            <div id="events-feed" style="margin-top:16px;"></div>
+
+          <div class="table-responsive">
+            <table class="cyber-table" style="width:100%;">
+              <thead>
+                <tr>
+                  <th style="width:40px;"></th>
+                  <th>Target URL / IP</th>
+                  <th>Scan Type</th>
+                  <th>Risk Score</th>
+                  <th>Status</th>
+                  <th>Date & Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="recent-scans-body">
+                <tr>
+                  <td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size:24px; margin-bottom:12px; display:block;"></i>
+                    Loading recent scans...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
+
       </main>
     </div>
   </div>
