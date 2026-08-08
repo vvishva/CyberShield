@@ -1,168 +1,259 @@
 /**
- * CyberShield - Security Scanners Logic
+ * CyberShield AI — Security Scanner Logic
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Tab Switcher Controller
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  const tabContents = document.querySelectorAll('.tab-content');
+const SCAN_STEPS = [
+  'Initializing scan engine',
+  'Validating URL structure',
+  'Resolving domain DNS',
+  'Checking SSL/TLS certificate',
+  'Analyzing security headers',
+  'Checking URL reputation (AI)',
+  'Analyzing phishing indicators',
+  'Generating security report'
+];
 
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabBtns.forEach(b => b.classList.remove('active'));
-      tabContents.forEach(c => c.style.display = 'none');
+let currentScanData = null;
 
-      btn.classList.add('active');
-      const targetId = btn.getAttribute('data-tab');
-      const targetContent = document.getElementById(targetId);
-      if (targetContent) targetContent.style.display = 'block';
-    });
+function showScanProgress() {
+  document.getElementById('scan-input-section').style.display = 'none';
+  document.getElementById('scan-results-section').style.display = 'none';
+  const progressEl = document.getElementById('scan-progress-section');
+  progressEl.style.display = 'block';
+  const stepsContainer = document.getElementById('scan-steps');
+  stepsContainer.innerHTML = '';
+  SCAN_STEPS.forEach((step, i) => {
+    const el = document.createElement('div');
+    el.className = 'scan-step' + (i === 0 ? ' active' : '');
+    el.id = `step-${i}`;
+    el.style.display = 'flex';
+    el.style.alignItems = 'center';
+    el.style.gap = '12px';
+    el.style.opacity = i === 0 ? '1' : '0.5';
+    el.innerHTML = `<span class="step-icon" style="color:var(--neon-cyan); width:24px; text-align:center;">${i===0 ? '<i class="fas fa-circle-notch fa-spin"></i>' : '<i class="far fa-circle"></i>'}</span><span class="step-text">${step}</span>`;
+    stepsContainer.appendChild(el);
   });
-
-  // 1. URL Phishing Detector Form
-  const urlForm = document.getElementById('url-scan-form');
-  if (urlForm) {
-    urlForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const url = document.getElementById('target-url-input').value.trim();
-      const resultCard = document.getElementById('url-scan-results');
-      
-      showToast('Initiating AI Machine Learning Phishing Analysis...', 'info');
-      resultCard.style.display = 'none';
-
-      try {
-        const res = await apiRequest('/scan/url', 'POST', { url });
-        displayUrlScanResults(res.data);
-      } catch (err) {
-        // Fallback local calculation
-        const isSuspicious = url.includes('login') || url.includes('verify') || !url.startsWith('https');
-        displayUrlScanResults({
-          target: url,
-          status: isSuspicious ? 'Suspicious' : 'Safe',
-          riskScore: isSuspicious ? 68 : 12,
-          confidenceScore: 94,
-          modelUsed: 'CyberShield Local ML Engine v1.0',
-          features: { urlLength: url.length, isHttps: url.startsWith('https') ? 1 : 0 },
-          recommendations: ['Do not submit sensitive passwords on unverified domain forms.']
-        });
+  // Animate steps
+  let current = 0;
+  const interval = setInterval(() => {
+    const prev = document.getElementById(`step-${current}`);
+    if (prev) { 
+      prev.style.opacity = '1'; 
+      prev.querySelector('.step-icon').innerHTML = '<i class="fas fa-check-circle" style="color:var(--neon-green);"></i>'; 
+    }
+    current++;
+    if (current < SCAN_STEPS.length) {
+      const next = document.getElementById(`step-${current}`);
+      if (next) {
+        next.style.opacity = '1';
+        next.querySelector('.step-icon').innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
       }
-    });
-  }
-
-  // 2. Website Security Scanner Form
-  const webForm = document.getElementById('web-scan-form');
-  if (webForm) {
-    webForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const url = document.getElementById('web-url-input').value.trim();
-      const resCard = document.getElementById('web-scan-results');
-
-      showToast('Auditing Website SSL, HTTP Headers & Clickjacking defense...', 'info');
-      resCard.style.display = 'none';
-
-      try {
-        const res = await apiRequest('/scan/website', 'POST', { url });
-        displayWebsiteScanResults(res.data);
-      } catch (err) {
-        displayWebsiteScanResults({
-          url: url,
-          securityScore: 85,
-          riskLevel: 'Safe',
-          hasHttps: true,
-          missingHeaders: ['Strict-Transport-Security'],
-          vulnerabilities: [{ title: 'Missing HSTS Header', severity: 'LOW', description: 'HTTP downgrade possible.' }],
-          recommendations: ['Enable Strict-Transport-Security header on server config.']
-        });
-      }
-    });
-  }
-
-  // 3. IP Reputation Lookup Form
-  const ipForm = document.getElementById('ip-scan-form');
-  if (ipForm) {
-    ipForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const ip = document.getElementById('ip-input').value.trim();
-      const resCard = document.getElementById('ip-scan-results');
-
-      showToast('Querying Global IP Threat Intelligence Feeds...', 'info');
-      resCard.style.display = 'none';
-
-      try {
-        const res = await apiRequest('/scan/ip', 'POST', { ip });
-        displayIpResults(res.data);
-      } catch (err) {
-        displayIpResults({
-          ip: ip || '127.0.0.1',
-          country: 'United States',
-          isp: 'Cloudflare Inc.',
-          isProxy: false,
-          isVpn: false,
-          threatScore: 15,
-          riskLevel: 'Safe',
-          blacklistStatus: 'Clean'
-        });
-      }
-    });
-  }
-});
-
-function displayUrlScanResults(data) {
-  const card = document.getElementById('url-scan-results');
-  if (!card) return;
-
-  let badgeClass = 'badge-safe';
-  if (data.status === 'Phishing') badgeClass = 'badge-danger';
-  if (data.status === 'Suspicious') badgeClass = 'badge-warning';
-
-  document.getElementById('res-url-target').textContent = data.target;
-  document.getElementById('res-url-verdict').innerHTML = `<span class="badge ${badgeClass}">${data.status}</span>`;
-  document.getElementById('res-url-risk').textContent = `${data.riskScore}%`;
-  document.getElementById('res-url-confidence').textContent = `${data.confidenceScore}%`;
-  document.getElementById('res-url-model').textContent = data.modelUsed || 'RandomForest Classifier';
-
-  const recsEl = document.getElementById('res-url-recs');
-  if (recsEl) {
-    recsEl.innerHTML = (data.recommendations || []).map(r => `<li><i class="fas fa-shield-alt" style="color: var(--neon-cyan);"></i> ${r}</li>`).join('');
-  }
-
-  card.style.display = 'block';
-  showToast('URL Analysis Complete', 'success');
+    } else {
+      clearInterval(interval);
+    }
+  }, 800);
+  return interval;
 }
 
-function displayWebsiteScanResults(data) {
-  const card = document.getElementById('web-scan-results');
-  if (!card) return;
-
-  document.getElementById('res-web-score').textContent = `${data.securityScore}/100`;
-  document.getElementById('res-web-risk').textContent = data.riskLevel;
-  document.getElementById('res-web-https').textContent = data.hasHttps ? 'ACTIVE (Valid SSL)' : 'DISABLED (Plaintext HTTP)';
+function renderScanResults(websiteData, urlData) {
+  document.getElementById('scan-progress-section').style.display = 'none';
+  const resultsEl = document.getElementById('scan-results-section');
+  resultsEl.style.display = 'block';
   
-  const vulnEl = document.getElementById('res-web-vulns');
-  if (vulnEl) {
-    vulnEl.innerHTML = (data.vulnerabilities || []).map(v => `
-      <div style="padding: 10px; margin-bottom: 8px; background: rgba(255,0,85,0.08); border-left: 3px solid var(--neon-red); border-radius: 4px;">
-        <strong style="color: var(--neon-red);">${v.title}</strong> (${v.severity})
-        <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">${v.description}</p>
-      </div>
+  // Use website scan data primarily, supplement with URL AI data
+  const score = websiteData?.securityScore ?? (urlData ? (100 - (urlData.riskScore || 0)) : 50);
+  const risk = websiteData?.riskLevel ?? urlData?.status ?? 'Unknown';
+  
+  // Score circle
+  const scoreEl = document.getElementById('overall-score');
+  if (scoreEl) scoreEl.textContent = score;
+  const riskEl = document.getElementById('risk-level-badge');
+  if (riskEl) {
+    riskEl.textContent = risk;
+    riskEl.className = 'badge ' + getRiskBadgeClass(risk);
+  }
+  
+  // Color the score circle
+  const scoreCircle = document.getElementById('score-circle');
+  if (scoreCircle) {
+    scoreCircle.style.borderColor = score >= 75 ? 'var(--neon-green)' : score >= 50 ? 'var(--neon-amber)' : 'var(--neon-red)';
+    scoreCircle.style.boxShadow = `0 0 20px ${score >= 75 ? 'rgba(0,255,157,0.2)' : score >= 50 ? 'rgba(255,183,0,0.2)' : 'rgba(255,0,85,0.2)'}`;
+  }
+  
+  // Score explanation
+  const positives = [];
+  const issues = [];
+  if (websiteData?.hasHttps) positives.push('HTTPS enabled');
+  else issues.push('No HTTPS encryption');
+  if (websiteData?.headerChecks?.hsts) positives.push('HSTS header present');
+  else issues.push('Missing HSTS header');
+  if (websiteData?.headerChecks?.csp) positives.push('Content-Security-Policy set');
+  else issues.push('Missing Content-Security-Policy');
+  if (websiteData?.headerChecks?.xFrameOptions) positives.push('X-Frame-Options set');
+  else issues.push('Missing X-Frame-Options');
+  
+  renderList('score-positives', positives, 'positive');
+  renderList('score-issues', issues, 'issue');
+  
+  // Result cards
+  setResultCard('result-ssl', websiteData?.hasHttps, websiteData?.hasHttps ? 'HTTPS enabled, certificate appears valid' : 'No SSL/TLS detected');
+  setResultCard('result-headers', websiteData?.headerChecks ? Object.values(websiteData.headerChecks).filter(Boolean).length >= 3 : false, websiteData?.missingHeaders?.length > 0 ? `Missing: ${websiteData.missingHeaders.slice(0,2).join(', ')}...` : 'All major headers present');
+  setResultCard('result-phishing', urlData?.status !== 'Phishing', urlData ? `AI Risk: ${urlData.riskScore || 0}% — ${urlData.status || 'Analyzed'}` : 'Structural analysis only');
+  setResultCard('result-domain', !!websiteData?.domain, `Domain: ${websiteData?.domain || 'N/A'}`);
+  setResultCard('result-url-rep', urlData?.status === 'Safe', urlData?.status || 'Unknown');
+  setResultCard('result-server', !websiteData?.headerChecks?.serverBanner, websiteData?.headerChecks?.serverBanner ? 'Server banner exposed' : 'Server information protected');
+  
+  // Vulnerabilities
+  const vulns = websiteData?.vulnerabilities || [];
+  const vulnList = document.getElementById('vuln-list');
+  if (vulnList) {
+    if (vulns.length === 0) {
+      vulnList.innerHTML = '<div style="padding:20px; text-align:center; background:rgba(0,255,157,0.05); border:1px solid rgba(0,255,157,0.2); border-radius:10px;"><i class="fas fa-shield-check" style="font-size:32px; color:var(--neon-green); margin-bottom:12px;"></i><p>No critical vulnerabilities detected</p></div>';
+    } else {
+      vulnList.innerHTML = vulns.map(v => `
+        <div style="padding:16px; border-left:4px solid ${v.severity==='HIGH'?'var(--neon-red)':v.severity==='MEDIUM'?'var(--neon-amber)':'var(--neon-cyan)'}; background:rgba(255,255,255,0.03); margin-bottom:12px; border-radius:4px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-weight:600;">${v.title}</span>
+            <span class="badge badge-${v.severity === 'HIGH' ? 'danger' : v.severity === 'MEDIUM' ? 'warning' : 'info'}">${v.severity || 'INFO'}</span>
+          </div>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">${v.description}</p>
+          ${v.recommendation ? `<p style="font-size:12px; color:var(--neon-cyan);"><i class="fas fa-wrench"></i> Fix: ${v.recommendation}</p>` : ''}
+        </div>
+      `).join('');
+    }
+  }
+  
+  // Recommendations
+  const recs = websiteData?.recommendations || [];
+  renderList('rec-list', recs, 'rec');
+  
+  // Domain info
+  setTextById('info-domain', websiteData?.domain || 'Data unavailable');
+  setTextById('info-ip', websiteData?.resolvedIp || 'Data unavailable');
+  setTextById('info-protocol', websiteData?.protocol || 'Data unavailable');
+  const redirectChain = websiteData?.redirectChain || [];
+  setTextById('info-redirects', redirectChain.length > 1 ? redirectChain.join(' → ') : 'No redirects detected');
+  
+  // Headers table
+  const hChecks = websiteData?.headerChecks || {};
+  const headerTableBody = document.getElementById('headers-table-body');
+  if (headerTableBody) {
+    const headerMap = [
+      ['Strict-Transport-Security (HSTS)', hChecks.hsts],
+      ['X-Frame-Options', hChecks.xFrameOptions],
+      ['X-Content-Type-Options', hChecks.xContentTypeOptions],
+      ['Content-Security-Policy', hChecks.csp],
+      ['Referrer-Policy', hChecks.referrerPolicy],
+      ['Permissions-Policy', hChecks.permissionsPolicy]
+    ];
+    headerTableBody.innerHTML = headerMap.map(([name, present]) => `
+      <tr>
+        <td>${name}</td>
+        <td><span class="badge ${present ? 'badge-safe' : 'badge-danger'}">${present ? 'PRESENT' : 'MISSING'}</span></td>
+        <td style="color:var(--text-muted); font-size:13px;">${present ? 'Configured properly' : 'Not set — configure this header'}</td>
+      </tr>
     `).join('');
   }
-
-  card.style.display = 'block';
-  showToast('Website Security Scan Finished', 'success');
+  
+  currentScanData = { websiteData, urlData, score, risk };
+  resultsEl.scrollIntoView({ behavior: 'smooth' });
 }
 
-function displayIpResults(data) {
-  const card = document.getElementById('ip-scan-results');
-  if (!card) return;
-
-  document.getElementById('res-ip-address').textContent = data.ip;
-  document.getElementById('res-ip-country').textContent = `${data.country} (${data.city || 'N/A'})`;
-  document.getElementById('res-ip-isp').textContent = data.isp;
-  document.getElementById('res-ip-threat').textContent = `${data.threatScore}%`;
-  document.getElementById('res-ip-proxy').textContent = data.isProxy ? 'DETECTED' : 'None';
-  document.getElementById('res-ip-blacklist').textContent = data.blacklistStatus;
-
-  card.style.display = 'block';
-  showToast('IP Intelligence Retrieved', 'success');
+function setResultCard(id, passed, detail) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const badge = el.querySelector('.result-status');
+  const detailEl = el.querySelector('.result-detail');
+  if (badge) {
+    badge.textContent = passed ? 'PASS' : 'FAIL';
+    badge.className = 'result-status badge ' + (passed ? 'badge-safe' : 'badge-danger');
+  }
+  if (detailEl) detailEl.textContent = detail || '';
 }
+
+function getRiskBadgeClass(risk) {
+  if (risk === 'Safe') return 'badge-safe';
+  if (risk === 'Low Risk') return 'badge-info';
+  if (risk === 'Medium Risk') return 'badge-warning';
+  if (risk === 'High Risk' || risk === 'Phishing') return 'badge-danger';
+  if (risk === 'Critical') return 'badge-critical';
+  return 'badge-info';
+}
+
+function renderList(id, items, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!items || items.length === 0) { el.innerHTML = '<li style="color:var(--text-dim);"><i class="fas fa-minus"></i> None</li>'; return; }
+  el.innerHTML = items.map(item => {
+    const icon = type === 'positive' ? 'fa-check-circle' : type === 'issue' ? 'fa-times-circle' : 'fa-arrow-right';
+    const color = type === 'positive' ? 'var(--neon-green)' : type === 'issue' ? 'var(--neon-red)' : 'var(--neon-cyan)';
+    return `<li style="margin-bottom:8px;"><i class="fas ${icon}" style="color:${color}; margin-right:8px; width:16px;"></i> ${item}</li>`;
+  }).join('');
+}
+
+function setTextById(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function showInputSection() {
+  document.getElementById('scan-progress-section').style.display = 'none';
+  document.getElementById('scan-results-section').style.display = 'none';
+  document.getElementById('scan-input-section').style.display = 'block';
+  document.getElementById('scan-url-input').value = '';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const scanBtn = document.getElementById('scan-btn');
+  const urlInput = document.getElementById('scan-url-input');
+  const scanAgainBtn = document.getElementById('scan-again-btn');
+  
+  if (scanAgainBtn) scanAgainBtn.addEventListener('click', showInputSection);
+  
+  async function startScan() {
+    const url = urlInput?.value?.trim();
+    if (!url) { showToast('Please enter a URL to scan', 'warning'); return; }
+    
+    // Basic URL format validation
+    let targetUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) targetUrl = 'https://' + url;
+    
+    const progressInterval = showScanProgress();
+    
+    try {
+      // Run both scans in parallel
+      const [websiteResult, urlResult] = await Promise.allSettled([
+        apiRequest('/scan/website', 'POST', { url: targetUrl }),
+        apiRequest('/scan/url', 'POST', { url: targetUrl })
+      ]);
+      
+      clearInterval(progressInterval);
+      
+      const websiteData = websiteResult.status === 'fulfilled' && websiteResult.value.success ? websiteResult.value.data : null;
+      const urlData = urlResult.status === 'fulfilled' && urlResult.value.success ? urlResult.value.data : null;
+      
+      if (!websiteData && !urlData) {
+        throw new Error((websiteResult.value && websiteResult.value.error) || 'Both scan services returned errors');
+      }
+      
+      // Mark all steps complete
+      SCAN_STEPS.forEach((_, i) => {
+        const step = document.getElementById(`step-${i}`);
+        if (step) { 
+          step.style.opacity = '1'; 
+          step.querySelector('.step-icon').innerHTML = '<i class="fas fa-check-circle" style="color:var(--neon-green);"></i>'; 
+        }
+      });
+      
+      setTimeout(() => renderScanResults(websiteData, urlData), 500);
+    } catch (err) {
+      clearInterval(progressInterval);
+      showInputSection();
+      const errMsg = err.message?.includes('403') || err.message?.includes('Internal') ? 'Access to internal/private network resources is not permitted.' : 'Unable to complete the security scan. ' + (err.message || '');
+      showToast(errMsg, 'danger');
+    }
+  }
+  
+  if (scanBtn) scanBtn.addEventListener('click', startScan);
+  if (urlInput) urlInput.addEventListener('keypress', e => { if (e.key === 'Enter') startScan(); });
+});

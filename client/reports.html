@@ -3,95 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Audit Reports – CyberShield AI</title>
+  <title>Audit Reports – CyberShield AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="../css/style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #printable-report, #printable-report * { visibility: visible; }
+      #printable-report { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #000 !important; }
+      .glass-card { background: none !important; border: 1px solid #ccc !important; box-shadow: none !important; margin-bottom: 20px; page-break-inside: avoid; }
+      .badge-danger { background: #fee2e2 !important; color: #ef4444 !important; border: 1px solid #ef4444 !important; }
+      .badge-safe { background: #dcfce7 !important; color: #22c55e !important; border: 1px solid #22c55e !important; }
+      .sidebar, .topbar { display: none !important; }
+    }
+  </style>
 </head>
 <body>
-
   <div class="app-container">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="main-sidebar">
       <div class="sidebar-logo">
         <i class="fas fa-shield-halved"></i>
-        <h2>CyberShield</h2>
+        <h2>CyberShield AI</h2>
       </div>
-
       <ul class="sidebar-nav">
-        <li><a href="dashboard.html"><i class="fas fa-chart-pie"></i> <span>Dashboard</span></a></li>
+        <li class="nav-section-label">MONITORING</li>
+        <li><a href="dashboard.html"><i class="fas fa-gauge-high"></i> <span>Dashboard</span></a></li>
+        <li class="nav-section-label">SECURITY TOOLS</li>
         <li><a href="scanner.html"><i class="fas fa-shield-virus"></i> <span>Security Scanners</span></a></li>
+        <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i> <span>Threat Intelligence</span></a></li>
         <li><a href="password.html"><i class="fas fa-key"></i> <span>Password Analyzer</span></a></li>
-        <li class="active"><a href="reports.html"><i class="fas fa-file-invoice"></i> <span>Audit Reports</span></a></li>
+        <li class="nav-section-label">REPORTS</li>
+        <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i> <span>Scan History</span></a></li>
+        <li class="active"><a href="reports.html"><i class="fas fa-file-lines"></i> <span>Audit Reports</span></a></li>
+        <li class="nav-section-label">ACCOUNT</li>
+        <li><a href="notifications.html"><i class="fas fa-bell"></i> <span>Notifications</span></a></li>
         <li><a href="profile.html"><i class="fas fa-user-cog"></i> <span>Profile & Settings</span></a></li>
         <li><a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
       </ul>
-
-      <div class="sidebar-user">
-        <div class="user-info">
-          <div class="name" id="user-display-name">SecAnalyst</div>
-          <div class="role" id="user-display-role">ADMINISTRATOR</div>
-        </div>
-        <a href="#" id="logout-btn" style="margin-left: auto; color: var(--neon-red);" title="Logout"><i class="fas fa-power-off"></i></a>
-      </div>
     </aside>
 
     <div class="main-wrapper">
       <header class="topbar">
-        <div class="topbar-title">
-          <h1>Security Audit Reports & PDF Exporter</h1>
+        <div class="topbar-left" style="display:flex; align-items:center; gap:16px;">
+          <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h1 style="margin:0;">Executive Audit Reports</h1>
+          </div>
         </div>
         <div class="topbar-actions">
-          <button id="btn-export-csv" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export CSV</button>
+          <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print PDF</button>
         </div>
       </header>
 
-      <main class="content-body">
+      <main class="content-body" id="printable-report">
+        
+        <div style="max-width:900px; margin:0 auto;">
+          <div style="text-align:center; margin-bottom:40px; padding-bottom:20px; border-bottom:2px solid var(--border-glass);">
+            <i class="fas fa-shield-halved" style="font-size:48px; color:var(--neon-cyan); margin-bottom:16px;"></i>
+            <h2>CyberShield AI — Executive Security Report</h2>
+            <p style="color:var(--text-muted);">Generated on <span id="report-date"></span></p>
+          </div>
 
-        <!-- Report Generation Box -->
-        <div class="glass-card" style="margin-bottom: 24px;">
-          <h2 style="font-size: 18px; margin-bottom: 16px;"><i class="fas fa-plus-circle" style="color: var(--neon-cyan);"></i> Generate Custom Security Audit Report</h2>
-          
-          <form id="generate-report-form" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 14px; align-items: flex-end;">
-            <div>
-              <label style="font-size: 12px; color: var(--text-muted);">Target Domain / Asset</label>
-              <input type="text" id="report-target" class="form-control" placeholder="https://internal-portal.company.com" required>
+          <div class="glass-card" style="margin-bottom:32px;">
+            <h3><i class="fas fa-bullseye" style="color:var(--neon-purple);"></i> Assessment Summary</h3>
+            <div style="display:flex; justify-content:space-between; margin-top:16px;">
+              <div>
+                <p style="color:var(--text-muted); font-size:13px;">Target Monitored</p>
+                <h4 style="font-size:18px;">example-target.com</h4>
+              </div>
+              <div style="text-align:right;">
+                <p style="color:var(--text-muted); font-size:13px;">Overall Security Posture</p>
+                <span class="badge badge-warning" style="font-size:16px; padding:6px 12px;">Medium Risk (65/100)</span>
+              </div>
             </div>
-            <div>
-              <label style="font-size: 12px; color: var(--text-muted);">Audit Category</label>
-              <select id="report-type" class="form-control" style="background: rgba(15,20,36,0.9); color: #fff;">
-                <option value="url_phishing">Phishing Threat Audit</option>
-                <option value="website_security">Website SSL & Headers</option>
-                <option value="ip_reputation">IP Network Reputation</option>
-              </select>
-            </div>
-            <div>
-              <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-file-pdf"></i> Generate PDF Report</button>
-            </div>
-          </form>
-        </div>
+          </div>
 
-        <!-- Generated Reports List -->
-        <div class="glass-card">
-          <h3 style="margin-bottom: 20px;"><i class="fas fa-archive" style="color: var(--neon-purple);"></i> Archival Security Reports</h3>
-
-          <div class="table-responsive">
+          <div class="glass-card" style="margin-bottom:32px;">
+            <h3 style="margin-bottom:16px;"><i class="fas fa-list-check" style="color:var(--neon-cyan);"></i> Key Findings</h3>
             <table class="cyber-table">
               <thead>
                 <tr>
-                  <th>Report Reference</th>
-                  <th>Audit Title</th>
-                  <th>Target Asset</th>
-                  <th>Verdict</th>
-                  <th>Risk Score</th>
-                  <th>Action</th>
+                  <th>Control Category</th>
+                  <th>Status</th>
+                  <th>Finding</th>
                 </tr>
               </thead>
-              <tbody id="reports-table-body">
-                <!-- Dynamically loaded by reports.js -->
+              <tbody>
+                <tr>
+                  <td>SSL/TLS Encryption</td>
+                  <td><span class="badge badge-safe">PASS</span></td>
+                  <td>Valid TLS 1.3 certificate present.</td>
+                </tr>
+                <tr>
+                  <td>Phishing Vectors</td>
+                  <td><span class="badge badge-safe">PASS</span></td>
+                  <td>No lexical phishing indicators detected.</td>
+                </tr>
+                <tr>
+                  <td>Content Security Policy</td>
+                  <td><span class="badge badge-danger">FAIL</span></td>
+                  <td>Missing CSP header, exposing to XSS.</td>
+                </tr>
+                <tr>
+                  <td>Strict-Transport-Security</td>
+                  <td><span class="badge badge-danger">FAIL</span></td>
+                  <td>Missing HSTS header.</td>
+                </tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:32px;">
+            <h3 style="margin-bottom:16px; color:var(--neon-amber);"><i class="fas fa-clipboard-list"></i> Remediations</h3>
+            <ul style="list-style-position:inside; color:var(--text-muted); font-size:14px; line-height:1.8;">
+              <li>Implement Content-Security-Policy header to mitigate XSS attacks.</li>
+              <li>Enable HTTP Strict-Transport-Security (HSTS) to enforce HTTPS connections.</li>
+              <li>Ensure all software dependencies are updated to their latest versions.</li>
+            </ul>
+          </div>
+          
+          <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:40px;">
+            <p>This report is confidential and intended for authorized security personnel only.</p>
+            <p>CyberShield AI Automated Assessment Engine</p>
           </div>
         </div>
 
@@ -100,6 +135,8 @@
   </div>
 
   <script src="../js/app.js"></script>
-  <script src="../js/reports.js"></script>
+  <script>
+    document.getElementById('report-date').textContent = new Date().toLocaleString();
+  </script>
 </body>
 </html>

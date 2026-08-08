@@ -7,8 +7,10 @@ const {
   scanWebsite,
   checkIp,
   checkFileHash,
-  getScanHistory
+  getScanHistory,
+  getStats
 } = require('../controllers/scanController');
+const { protect } = require('../middleware/authMiddleware');
 
 router.post('/url', scanUrl);
 router.post('/password', checkPassword);
@@ -17,5 +19,6 @@ router.post('/website', scanWebsite);
 router.post('/ip', checkIp);
 router.post('/hash', checkFileHash);
 router.get('/history', getScanHistory);
+router.get('/stats', protect, getStats);
 
 module.exports = router;

@@ -1,82 +1,93 @@
 /**
- * CyberShield - Main Dashboard Data Loader & Activity Controller
+ * CyberShield AI — Dashboard Logic
+ * Fetches real scan statistics from the API and renders dashboard.
  */
 
-document.addEventListener('DOMContentLoaded', async () => {
-  if (document.getElementById('threatPieChart')) {
-    initDashboardCharts();
-  }
-
-  // Populate Dashboard Stats
+async function loadDashboardStats() {
   try {
-    const res = await apiRequest('/admin/stats');
-    if (res.stats) {
-      updateStatCard('stat-scans', res.stats.totalScans);
-      updateStatCard('stat-threats', res.stats.threatsDetected);
-      updateStatCard('stat-safe', res.stats.safeWebsites);
-      updateStatCard('stat-score', `${res.stats.securityScore}%`);
+    const data = await apiRequest('/scan/stats');
+    if (data.success) {
+      updateStatCards(data.data);
+      return data.data;
     }
-  } catch (e) {
-    // Offline values
-    updateStatCard('stat-scans', '1,482');
-    updateStatCard('stat-threats', '318');
-    updateStatCard('stat-safe', '940');
-    updateStatCard('stat-score', '88%');
-  }
+  } catch (e) {}
 
-  // Load Recent Activities
-  loadRecentActivities();
-});
-
-function updateStatCard(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = value;
-}
-
-async function loadRecentActivities() {
-  const listEl = document.getElementById('recent-activities-list');
-  if (!listEl) return;
-
+  // Fallback: compute from history
   try {
-    const res = await apiRequest('/scan/history');
-    const items = res.data || [];
-    renderActivityItems(listEl, items);
-  } catch (e) {
-    renderActivityItems(listEl, [
-      { target: 'https://paypal-verify-alert.com', scanType: 'url_phishing', status: 'Phishing', createdAt: new Date() },
-      { target: 'https://google.com', scanType: 'website_security', status: 'Safe', createdAt: new Date(Date.now() - 3600000) },
-      { target: '185.220.101.5', scanType: 'ip_reputation', status: 'Medium Risk', createdAt: new Date(Date.now() - 7200000) }
-    ]);
-  }
+    const histData = await apiRequest('/scan/history');
+    if (histData.success && histData.data.length > 0) {
+      const scans = histData.data;
+      const computed = {
+        totalScans: histData.count || scans.length,
+        threatsDetected: scans.filter(s => ['Phishing','High Risk','Critical'].includes(s.status)).length,
+        safeScans: scans.filter(s => s.status === 'Safe').length,
+        avgSecurityScore: Math.round(scans.reduce((a,b) => a + (b.riskScore ? 100 - b.riskScore : 80), 0) / scans.length),
+        scansByType: {}
+      };
+      computed.blocked = computed.threatsDetected;
+      updateStatCards(computed);
+      return computed;
+    }
+  } catch (e) {}
+
+  // Demo mode fallback
+  showDemoBadge();
+  const demo = { totalScans: 1482, threatsDetected: 318, blocked: 318, safeScans: 940, avgSecurityScore: 88, monitored: 12 };
+  updateStatCards(demo);
+  return demo;
 }
 
-function renderActivityItems(container, items) {
-  if (items.length === 0) {
-    container.innerHTML = '<p style="color: var(--text-muted);">No recent security activity logged.</p>';
-    return;
-  }
-
-  container.innerHTML = items.map(item => {
-    let badgeClass = 'badge-safe';
-    if (item.status === 'Phishing' || item.status === 'High Risk' || item.status === 'Weak') badgeClass = 'badge-danger';
-    else if (item.status === 'Suspicious' || item.status === 'Medium Risk') badgeClass = 'badge-warning';
-
-    const typeLabel = (item.scanType || 'scan').replace('_', ' ').toUpperCase();
-    const timeStr = new Date(item.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    return `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(0,240,255,0.1); color: var(--neon-cyan); display: flex; align-items: center; justify-content: center;">
-            <i class="fas ${item.scanType === 'url_phishing' ? 'fa-link' : item.scanType === 'website_security' ? 'fa-globe' : 'fa-network-wired'}"></i>
-          </div>
-          <div>
-            <div style="font-weight: 600; font-size: 14px;">${item.target}</div>
-            <div style="font-size: 12px; color: var(--text-muted);">${typeLabel} • ${timeStr}</div>
-          </div>
-        </div>
-        <span class="badge ${badgeClass}">${item.status}</span>
-      </div>
-    `;
-  }).join('');
+function updateStatCards(stats) {
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('stat-total-scans', (stats.totalScans || 0).toLocaleString());
+  set('stat-threats', (stats.threatsDetected || 0).toLocaleString());
+  set('stat-blocked', (stats.blocked || stats.threatsDetected || 0).toLocaleString());
+  set('stat-safe', (stats.safeScans || 0).toLocaleString());
+  set('stat-monitored', (stats.monitored || 'N/A'));
+  set('stat-score', (stats.avgSecurityScore || '--') + '/100');
 }
+
+function showDemoBadge() {
+  const badge = document.createElement('div');
+  badge.className = 'demo-mode-badge';
+  badge.innerHTML = '<i class="fas fa-flask"></i> DEMO DATA — Connect MongoDB for live stats';
+  document.querySelector('.content-body')?.prepend(badge);
+}
+
+async function loadRecentEvents() {
+  const feed = document.getElementById('events-feed');
+  if (!feed) return;
+  
+  try {
+    const data = await apiRequest('/scan/history');
+    if (data.success && data.data.length > 0) {
+      feed.innerHTML = '';
+      data.data.slice(0, 8).forEach(scan => {
+        const time = new Date(scan.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const isThreat = ['Phishing','High Risk','Critical'].includes(scan.status);
+        const dot = isThreat ? 'red' : scan.status === 'Safe' ? 'green' : 'amber';
+        const item = document.createElement('div');
+        item.className = 'event-item';
+        item.style.marginBottom = '12px';
+        item.innerHTML = `
+          <span class="event-dot ${dot}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:var(--neon-${dot});margin-right:8px;"></span>
+          <span class="event-time" style="color:var(--text-muted);font-size:12px;margin-right:12px;">${time}</span>
+          <span class="event-text" style="font-size:14px;">${scan.scanType.replace('_',' ')} — <strong>${scan.target.substring(0,25)}${scan.target.length > 25 ? '...' : ''}</strong></span>
+          <span class="badge badge-${isThreat ? 'danger' : scan.status === 'Safe' ? 'safe' : 'warning'}" style="float:right;font-size:11px;">${scan.status}</span>
+        `;
+        feed.appendChild(item);
+      });
+      return;
+    }
+  } catch(e) {}
+  
+  feed.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>No scan events yet. <a href="scanner.html">Start your first scan</a></p></div>';
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const stats = await loadDashboardStats();
+  await loadRecentEvents();
+  if (typeof initDashboardCharts === 'function') {
+    initDashboardCharts(stats);
+  }
+});
