@@ -168,6 +168,28 @@ exports.scanWebsite = async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Access to internal network resources is not permitted.' });
     }
 
+    let previousScan = null;
+    let diff = null;
+
+    try {
+      previousScan = await Scan.findOne({ target: url, scanType: 'website_security' }).sort({ createdAt: -1 });
+      
+      if (previousScan) {
+        const oldScore = 100 - (previousScan.riskScore || 0);
+        const newScore = secResult.securityScore;
+        diff = {
+          scoreChange: newScore - oldScore,
+          newVulnerabilities: secResult.vulnerabilities?.filter(v => 
+            !previousScan.details?.vulnerabilities?.some(pv => pv.title === v.title)
+          ) || [],
+          resolvedVulnerabilities: previousScan.details?.vulnerabilities?.filter(pv => 
+            !secResult.vulnerabilities?.some(v => v.title === pv.title)
+          ) || []
+        };
+        secResult.diff = diff;
+      }
+    } catch(e) {}
+
     try {
       await Scan.create({
         user: req.user ? req.user._id : null,

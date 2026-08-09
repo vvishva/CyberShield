@@ -12,7 +12,9 @@ const errorHandler = require('../middleware/errorHandler');
 const app = express();
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  require('../utils/seeder').seedAdmin();
+});
 
 // Security Middlewares
 app.use(helmet({
@@ -58,9 +60,11 @@ app.use('/api/tips', require('../routes/tip'));
 // ── New feature routes ──────────────────────────────────────────────────────
 const eventsRouter  = require('../routes/events');
 const monitorRouter = require('../routes/monitor');
+const copilotRouter = require('../routes/copilot');
 
 app.use('/api/events',  eventsRouter);
 app.use('/api/monitor', monitorRouter);
+app.use('/api/copilot', copilotRouter);
 app.post('/api/scan/extension', require('../controllers/extensionController').extensionScan);
 
 // ── Background monitoring scheduler ────────────────────────────────────────

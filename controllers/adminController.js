@@ -8,7 +8,9 @@ exports.getUsers = async (req, res) => {
   try {
     let users = [];
     try {
-      users = await User.find().select('-password').sort({ createdAt: -1 });
+      users = await User.find()
+        .select('-password -resetPasswordToken -resetPasswordExpire')
+        .sort({ createdAt: -1 });
     } catch (e) {}
 
     if (!users || users.length === 0) {
@@ -19,10 +21,19 @@ exports.getUsers = async (req, res) => {
       ];
     }
 
+    // Sanitize: only return safe fields
+    const sanitized = users.map(u => ({
+      _id: u._id,
+      username: u.username,
+      email: u.email,
+      role: u.role,
+      createdAt: u.createdAt
+    }));
+
     res.status(200).json({
       success: true,
-      count: users.length,
-      data: users
+      count: sanitized.length,
+      data: sanitized
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

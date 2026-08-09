@@ -219,7 +219,7 @@ function initCyberBotAI() {
   const inputEl = document.getElementById('cyberbot-input');
   const msgContainer = document.getElementById('cyberbot-messages');
 
-  function handleSend() {
+  async function handleSend() {
     const text = inputEl.value.trim();
     if (!text) return;
 
@@ -231,27 +231,21 @@ function initCyberBotAI() {
     inputEl.value = '';
     msgContainer.scrollTop = msgContainer.scrollHeight;
 
-    // Bot Response Logic
-    setTimeout(() => {
-      const botMsg = document.createElement('div');
-      botMsg.className = 'chat-msg bot';
+    // Bot Typing Indicator
+    const typingMsg = document.createElement('div');
+    typingMsg.className = 'chat-msg bot';
+    typingMsg.innerHTML = '<span class="pulse-dot"></span> <em>Analyzing...</em>';
+    msgContainer.appendChild(typingMsg);
+    msgContainer.scrollTop = msgContainer.scrollHeight;
 
-      const q = text.toLowerCase();
-      if (q.includes('creator') || q.includes('who made') || q.includes('author') || q.includes('vishva')) {
-        botMsg.innerHTML = '🛡️ <strong>CyberShield</strong> is designed and engineered by <strong>Vishva</strong> as a final-year Computer Science Engineering capstone project.';
-      } else if (q.includes('phish') || q.includes('url')) {
-        botMsg.innerHTML = '🎣 <strong>Phishing Detection:</strong> CyberShield uses a Scikit-learn Random Forest Machine Learning model that extracts 9 lexical URL features (IP address usage, SSL, subdomains, dot counts).';
-      } else if (q.includes('password') || q.includes('security')) {
-        botMsg.innerHTML = '🔑 <strong>Password Analyzer:</strong> Measures password entropy, checks against 10M+ leaked passwords, and estimates brute-force crack times.';
-      } else if (q.includes('ssl') || q.includes('audit')) {
-        botMsg.innerHTML = '🔒 <strong>SSL & Security Headers Audit:</strong> Evaluates HSTS, X-Frame-Options, Content-Security-Policy (CSP), and certificate expiration.';
-      } else {
-        botMsg.innerHTML = `🛡️ <strong>CyberBot Answer:</strong> CyberShield continuously monitors network assets. For advanced scans, navigate to <strong>Security Scanners</strong> in the sidebar menu!`;
-      }
-
-      msgContainer.appendChild(botMsg);
-      msgContainer.scrollTop = msgContainer.scrollHeight;
-    }, 600);
+    try {
+      const data = await apiRequest('/copilot/chat', 'POST', { message: text });
+      typingMsg.innerHTML = data.reply;
+    } catch(err) {
+      typingMsg.innerHTML = `<span style="color:var(--red);">Connection error: ${err.message}</span>`;
+    }
+    
+    msgContainer.scrollTop = msgContainer.scrollHeight;
   }
 
   sendBtn.addEventListener('click', handleSend);

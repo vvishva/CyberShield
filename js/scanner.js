@@ -129,6 +129,29 @@ function renderResults(data) {
   setCheck('hdr-ref', h.referrerPolicy, '✓ Present', '⚠ Missing', true);
   setCheck('hdr-perm', h.permissionsPolicy, '✓ Present', '⚠ Missing', true);
 
+  // Historical Diff Logic
+  const diffBox = document.getElementById('diff-box');
+  const diffContent = document.getElementById('diff-content');
+  if (data.diff) {
+    diffBox.style.display = 'block';
+    const scoreText = data.diff.scoreChange > 0 
+      ? `<span style="color:var(--green)">+${data.diff.scoreChange} pts (Improved)</span>` 
+      : (data.diff.scoreChange < 0 ? `<span style="color:var(--red)">${data.diff.scoreChange} pts (Declined)</span>` : 'No change');
+    
+    let vulnsText = '';
+    if (data.diff.newVulnerabilities?.length > 0) {
+      vulnsText += `<br><strong style="color:var(--red)">New Issues Detected:</strong> ${data.diff.newVulnerabilities.map(v => v.title).join(', ')}`;
+    }
+    if (data.diff.resolvedVulnerabilities?.length > 0) {
+      vulnsText += `<br><strong style="color:var(--green)">Resolved Issues:</strong> ${data.diff.resolvedVulnerabilities.map(v => v.title).join(', ')}`;
+    }
+    if (!vulnsText) vulnsText = '<br><span style="color:var(--text-muted)">No new or resolved vulnerabilities since last scan.</span>';
+
+    diffContent.innerHTML = `<strong>Score Drift:</strong> ${scoreText}${vulnsText}`;
+  } else {
+    diffBox.style.display = 'none';
+  }
+
   // Recommendations
   const recBox = document.getElementById('rec-list');
   recBox.innerHTML = '';

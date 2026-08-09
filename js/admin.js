@@ -77,9 +77,14 @@ async function loadAdminData() {
     }
   } catch(err) {
     console.error(err);
-    document.getElementById('admin-users-body').innerHTML = `
-      <tr><td colspan="6" class="error-state"><i class="fas fa-exclamation-triangle"></i> Failed to load user data: ${err.message}</td></tr>
-    `;
-    logAudit(`<span style="color:var(--red);">[ERROR] ${err.message}</span>`);
+    if (err.message.includes('403') || err.message.includes('authorized')) {
+      document.getElementById('admin-content').style.display = 'none';
+      document.getElementById('not-admin-state').style.display = 'block';
+    } else {
+      document.getElementById('admin-users-body').innerHTML = `
+        <tr><td colspan="6" class="error-state"><i class="fas fa-exclamation-triangle"></i> Failed to load user data: ${err.message}</td></tr>
+      `;
+      logAudit(`<span style="color:var(--red);">[ERROR] ${err.message}</span>`);
+    }
   }
 }
