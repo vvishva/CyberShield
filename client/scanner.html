@@ -3,208 +3,264 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Scanner – CyberShield AI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Security Scanner — CyberShield AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=3.0">
+  <link rel="stylesheet" href="/css/style.css?v=5.0">
+  <style>
+    /* Scanner specific styles */
+    .scanner-hero { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 40px; text-align: center; margin-bottom: 24px; position: relative; overflow: hidden; }
+    .scanner-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% -20%, rgba(0,212,255,0.1), transparent 70%); pointer-events: none; }
+    
+    .url-input-wrap { position: relative; max-width: 680px; margin: 24px auto 0; }
+    .url-input-wrap i { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 18px; }
+    .url-input-wrap input { width: 100%; padding: 18px 180px 18px 52px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-subtle); border-radius: 40px; color: var(--text-primary); font-size: 16px; transition: all 0.3s; }
+    .url-input-wrap input:focus { border-color: var(--cyan); background: rgba(0,212,255,0.03); box-shadow: 0 0 0 4px rgba(0,212,255,0.1); outline: none; }
+    .url-input-wrap button { position: absolute; right: 6px; top: 6px; bottom: 6px; border-radius: 30px; padding: 0 28px; font-size: 15px; }
+
+    /* Results layout */
+    #scan-results-container { display: none; }
+    
+    .score-card { display: flex; align-items: center; gap: 32px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 32px; margin-bottom: 24px; }
+    .score-circle-wrap { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
+    .score-circle-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .score-circle-bg { fill: none; stroke: var(--border-subtle); stroke-width: 8; }
+    .score-circle-progress { fill: none; stroke: var(--cyan); stroke-width: 8; stroke-dasharray: 377; stroke-dashoffset: 377; stroke-linecap: round; transition: stroke-dashoffset 1.5s cubic-bezier(0.1, 0.7, 0.1, 1), stroke 0.5s; }
+    .score-text-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .score-text-overlay h2 { font-size: 42px; font-weight: 900; line-height: 1; margin: 0; }
+    .score-text-overlay span { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
+
+    .target-info { flex: 1; }
+    .target-url { font-size: 20px; font-weight: 700; color: var(--text-primary); word-break: break-all; margin-bottom: 8px; }
+    .target-meta { display: flex; gap: 16px; color: var(--text-muted); font-size: 13px; font-family: var(--font-mono); margin-bottom: 16px; }
+    .target-meta span { display: flex; align-items: center; gap: 6px; }
+
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    
+    .result-section { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
+    .result-header { padding: 16px 20px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; }
+    .result-header h3 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; display: flex; align-items: center; gap: 10px; }
+    .result-content { padding: 20px; }
+
+    .check-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-subtle); }
+    .check-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .check-name { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+    .check-status { font-size: 12px; font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; }
+    .check-status.pass { color: var(--green); }
+    .check-status.fail { color: var(--red); }
+    .check-status.warn { color: var(--amber); }
+
+    .rec-item { padding: 16px; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-md); margin-bottom: 12px; display: flex; gap: 12px; }
+    .rec-item:last-child { margin-bottom: 0; }
+    .rec-item i { color: var(--red); font-size: 16px; margin-top: 2px; }
+
+    /* Loading Overlay */
+    #scanner-loading { display: none; text-align: center; padding: 64px 20px; }
+    .radar { width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--cyan-dim); margin: 0 auto 24px; position: relative; overflow: hidden; }
+    .radar::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(0,212,255,0.8) 100%); animation: radarSpin 2s linear infinite; }
+    .radar::after { content: ''; position: absolute; inset: 50%; border-radius: 50%; width: 4px; height: 4px; background: var(--cyan); transform: translate(-50%, -50%); box-shadow: 0 0 10px var(--cyan); }
+    @keyframes radarSpin { 100% { transform: rotate(360deg); } }
+
+    @media (max-width: 992px) { .results-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) {
+      .score-card { flex-direction: column; text-align: center; gap: 24px; }
+      .target-meta { justify-content: center; flex-wrap: wrap; }
+      .url-input-wrap input { padding-right: 120px; }
+      .url-input-wrap button { padding: 0 16px; }
+    }
+  </style>
 </head>
 <body>
-  <div class="app-container">
-    <aside class="sidebar" id="main-sidebar">
-      <div class="sidebar-logo">
-        <i class="fas fa-shield-halved"></i>
-        <h2>CyberShield AI</h2>
-      </div>
-      <ul class="sidebar-nav">
-        <li class="nav-section-label">MONITORING</li>
-        <li><a href="dashboard.html"><i class="fas fa-gauge-high"></i> <span>Dashboard</span></a></li>
-        <li class="nav-section-label">SECURITY TOOLS</li>
-        <li class="has-submenu active">
-          <a href="scanner.html"><i class="fas fa-shield-virus"></i> <span>Security Scanners</span></a>
-        </li>
-        <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i> <span>Threat Intelligence</span></a></li>
-        <li><a href="password.html"><i class="fas fa-key"></i> <span>Password Analyzer</span></a></li>
-        <li class="nav-section-label">REPORTS</li>
-        <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i> <span>Scan History</span></a></li>
-        <li><a href="reports.html"><i class="fas fa-file-lines"></i> <span>Audit Reports</span></a></li>
-        <li class="nav-section-label">ACCOUNT</li>
-        <li><a href="notifications.html"><i class="fas fa-bell"></i> <span>Notifications</span></a></li>
-        <li><a href="profile.html"><i class="fas fa-user-cog"></i> <span>Profile & Settings</span></a></li>
-        <li><a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
-      </ul>
-    </aside>
+<div class="app-container">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="main-sidebar">
+    <div class="sidebar-logo"><i class="fas fa-shield-halved"></i><h2>CyberShield AI</h2></div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">MONITORING</li>
+      <li><a href="dashboard.html"><i class="fas fa-gauge-high"></i><span>Dashboard</span></a></li>
+      <li><a href="monitor.html"><i class="fas fa-radar"></i><span>Auto Monitoring</span></a></li>
+      <li class="nav-section-label">SECURITY TOOLS</li>
+      <li class="active"><a href="scanner.html"><i class="fas fa-shield-virus"></i><span>Security Scanners</span></a></li>
+      <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i><span>Threat Intelligence</span></a></li>
+      <li><a href="vulnerabilities.html"><i class="fas fa-bug"></i><span>Vulnerabilities</span></a></li>
+      <li><a href="password.html"><i class="fas fa-key"></i><span>Password Analyzer</span></a></li>
+      <li class="nav-section-label">REPORTS</li>
+      <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i><span>Scan History</span></a></li>
+      <li><a href="reports.html"><i class="fas fa-file-lines"></i><span>Audit Reports</span></a></li>
+      <li class="nav-section-label">ACCOUNT</li>
+      <li><a href="notifications.html"><i class="fas fa-bell"></i><span>Notifications</span></a></li>
+      <li><a href="profile.html"><i class="fas fa-user-cog"></i><span>Profile & Settings</span></a></li>
+      <li><a href="admin.html"><i class="fas fa-user-shield"></i><span>Admin Panel</span></a></li>
+    </ul>
+  </aside>
 
-    <div class="main-wrapper">
-      <header class="topbar">
-        <div class="topbar-left" style="display:flex; align-items:center; gap:16px;">
-          <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
-          <div class="topbar-title">
-            <h1 style="margin:0;">Security Scanner</h1>
+  <!-- Main Content -->
+  <div class="main-wrapper">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title"><h1>Security Scanner</h1></div>
+      </div>
+    </header>
+
+    <main class="content-body">
+      <!-- Input Section -->
+      <div class="scanner-hero">
+        <h2 style="font-size:24px; font-weight:800; margin-bottom:12px;">Enterprise Website Security Audit</h2>
+        <p style="color:var(--text-secondary); max-width:600px; margin:0 auto;">Scan any URL to detect phishing, analyze SSL/TLS, verify security headers, and query real-time threat intelligence databases.</p>
+        
+        <form id="scan-form" class="url-input-wrap">
+          <i class="fas fa-globe"></i>
+          <input type="text" id="scan-url" placeholder="Enter target URL (e.g., https://example.com)" required autocomplete="off">
+          <button type="submit" class="btn btn-primary" id="scan-btn">Initiate Scan</button>
+        </form>
+      </div>
+
+      <!-- Loading State -->
+      <div id="scanner-loading">
+        <div class="radar"></div>
+        <h3 style="font-size:18px; margin-bottom:8px;">Analyzing Target...</h3>
+        <p id="scan-status-text" style="color:var(--text-muted); font-family:var(--font-mono); font-size:13px;">Establishing secure connection</p>
+      </div>
+
+      <!-- Results Section -->
+      <div id="scan-results-container">
+        
+        <!-- Score Card -->
+        <div class="score-card">
+          <div class="score-circle-wrap">
+            <svg class="score-circle-svg" viewBox="0 0 140 140">
+              <circle class="score-circle-bg" cx="70" cy="70" r="60"></circle>
+              <circle class="score-circle-progress" id="score-circle" cx="70" cy="70" r="60"></circle>
+            </svg>
+            <div class="score-text-overlay">
+              <h2 id="res-score">0</h2>
+              <span>Security Score</span>
+            </div>
+          </div>
+          
+          <div class="target-info">
+            <div class="target-url" id="res-url">https://example.com</div>
+            <div class="target-meta">
+              <span id="res-ip"><i class="fas fa-network-wired"></i> 192.168.1.1</span>
+              <span id="res-domain"><i class="fas fa-server"></i> example.com</span>
+              <span id="res-time"><i class="fas fa-clock"></i> Just now</span>
+            </div>
+            <div style="display:flex; gap:12px;">
+              <span class="badge" id="res-risk-badge">Evaluating...</span>
+              <span class="badge badge-info" id="res-type-badge">Website Audit</span>
+              <button class="btn btn-secondary btn-sm" id="btn-pdf"><i class="fas fa-file-pdf"></i> Generate PDF</button>
+            </div>
           </div>
         </div>
-      </header>
 
-      <main class="content-body">
+        <div class="results-grid">
+          <!-- AI & Threat Intel -->
+          <div class="result-section">
+            <div class="result-header">
+              <h3><i class="fas fa-brain" style="color:var(--cyan);"></i> AI Threat Detection</h3>
+            </div>
+            <div class="result-content">
+              <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
+                <div>
+                  <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase;">ML Verdict</div>
+                  <div style="font-size:18px; font-weight:700;" id="res-ai-verdict">Safe</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase;">Confidence</div>
+                  <div style="font-size:18px; font-weight:700; color:var(--cyan);" id="res-ai-conf">98%</div>
+                </div>
+              </div>
+              <div class="check-item">
+                <span class="check-name">Domain Age Analysis</span>
+                <span class="check-status pass" id="chk-domain-age"><i class="fas fa-check"></i> Verified</span>
+              </div>
+              <div class="check-item">
+                <span class="check-name">Phishing Lexical Match</span>
+                <span class="check-status pass" id="chk-phishing"><i class="fas fa-check"></i> Clean</span>
+              </div>
+              <div class="check-item">
+                <span class="check-name">Known Malicious IPs</span>
+                <span class="check-status pass" id="chk-threat-intel"><i class="fas fa-check"></i> Not Listed</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Network & Crypto -->
+          <div class="result-section">
+            <div class="result-header">
+              <h3><i class="fas fa-lock" style="color:var(--green);"></i> Network & Transport Security</h3>
+            </div>
+            <div class="result-content">
+              <div class="check-item">
+                <span class="check-name">HTTPS / TLS Enabled</span>
+                <span class="check-status" id="chk-https">...</span>
+              </div>
+              <div class="check-item">
+                <span class="check-name">Certificate Validity</span>
+                <span class="check-status" id="chk-cert">...</span>
+              </div>
+              <div class="check-item">
+                <span class="check-name">Server Banner Disclosure</span>
+                <span class="check-status" id="chk-banner">...</span>
+              </div>
+              <div class="check-item">
+                <span class="check-name">Open Ports / Misconfigs</span>
+                <span class="check-status pass" id="chk-ports"><i class="fas fa-check"></i> Secure</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Headers -->
+        <div class="result-section" style="margin-bottom:24px;">
+          <div class="result-header">
+            <h3><i class="fas fa-shield-halved" style="color:var(--purple);"></i> HTTP Security Headers</h3>
+          </div>
+          <div class="result-content" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:0 32px;">
+            <div class="check-item">
+              <span class="check-name" title="Strict-Transport-Security">HSTS</span>
+              <span class="check-status" id="hdr-hsts">...</span>
+            </div>
+            <div class="check-item">
+              <span class="check-name" title="X-Frame-Options">X-Frame-Options</span>
+              <span class="check-status" id="hdr-xframe">...</span>
+            </div>
+            <div class="check-item">
+              <span class="check-name" title="X-Content-Type-Options">X-Content-Type-Options</span>
+              <span class="check-status" id="hdr-xcontent">...</span>
+            </div>
+            <div class="check-item">
+              <span class="check-name" title="Content-Security-Policy">Content-Security-Policy</span>
+              <span class="check-status" id="hdr-csp">...</span>
+            </div>
+            <div class="check-item">
+              <span class="check-name" title="Referrer-Policy">Referrer-Policy</span>
+              <span class="check-status" id="hdr-ref">...</span>
+            </div>
+            <div class="check-item">
+              <span class="check-name" title="Permissions-Policy">Permissions-Policy</span>
+              <span class="check-status" id="hdr-perm">...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="result-section" id="recommendations-box">
+          <div class="result-header">
+            <h3><i class="fas fa-clipboard-list" style="color:var(--amber);"></i> Remediation Recommendations</h3>
+          </div>
+          <div class="result-content" id="rec-list">
+            <!-- Populated via JS -->
+          </div>
+        </div>
         
-        <!-- 1. Scan Input Section -->
-        <section id="scan-input-section" style="max-width:800px; margin:40px auto; text-align:center;">
-          <i class="fas fa-shield-virus" style="font-size:64px; color:var(--neon-cyan); margin-bottom:24px;"></i>
-          <h2 style="font-size:32px; margin-bottom:12px;">Universal Web Security Scanner</h2>
-          <p style="color:var(--text-muted); margin-bottom:32px;">Enter a URL to perform a comprehensive security audit, AI phishing detection, and vulnerability scan.</p>
-          
-          <div class="search-box" style="margin-bottom:16px;">
-            <input type="text" id="scan-url-input" placeholder="https://example.com" style="width:100%; padding:16px 24px; font-size:18px; border-radius:30px; background:rgba(255,255,255,0.05); border:1px solid var(--border-glass); color:#fff; text-align:center;" autofocus>
-          </div>
-          <button id="scan-btn" class="btn btn-primary" style="padding:14px 36px; font-size:16px; border-radius:30px;"><i class="fas fa-search"></i> Start Security Scan</button>
-          <p style="margin-top:20px; font-size:12px; color:var(--text-dim);"><i class="fas fa-info-circle"></i> Only public URLs accepted. Private/internal network access is blocked by SSRF protection.</p>
-        </section>
-
-        <!-- 2. Scan Progress Section -->
-        <section id="scan-progress-section" style="display:none; max-width:600px; margin:40px auto;">
-          <div style="text-align:center; margin-bottom:40px;">
-            <h3 style="font-size:24px; color:var(--neon-cyan);">Scan in Progress...</h3>
-            <p style="color:var(--text-muted);">Please wait while AI engines analyze the target.</p>
-          </div>
-          <div id="scan-steps" style="display:flex; flex-direction:column; gap:16px; font-size:16px;">
-            <!-- Rendered by JS -->
-          </div>
-        </section>
-
-        <!-- 3. Scan Results Section -->
-        <section id="scan-results-section" style="display:none; max-width:1000px; margin:0 auto;">
-          
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
-            <h2>Scan Results</h2>
-            <button id="scan-again-btn" class="btn btn-secondary"><i class="fas fa-redo"></i> New Scan</button>
-          </div>
-
-          <!-- Score Card -->
-          <div class="glass-card" style="display:flex; gap:32px; align-items:center; margin-bottom:32px; padding:32px;">
-            <div id="score-circle" style="width:140px; height:140px; border-radius:50%; border:6px solid var(--neon-cyan); display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(0,212,255,0.2);">
-              <span id="overall-score" style="font-size:48px; font-weight:800; line-height:1;">--</span>
-              <span style="font-size:12px; color:var(--text-muted);">/100</span>
-            </div>
-            <div style="flex:1;">
-              <div style="margin-bottom:12px;">
-                <span id="risk-level-badge" class="badge badge-info" style="font-size:16px; padding:6px 16px;">Analyzing</span>
-              </div>
-              <div style="display:flex; gap:24px;">
-                <div style="flex:1;">
-                  <h4 style="color:var(--neon-green); margin-bottom:8px;"><i class="fas fa-check-circle"></i> Passed Checks</h4>
-                  <ul id="score-positives" style="list-style:none; padding:0; font-size:14px; color:var(--text-muted);"></ul>
-                </div>
-                <div style="flex:1;">
-                  <h4 style="color:var(--neon-red); margin-bottom:8px;"><i class="fas fa-times-circle"></i> Security Issues</h4>
-                  <ul id="score-issues" style="list-style:none; padding:0; font-size:14px; color:var(--text-muted);"></ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Result Cards Grid -->
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:24px; margin-bottom:32px;">
-            <div id="result-url-rep" class="glass-card">
-              <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                <h3><i class="fas fa-shield-virus" style="color:var(--neon-cyan);"></i> AI Reputation</h3>
-                <span class="result-status badge badge-info">--</span>
-              </div>
-              <p class="result-detail" style="font-size:14px; color:var(--text-muted);"></p>
-            </div>
-            
-            <div id="result-ssl" class="glass-card">
-              <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                <h3><i class="fas fa-lock" style="color:var(--neon-green);"></i> SSL/TLS Security</h3>
-                <span class="result-status badge badge-info">--</span>
-              </div>
-              <p class="result-detail" style="font-size:14px; color:var(--text-muted);"></p>
-            </div>
-
-            <div id="result-domain" class="glass-card">
-              <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                <h3><i class="fas fa-globe" style="color:var(--neon-purple);"></i> Domain Info</h3>
-                <span class="result-status badge badge-info">--</span>
-              </div>
-              <p class="result-detail" style="font-size:14px; color:var(--text-muted);"></p>
-            </div>
-
-            <div id="result-headers" class="glass-card">
-              <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                <h3><i class="fas fa-heading" style="color:var(--neon-cyan);"></i> Security Headers</h3>
-                <span class="result-status badge badge-info">--</span>
-              </div>
-              <p class="result-detail" style="font-size:14px; color:var(--text-muted);"></p>
-            </div>
-
-            <div id="result-phishing" class="glass-card">
-              <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                <h3><i class="fas fa-fish" style="color:var(--neon-red);"></i> Phishing Check</h3>
-                <span class="result-status badge badge-info">--</span>
-              </div>
-              <p class="result-detail" style="font-size:14px; color:var(--text-muted);"></p>
-            </div>
-
-            <div id="result-server" class="glass-card">
-              <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                <h3><i class="fas fa-server" style="color:var(--neon-amber);"></i> Server Config</h3>
-                <span class="result-status badge badge-info">--</span>
-              </div>
-              <p class="result-detail" style="font-size:14px; color:var(--text-muted);"></p>
-            </div>
-          </div>
-
-          <!-- Domain Info & Headers Tables -->
-          <div style="display:grid; grid-template-columns:1fr 2fr; gap:24px; margin-bottom:32px;">
-            <div class="glass-card">
-              <h3 style="margin-bottom:16px;">Target Details</h3>
-              <div style="font-size:14px; line-height:2.4;">
-                <div><strong>Domain:</strong> <span id="info-domain" style="float:right; color:var(--text-muted);">--</span></div>
-                <div><strong>IP Address:</strong> <span id="info-ip" style="float:right; color:var(--text-muted);">--</span></div>
-                <div><strong>Protocol:</strong> <span id="info-protocol" style="float:right; color:var(--text-muted);">--</span></div>
-                <div style="border-top:1px solid var(--border-glass); margin-top:8px; padding-top:8px;">
-                  <strong>Redirects:</strong>
-                  <div id="info-redirects" style="color:var(--text-muted); word-break:break-all;">--</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="glass-card">
-              <h3 style="margin-bottom:16px;">Security Headers Audit</h3>
-              <div class="table-responsive">
-                <table class="cyber-table">
-                  <thead>
-                    <tr>
-                      <th>Header Name</th>
-                      <th>Status</th>
-                      <th>Recommendation</th>
-                    </tr>
-                  </thead>
-                  <tbody id="headers-table-body">
-                    <!-- Populated by JS -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- Vulnerabilities & Recommendations -->
-          <div class="glass-card" style="margin-bottom:32px;">
-            <h3 style="margin-bottom:16px; color:var(--neon-red);"><i class="fas fa-bug"></i> Vulnerabilities Detected</h3>
-            <div id="vuln-list"></div>
-          </div>
-
-          <div class="glass-card">
-            <h3 style="margin-bottom:16px; color:var(--neon-cyan);"><i class="fas fa-lightbulb"></i> Security Recommendations</h3>
-            <ul id="rec-list" style="list-style:none; padding:0; font-size:14px; color:var(--text-muted); display:flex; flex-direction:column; gap:10px;"></ul>
-          </div>
-          
-        </section>
-
-      </main>
-    </div>
+      </div>
+    </main>
   </div>
+</div>
 
-  <script src="/js/app.js"></script>
-  <script src="/js/scanner.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/scanner.js"></script>
 </body>
 </html>

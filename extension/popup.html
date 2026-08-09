@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <div class="logo"></div>
+    <div class="brand">CyberShield AI</div>
+    <div class="status-dot"></div>
+  </div>
+
+  <div class="main-content">
+    <div class="url-display" id="current-url">Loading...</div>
+    
+    <div class="score-card" id="score-card">
+      <div class="score-circle">
+        <svg viewBox="0 0 100 100">
+          <circle class="bg" cx="50" cy="50" r="40"></circle>
+          <circle class="progress" id="score-progress" cx="50" cy="50" r="40"></circle>
+        </svg>
+        <div class="score-text" id="score-text">--</div>
+      </div>
+      <div class="verdict" id="verdict-text">Analyzing</div>
+    </div>
+
+    <div class="checks">
+      <div class="check-row">
+        <span>HTTPS Connection</span>
+        <span id="chk-https" class="chk-pending">...</span>
+      </div>
+      <div class="check-row">
+        <span>AI Threat Analysis</span>
+        <span id="chk-ai" class="chk-pending">...</span>
+      </div>
+      <div class="check-row">
+        <span>Confidence</span>
+        <span id="chk-conf" class="chk-pending">...</span>
+      </div>
+    </div>
+    
+    <div class="loading-overlay" id="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button id="btn-report" class="btn">View Full Report</button>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

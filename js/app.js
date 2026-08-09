@@ -67,6 +67,14 @@ function setUser(user, remember = false) {
   }
 }
 
+// Authentication Guard
+function requireAuth() {
+  const token = getToken();
+  if (!token) {
+    window.location.href = 'login.html';
+  }
+}
+
 // Global API Fetch Helper
 async function apiRequest(endpoint, method = 'GET', body = null) {
   const headers = { 'Content-Type': 'application/json' };
@@ -106,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sidebarUser && !document.querySelector('.dev-credit-tag')) {
     const devTag = document.createElement('div');
     devTag.className = 'dev-credit-tag';
-    devTag.style.cssText = 'font-size: 11px; color: var(--neon-cyan); margin-top: 10px; padding: 6px 10px; background: rgba(0,240,255,0.08); border-radius: 6px; border: 1px solid rgba(0,240,255,0.2); width: 100%; text-align: center; font-weight: 500;';
+    devTag.style.cssText = 'font-size: 11px; color: var(--cyan); margin-top: 10px; padding: 6px 10px; background: rgba(0,212,255,0.08); border-radius: 6px; border: 1px solid rgba(0,212,255,0.2); width: 100%; text-align: center; font-weight: 500;';
     devTag.innerHTML = '<i class="fas fa-shield-halved"></i> Architect: <strong>Vishva</strong>';
     sidebarUser.parentNode.insertBefore(devTag, sidebarUser.nextSibling);
   }
@@ -184,10 +192,10 @@ function initCyberBotAI() {
   modal.innerHTML = `
     <div class="cyberbot-header">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <i class="fas fa-brain" style="color: var(--neon-cyan); font-size: 20px;"></i>
+        <i class="fas fa-brain" style="color: var(--cyan); font-size: 20px;"></i>
         <div>
           <h4 style="font-size: 14px; font-weight: 700; margin: 0;">CyberBot AI Security Advisor</h4>
-          <span style="font-size: 11px; color: var(--neon-green);">● Online | Created by Vishva</span>
+          <span style="font-size: 11px; color: var(--green);">● Online | Created by Vishva</span>
         </div>
       </div>
       <button id="cyberbot-close" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;"><i class="fas fa-times"></i></button>

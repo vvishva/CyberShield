@@ -1,100 +1,85 @@
 /**
- * CyberShield - Administrator Panel Controller
+ * CyberShield AI — Admin Panel Logic
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadAdminUsers();
-  loadAdminLogs();
-
-  const tipForm = document.getElementById('admin-tip-form');
-  if (tipForm) {
-    tipForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const title = document.getElementById('tip-title').value.trim();
-      const category = document.getElementById('tip-category').value;
-      const content = document.getElementById('tip-content').value.trim();
-      const severity = document.getElementById('tip-severity').value;
-
-      try {
-        await apiRequest('/tips', 'POST', { title, category, content, severity });
-        showToast('New Cyber Security Tip Published!', 'success');
-        tipForm.reset();
-      } catch (err) {
-        showToast('Published security tip.', 'success');
-        tipForm.reset();
+  requireAuth();
+  
+  // Basic client-side role check (backend validates for real)
+  const userStr = localStorage.getItem('cybershield_user') || sessionStorage.getItem('cybershield_user');
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      if (user.role === 'admin') {
+        document.getElementById('admin-content').style.display = 'block';
+        loadAdminData();
+      } else {
+        document.getElementById('not-admin-state').style.display = 'block';
       }
-    });
+    } catch(e) {}
   }
 });
 
-async function loadAdminUsers() {
-  const tbody = document.getElementById('admin-users-tbody');
-  if (!tbody) return;
+function logAudit(msg) {
+  const logBox = document.getElementById('audit-logs');
+  if (!logBox) return;
+  const time = new Date().toISOString().substring(11, 19);
+  logBox.innerHTML += `[${time}] ${msg}<br>`;
+  logBox.scrollTop = logBox.scrollHeight;
+}
 
+async function loadAdminData() {
+  logAudit('Fetching system users list...');
+  
   try {
+    // Attempt to load users via API
     const res = await apiRequest('/admin/users');
-    renderUsersTable(tbody, res.data || []);
-  } catch (e) {
-    renderUsersTable(tbody, [
-      { _id: 'usr_admin', username: 'CyberAdmin', email: 'admin@cybershield.io', role: 'admin', createdAt: new Date() },
-      { _id: 'usr_analyst1', username: 'SecAnalyst_Dave', email: 'dave@sec.org', role: 'user', createdAt: new Date(Date.now() - 86400000) }
-    ]);
-  }
-}
-
-function renderUsersTable(container, users) {
-  container.innerHTML = users.map(u => `
-    <tr>
-      <td><strong style="color: var(--neon-cyan);">${u.username}</strong></td>
-      <td>${u.email}</td>
-      <td><span class="badge ${u.role === 'admin' ? 'badge-danger' : 'badge-safe'}">${u.role.toUpperCase()}</span></td>
-      <td>${new Date(u.createdAt || Date.now()).toLocaleDateString()}</td>
-      <td>
-        <button class="btn btn-danger" style="padding: 4px 10px; font-size: 12px;" onclick="deleteUserRow('${u._id}')">
-          <i class="fas fa-trash"></i> Delete
-        </button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-async function deleteUserRow(userId) {
-  if (confirm('Are you sure you want to revoke access and delete this user?')) {
-    try {
-      await apiRequest(`/admin/users/${userId}`, 'DELETE');
-      showToast('User account revoked.', 'success');
-      loadAdminUsers();
-    } catch (e) {
-      showToast('Offline Mode: User deleted.', 'success');
-      loadAdminUsers();
+    
+    // Attempt to load total scans
+    const statRes = await apiRequest('/scan/stats');
+    if (statRes.success && statRes.data) {
+      document.getElementById('adm-scans-count').textContent = (statRes.data.totalScans || 0).toLocaleString();
     }
+    
+    if (res.success && res.data) {
+      const users = res.data;
+      document.getElementById('adm-users-count').textContent = users.length;
+      
+      const tbody = document.getElementById('admin-users-body');
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">${u._id}</td>
+          <td><strong style="color:var(--text-primary);">${escapeHtml(u.username)}</strong></td>
+          <td>${escapeHtml(u.email)}</td>
+          <td>
+            <span class="badge ${u.role === 'admin' ? 'badge-purple' : 'badge-info'}">
+              ${u.role.toUpperCase()}
+            </span>
+          </td>
+          <td style="font-size:12px; color:var(--text-muted);">
+            ${new Date(u.createdAt).toLocaleDateString()}
+          </td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="showToast('Manage user ${u.username}', 'info')">
+              <i class="fas fa-cog"></i>
+            </button>
+            ${u.role !== 'admin' ? `
+            <button class="btn btn-danger btn-sm" onclick="showToast('Delete not permitted in demo', 'warning')">
+              <i class="fas fa-trash"></i>
+            </button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+      
+      logAudit(`Loaded ${users.length} registered users successfully.`);
+    } else {
+      throw new Error(res.error || 'Admin API access denied');
+    }
+  } catch(err) {
+    console.error(err);
+    document.getElementById('admin-users-body').innerHTML = `
+      <tr><td colspan="6" class="error-state"><i class="fas fa-exclamation-triangle"></i> Failed to load user data: ${err.message}</td></tr>
+    `;
+    logAudit(`<span style="color:var(--red);">[ERROR] ${err.message}</span>`);
   }
-}
-
-async function loadAdminLogs() {
-  const tbody = document.getElementById('admin-logs-tbody');
-  if (!tbody) return;
-
-  try {
-    const res = await apiRequest('/admin/logs');
-    renderLogsTable(tbody, res.data || []);
-  } catch (e) {
-    renderLogsTable(tbody, [
-      { action: 'ADMIN_LOGIN', username: 'CyberAdmin', details: 'Admin console access granted', ipAddress: '192.168.1.1', status: 'SUCCESS', createdAt: new Date() },
-      { action: 'URL_SCAN', username: 'SecAnalyst_Dave', details: 'Scanned http://phish-test.com', ipAddress: '10.0.0.12', status: 'WARNING', createdAt: new Date(Date.now() - 3600000) }
-    ]);
-  }
-}
-
-function renderLogsTable(container, logs) {
-  container.innerHTML = logs.map(l => `
-    <tr>
-      <td>${new Date(l.createdAt || Date.now()).toLocaleTimeString()}</td>
-      <td><strong style="color: var(--neon-cyan);">${l.username || 'Anonymous'}</strong></td>
-      <td>${l.action}</td>
-      <td style="font-size: 13px; color: var(--text-muted);">${l.details}</td>
-      <td>${l.ipAddress || '127.0.0.1'}</td>
-      <td><span class="badge ${l.status === 'SUCCESS' ? 'badge-safe' : 'badge-warning'}">${l.status}</span></td>
-    </tr>
-  `).join('');
 }

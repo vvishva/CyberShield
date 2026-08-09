@@ -73,6 +73,20 @@ exports.scanUrl = async (req, res, next) => {
       });
     } catch (e) {}
 
+    // Broadcast live SSE event to connected dashboard clients
+    try {
+      const evRouter = require('../routes/events');
+      if (evRouter.broadcast) {
+        evRouter.broadcast({
+          type:      'scan_complete',
+          target:    url,
+          status:    aiResult.status,
+          riskScore: aiResult.riskPercentage,
+          timestamp: new Date()
+        });
+      }
+    } catch (e) {}
+
     res.status(200).json({
       success: true,
       data: {

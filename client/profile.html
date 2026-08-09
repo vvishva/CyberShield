@@ -3,84 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Profile & Settings – CyberShield AI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>Profile & Settings — CyberShield AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=3.0">
+  <link rel="stylesheet" href="/css/style.css?v=5.0">
 </head>
 <body>
-  <div class="app-container">
-    <aside class="sidebar" id="main-sidebar">
-      <div class="sidebar-logo">
-        <i class="fas fa-shield-halved"></i>
-        <h2>CyberShield AI</h2>
+<div class="app-container">
+  <aside class="sidebar" id="main-sidebar">
+    <div class="sidebar-logo"><i class="fas fa-shield-halved"></i><h2>CyberShield AI</h2></div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">MONITORING</li>
+      <li><a href="dashboard.html"><i class="fas fa-gauge-high"></i><span>Dashboard</span></a></li>
+      <li><a href="monitor.html"><i class="fas fa-radar"></i><span>Auto Monitoring</span></a></li>
+      <li class="nav-section-label">SECURITY TOOLS</li>
+      <li><a href="scanner.html"><i class="fas fa-shield-virus"></i><span>Security Scanners</span></a></li>
+      <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i><span>Threat Intelligence</span></a></li>
+      <li><a href="vulnerabilities.html"><i class="fas fa-bug"></i><span>Vulnerabilities</span></a></li>
+      <li><a href="password.html"><i class="fas fa-key"></i><span>Password Analyzer</span></a></li>
+      <li class="nav-section-label">REPORTS</li>
+      <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i><span>Scan History</span></a></li>
+      <li><a href="reports.html"><i class="fas fa-file-lines"></i><span>Audit Reports</span></a></li>
+      <li class="nav-section-label">ACCOUNT</li>
+      <li><a href="notifications.html"><i class="fas fa-bell"></i><span>Notifications</span></a></li>
+      <li class="active"><a href="profile.html"><i class="fas fa-user-cog"></i><span>Profile & Settings</span></a></li>
+      <li><a href="admin.html"><i class="fas fa-user-shield"></i><span>Admin Panel</span></a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><i class="fas fa-user"></i></div>
+        <div class="user-info"><div class="name" id="user-display-name">Analyst</div><div class="role" id="user-display-role">USER</div></div>
+        <a href="#" id="logout-btn" title="Logout"><i class="fas fa-power-off"></i></a>
       </div>
-      <ul class="sidebar-nav">
-        <li class="nav-section-label">MONITORING</li>
-        <li><a href="dashboard.html"><i class="fas fa-gauge-high"></i> <span>Dashboard</span></a></li>
-        <li class="nav-section-label">SECURITY TOOLS</li>
-        <li><a href="scanner.html"><i class="fas fa-shield-virus"></i> <span>Security Scanners</span></a></li>
-        <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i> <span>Threat Intelligence</span></a></li>
-        <li><a href="password.html"><i class="fas fa-key"></i> <span>Password Analyzer</span></a></li>
-        <li class="nav-section-label">REPORTS</li>
-        <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i> <span>Scan History</span></a></li>
-        <li><a href="reports.html"><i class="fas fa-file-lines"></i> <span>Audit Reports</span></a></li>
-        <li class="nav-section-label">ACCOUNT</li>
-        <li><a href="notifications.html"><i class="fas fa-bell"></i> <span>Notifications</span></a></li>
-        <li class="active"><a href="profile.html"><i class="fas fa-user-cog"></i> <span>Profile & Settings</span></a></li>
-        <li><a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
-      </ul>
-    </aside>
-
-    <div class="main-wrapper">
-      <header class="topbar">
-        <div class="topbar-left" style="display:flex; align-items:center; gap:16px;">
-          <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
-          <div class="topbar-title">
-            <h1 style="margin:0;">Profile & Settings</h1>
-          </div>
-        </div>
-      </header>
-
-      <main class="content-body">
-        
-        <div style="max-width:600px; margin:0 auto;">
-          <div class="glass-card" style="margin-bottom:32px;">
-            <div style="display:flex; align-items:center; gap:24px; margin-bottom:32px;">
-              <div style="width:80px; height:80px; border-radius:50%; background:rgba(0,240,255,0.1); border:2px solid var(--neon-cyan); display:flex; align-items:center; justify-content:center; font-size:32px; color:var(--neon-cyan);">
-                <i class="fas fa-user"></i>
-              </div>
-              <div>
-                <h2 id="profile-name" style="margin-bottom:4px;">User Account</h2>
-                <p id="profile-email" style="color:var(--text-muted); font-size:14px;">user@example.com</p>
-                <span class="badge badge-info" style="margin-top:8px;">Active</span>
-              </div>
-            </div>
-
-            <form id="profile-form">
-              <div class="form-group">
-                <label>Username</label>
-                <input type="text" class="form-control" id="edit-username" value="Analyst">
-              </div>
-              <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" class="form-control" id="edit-email" value="user@example.com" disabled>
-                <small style="color:var(--text-dim); font-size:12px; margin-top:4px; display:block;">Email address cannot be changed.</small>
-              </div>
-              <div class="form-group">
-                <label>New Password</label>
-                <input type="password" class="form-control" placeholder="Leave blank to keep current">
-              </div>
-              <button type="button" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save Changes</button>
-            </form>
-          </div>
-        </div>
-
-      </main>
     </div>
-  </div>
+  </aside>
 
-  <script src="/js/app.js"></script>
+  <div class="main-wrapper">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title"><h1>Analyst Profile</h1></div>
+      </div>
+    </header>
+
+    <main class="content-body" style="max-width:800px; margin:0 auto;">
+      
+      <div class="glass-card" style="display:flex; align-items:center; gap:32px; padding:40px; margin-bottom:24px;">
+        <div style="width:100px; height:100px; border-radius:50%; background:var(--cyan); display:flex; align-items:center; justify-content:center; font-size:40px; color:#000; font-weight:800;" id="prof-initial">A</div>
+        <div>
+          <h2 style="font-size:24px; font-weight:800; margin-bottom:8px; color:var(--text-primary);" id="prof-name">Analyst</h2>
+          <p style="color:var(--text-secondary); margin-bottom:12px;" id="prof-email">user@cybershield.ai</p>
+          <span class="badge badge-info" id="prof-role">User Clearance</span>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <h3 style="font-size:16px; margin-bottom:24px; border-bottom:1px solid var(--border-subtle); padding-bottom:12px;">Account Settings</h3>
+        
+        <form id="profile-form">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
+            <div>
+              <label style="display:block; margin-bottom:8px; font-size:13px; color:var(--text-secondary);">Username</label>
+              <input type="text" class="form-control" id="prof-input-name" disabled>
+            </div>
+            <div>
+              <label style="display:block; margin-bottom:8px; font-size:13px; color:var(--text-secondary);">Email</label>
+              <input type="email" class="form-control" id="prof-input-email" disabled>
+            </div>
+          </div>
+          
+          <h3 style="font-size:16px; margin:32px 0 24px; border-bottom:1px solid var(--border-subtle); padding-bottom:12px;">Security Preferences</h3>
+          
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; padding:16px; background:rgba(255,255,255,0.02); border-radius:8px;">
+            <div>
+              <h4 style="font-size:14px; margin-bottom:4px;">Two-Factor Authentication</h4>
+              <p style="font-size:12px; color:var(--text-muted); margin:0;">Add an extra layer of security to your account</p>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="showToast('2FA setup sent to email.', 'info')">Enable</button>
+          </div>
+          
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; padding:16px; background:rgba(255,255,255,0.02); border-radius:8px;">
+            <div>
+              <h4 style="font-size:14px; margin-bottom:4px;">Threat Alert Notifications</h4>
+              <p style="font-size:12px; color:var(--text-muted); margin:0;">Receive emails when auto-monitoring detects critical issues</p>
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" checked> <span style="font-size:13px;">Active</span>
+            </label>
+          </div>
+          
+          <div style="text-align:right;">
+            <button type="button" class="btn btn-primary" onclick="showToast('Settings saved', 'success')">Save Changes</button>
+          </div>
+        </form>
+      </div>
+      
+    </main>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    requireAuth();
+    const userStr = localStorage.getItem('cybershield_user') || sessionStorage.getItem('cybershield_user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      document.getElementById('prof-name').textContent = user.username;
+      document.getElementById('prof-email').textContent = user.email;
+      document.getElementById('prof-initial').textContent = user.username.charAt(0).toUpperCase();
+      document.getElementById('prof-role').textContent = user.role.toUpperCase() + ' Clearance';
+      
+      document.getElementById('prof-input-name').value = user.username;
+      document.getElementById('prof-input-email').value = user.email;
+    }
+  });
+</script>
 </body>
 </html>

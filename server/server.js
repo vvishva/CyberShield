@@ -55,6 +55,22 @@ app.use('/api/user', require('../routes/user'));
 app.use('/api/admin', require('../routes/admin'));
 app.use('/api/tips', require('../routes/tip'));
 
+// ── New feature routes ──────────────────────────────────────────────────────
+const eventsRouter  = require('../routes/events');
+const monitorRouter = require('../routes/monitor');
+
+app.use('/api/events',  eventsRouter);
+app.use('/api/monitor', monitorRouter);
+app.post('/api/scan/extension', require('../controllers/extensionController').extensionScan);
+
+// ── Background monitoring scheduler ────────────────────────────────────────
+const { startScheduler } = require('../utils/scheduler');
+try {
+  startScheduler(eventsRouter);
+} catch (e) {
+  console.warn('[CyberShield] Scheduler init warning:', e.message);
+}
+
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({

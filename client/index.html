@@ -3,352 +3,308 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CyberShield AI – Enterprise Web Security & Threat Intelligence Platform</title>
-  <meta name="description" content="CyberShield AI is an enterprise-grade cybersecurity platform for AI-powered URL threat detection, SSL auditing, password analysis, and real-time security monitoring.">
+  <title>CyberShield AI — Professional Web Security & Threat Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=4.0">
+  <link rel="stylesheet" href="/css/style.css?v=5.0">
   <style>
-    /* ── Landing-only overrides ─────────────────────────── */
-    body { background: #08090e; font-family: 'Inter', sans-serif; color: #f0f4f8; margin: 0; padding: 0; overflow-x: hidden; }
-
-    /* animated grid bg */
-    body::before {
-      content: '';
-      position: fixed; inset: 0; z-index: 0;
-      background-image:
-        linear-gradient(rgba(0,240,255,.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,240,255,.04) 1px, transparent 1px);
-      background-size: 50px 50px;
-      pointer-events: none;
+    /* Landing page specific overrides */
+    body { background: #080b14; overflow-x: hidden; }
+    
+    .landing-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 48px;
+      background: rgba(8, 11, 20, 0.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      z-index: 1000;
     }
-
-    /* glow orbs */
-    .orb { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; }
-    .orb-1 { width: 500px; height: 500px; background: rgba(0,240,255,.07); top: -150px; right: -100px; }
-    .orb-2 { width: 400px; height: 400px; background: rgba(138,43,226,.07); bottom: 0; left: -100px; }
-
-    nav {
-      position: sticky; top: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 18px 60px;
-      background: rgba(8,9,14,.85);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(0,240,255,.12);
+    .landing-nav-links { display: flex; gap: 32px; }
+    .landing-nav-links a { color: var(--text-secondary); font-weight: 500; font-size: 14px; }
+    .landing-nav-links a:hover { color: var(--cyan); }
+    
+    .landing-actions { display: flex; gap: 16px; align-items: center; }
+    
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image: radial-gradient(circle at 50% 30%, rgba(0, 212, 255, 0.15) 0%, transparent 60%);
     }
-    .nav-logo { display: flex; align-items: center; gap: 12px; }
-    .nav-logo i { font-size: 28px; color: #00f0ff; filter: drop-shadow(0 0 10px #00f0ff); }
-    .nav-logo span { font-size: 20px; font-weight: 800; background: linear-gradient(90deg, #fff, #00f0ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .nav-links { display: flex; gap: 32px; }
-    .nav-links a { color: #8e9bb0; font-size: 14px; text-decoration: none; transition: color .2s; }
-    .nav-links a:hover { color: #00f0ff; }
-    .nav-actions { display: flex; gap: 12px; }
-
-    .hero {
-      position: relative; z-index: 1;
-      min-height: 90vh; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center; padding: 80px 24px 60px;
+    #hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.6; }
+    
+    .hero-content {
+      position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center;
+      max-width: 800px; margin: 0 auto; padding-top: 140px; min-height: 80vh;
     }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(0,240,255,.08); border: 1px solid rgba(0,240,255,.25);
-      border-radius: 50px; padding: 8px 20px; font-size: 13px; color: #00f0ff; margin-bottom: 28px;
-    }
-    .pulse { width: 8px; height: 8px; border-radius: 50%; background: #00f0ff; animation: pulse 1.5s ease-in-out infinite; display: inline-block; }
-    @keyframes pulse { 0%,100%{ box-shadow: 0 0 0 0 rgba(0,240,255,.6); } 50%{ box-shadow: 0 0 0 8px rgba(0,240,255,0); } }
-
-    .hero h1 {
-      font-size: clamp(2.4rem, 5vw, 4rem);
-      font-weight: 900; line-height: 1.15; margin: 0 0 24px;
-      background: linear-gradient(135deg, #ffffff 40%, #00f0ff 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      max-width: 800px;
-    }
-    .hero p { font-size: 18px; color: #8e9bb0; max-width: 600px; line-height: 1.7; margin: 0 0 40px; }
-    .hero-buttons { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 60px; }
-    .hero-credit { font-size: 13px; color: #5c687e; }
-    .hero-credit strong { color: #00f0ff; }
-
-    /* Stats bar */
+    
     .stats-bar {
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(255,255,255,0.02);
+      padding: 32px 0;
       position: relative; z-index: 1;
-      display: flex; justify-content: center; gap: 0;
-      border-top: 1px solid rgba(0,240,255,.1);
-      border-bottom: 1px solid rgba(0,240,255,.1);
-      background: rgba(255,255,255,.02);
     }
-    .stat-item {
-      padding: 28px 48px; text-align: center;
-      border-right: 1px solid rgba(0,240,255,.1);
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); max-width: 1200px; margin: 0 auto; padding: 0 24px; text-align: center;
     }
-    .stat-item:last-child { border-right: none; }
-    .stat-item h3 { font-size: 2rem; font-weight: 800; color: #00f0ff; margin: 0 0 4px; }
-    .stat-item p { font-size: 13px; color: #8e9bb0; margin: 0; }
-
-    /* Capabilities */
-    .section { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 80px 24px; }
-    .section-header { text-align: center; margin-bottom: 56px; }
-    .section-header h2 { font-size: 2.2rem; font-weight: 800; margin: 0 0 12px; }
-    .section-header p { color: #8e9bb0; font-size: 16px; }
-    .section-tag { display: inline-block; background: rgba(0,240,255,.08); border: 1px solid rgba(0,240,255,.2); color: #00f0ff; padding: 4px 14px; border-radius: 50px; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
-
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
-    .cap-card {
-      background: rgba(15,20,36,.75); border: 1px solid rgba(0,240,255,.12);
-      border-radius: 16px; padding: 32px;
-      transition: border-color .25s, transform .25s, box-shadow .25s;
-    }
-    .cap-card:hover { border-color: rgba(0,240,255,.35); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,.4); }
-    .cap-icon { width: 54px; height: 54px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 20px; }
-    .cap-card h3 { font-size: 17px; font-weight: 700; margin: 0 0 10px; }
-    .cap-card p { font-size: 14px; color: #8e9bb0; line-height: 1.65; margin: 0 0 20px; }
-    .cap-link { font-size: 13px; color: #00f0ff; text-decoration: none; font-weight: 600; }
-    .cap-link i { margin-left: 4px; font-size: 11px; transition: transform .2s; }
-    .cap-link:hover i { transform: translateX(4px); }
-
-    /* How it works */
-    .steps-row { display: flex; gap: 0; }
-    .step-item { flex: 1; padding: 40px 32px; text-align: center; border-right: 1px solid rgba(0,240,255,.1); position: relative; }
-    .step-item:last-child { border-right: none; }
-    .step-num { font-size: 3.5rem; font-weight: 900; color: rgba(0,240,255,.15); line-height: 1; margin-bottom: 16px; }
-    .step-item h3 { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
-    .step-item p { font-size: 13px; color: #8e9bb0; margin: 0; }
-
-    /* CTA */
-    .cta-section {
-      position: relative; z-index: 1;
-      text-align: center; padding: 80px 24px;
-      background: linear-gradient(135deg, rgba(0,240,255,.05) 0%, rgba(138,43,226,.05) 100%);
-      border-top: 1px solid rgba(0,240,255,.1);
-    }
-    .cta-section h2 { font-size: 2.4rem; font-weight: 800; margin: 0 0 16px; }
-    .cta-section p { color: #8e9bb0; font-size: 16px; margin: 0 0 32px; }
-
-    footer {
-      position: relative; z-index: 1;
-      padding: 48px 60px 32px;
-      border-top: 1px solid rgba(255,255,255,.06);
-    }
-    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 48px; margin-bottom: 40px; }
-    .footer-brand p { color: #5c687e; font-size: 14px; line-height: 1.7; margin: 16px 0; }
-    .footer-col h4 { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #5c687e; margin: 0 0 16px; }
-    .footer-col a { display: block; color: #8e9bb0; text-decoration: none; font-size: 14px; margin-bottom: 10px; transition: color .2s; }
-    .footer-col a:hover { color: #00f0ff; }
-    .footer-bottom { text-align: center; font-size: 13px; color: #5c687e; border-top: 1px solid rgba(255,255,255,.05); padding-top: 24px; }
-    .footer-bottom strong { color: #00f0ff; }
-
-    /* btn overrides for landing */
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; text-decoration: none; cursor: pointer; border: none; transition: all .2s; }
-    .btn-primary { background: linear-gradient(135deg, #00f0ff, #0099cc); color: #000; }
-    .btn-primary:hover { box-shadow: 0 6px 24px rgba(0,240,255,.35); transform: translateY(-2px); }
-    .btn-secondary { background: rgba(255,255,255,.06); color: #fff; border: 1px solid rgba(255,255,255,.15); }
-    .btn-secondary:hover { border-color: #00f0ff; color: #00f0ff; }
-    .btn-lg { padding: 16px 36px; font-size: 16px; }
-
-    @media (max-width: 768px) {
-      nav { padding: 16px 20px; }
-      .nav-links { display: none; }
-      .stats-bar { flex-direction: column; }
-      .stat-item { border-right: none; border-bottom: 1px solid rgba(0,240,255,.1); }
-      .steps-row { flex-direction: column; }
-      .step-item { border-right: none; border-bottom: 1px solid rgba(0,240,255,.1); }
+    .stats-grid h3 { font-size: 32px; font-weight: 900; color: var(--text-primary); margin-bottom: 4px; }
+    .stats-grid p { color: var(--text-muted); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    
+    .section-title { text-align: center; margin-bottom: 56px; }
+    .section-title h2 { font-size: 32px; font-weight: 800; margin-bottom: 16px; }
+    .section-title p { color: var(--text-secondary); max-width: 600px; margin: 0 auto; font-size: 15px; }
+    
+    .capabilities { padding: 96px 24px; position: relative; z-index: 1; }
+    .cap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; }
+    
+    .how-it-works { background: #0d1117; padding: 96px 24px; border-top: 1px solid var(--border-subtle); position: relative; z-index: 1; }
+    .steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1200px; margin: 0 auto; }
+    .step-card { padding: 32px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); position: relative; }
+    .step-number { font-size: 48px; font-weight: 900; color: rgba(255,255,255,0.05); position: absolute; top: 16px; right: 24px; line-height: 1; }
+    .step-card h4 { font-size: 18px; font-weight: 700; margin: 16px 0 8px; color: var(--text-primary); }
+    .step-card p { font-size: 14px; color: var(--text-secondary); }
+    
+    .footer { border-top: 1px solid var(--border-subtle); padding: 64px 48px 32px; position: relative; z-index: 1; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 48px; max-width: 1200px; margin: 0 auto 48px; }
+    .footer-col h5 { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 24px; text-transform: uppercase; letter-spacing: 1px; }
+    .footer-col ul { list-style: none; padding: 0; }
+    .footer-col ul li { margin-bottom: 12px; }
+    .footer-col ul li a { color: var(--text-secondary); font-size: 14px; }
+    .footer-col ul li a:hover { color: var(--cyan); }
+    .footer-bottom { text-align: center; padding-top: 32px; border-top: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 13px; }
+    
+    @media (max-width: 992px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+      .steps-grid { grid-template-columns: repeat(2, 1fr); }
       .footer-grid { grid-template-columns: 1fr; }
-      footer { padding: 40px 24px 24px; }
+    }
+    @media (max-width: 768px) {
+      .landing-nav { padding: 16px 24px; }
+      .landing-nav-links { display: none; }
+      .hero-content { padding-top: 120px; }
+      .steps-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Background Orbs -->
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-
-  <!-- Navigation -->
-  <nav>
-    <div class="nav-logo">
+  <nav class="landing-nav">
+    <div class="sidebar-logo" style="border:none;padding:0;">
       <i class="fas fa-shield-halved"></i>
-      <span>CyberShield AI</span>
+      <h2 style="font-size:18px;">CyberShield AI</h2>
     </div>
-    <div class="nav-links">
-      <a href="#capabilities">Capabilities</a>
-      <a href="#how-it-works">How It Works</a>
+    <div class="landing-nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it Works</a>
       <a href="dashboard.html">Dashboard</a>
     </div>
-    <div class="nav-actions">
-      <a href="login.html" class="btn btn-secondary"><i class="fas fa-sign-in-alt"></i> Login</a>
-      <a href="register.html" class="btn btn-primary"><i class="fas fa-user-plus"></i> Register</a>
+    <div class="landing-actions" id="nav-auth-actions">
+      <a href="login.html" class="btn btn-secondary">Sign In</a>
+      <a href="register.html" class="btn btn-primary">Get Started</a>
     </div>
   </nav>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="hero-badge">
-      <span class="pulse"></span>
-      AI Shield — Active & Monitoring
-    </div>
+  <div class="hero-bg"></div>
+  <canvas id="hero-canvas"></canvas>
 
-    <h1>AI-Powered Web Security<br>& Threat Intelligence</h1>
-
-    <p>Protect your digital assets with intelligent website security analysis, real-time phishing detection, SSL auditing, and enterprise-grade threat intelligence powered by Machine Learning.</p>
-
-    <div class="hero-buttons">
-      <a href="scanner.html" class="btn btn-primary btn-lg"><i class="fas fa-shield-virus"></i> Scan a Website</a>
-      <a href="dashboard.html" class="btn btn-secondary btn-lg"><i class="fas fa-gauge-high"></i> Launch Dashboard</a>
-    </div>
-
-    <div class="hero-credit">
-      Designed &amp; Engineered by <strong>Vishva</strong> — CSE Capstone 2026
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="developer-badge">
+        <span class="pulse-dot"></span> CyberShield AI Protection Active
+      </div>
+      <h1>Intelligent Security.<br>Continuous Protection.</h1>
+      <p>Protect your digital assets with enterprise-grade website security analysis, AI threat detection, vulnerability auditing, and real-time security monitoring.</p>
+      <div style="display:flex;gap:16px;margin-top:40px;flex-wrap:wrap;justify-content:center;">
+        <a href="scanner.html" class="btn btn-primary btn-lg"><i class="fas fa-radar"></i> Scan a Website</a>
+        <a href="dashboard.html" class="btn btn-secondary btn-lg"><i class="fas fa-gauge-high"></i> Launch SOC Dashboard</a>
+      </div>
+      <p style="margin-top:32px;font-size:12px;color:var(--text-muted);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Designed & Engineered by Vishva</p>
     </div>
   </section>
 
-  <!-- Stats Bar -->
-  <div class="stats-bar">
-    <div class="stat-item">
-      <h3>1,482+</h3>
-      <p>Scans Performed</p>
+  <section class="stats-bar">
+    <div class="stats-grid">
+      <div><h3>1,482+</h3><p>Scans Performed</p></div>
+      <div><h3>318</h3><p>Threats Blocked</p></div>
+      <div><h3>99.2%</h3><p>Detection Accuracy</p></div>
+      <div><h3>24/7</h3><p>Active Monitoring</p></div>
     </div>
-    <div class="stat-item">
-      <h3>318</h3>
-      <p>Threats Blocked</p>
+  </section>
+
+  <section class="capabilities" id="features">
+    <div class="section-title">
+      <h2>Enterprise Security Capabilities</h2>
+      <p>Comprehensive protection suite powered by advanced machine learning and real-time threat intelligence.</p>
     </div>
-    <div class="stat-item">
-      <h3>99.2%</h3>
-      <p>Detection Accuracy</p>
-    </div>
-    <div class="stat-item">
-      <h3>24/7</h3>
-      <p>Active Protection</p>
-    </div>
-  </div>
-
-  <!-- Capabilities -->
-  <section class="section" id="capabilities">
-    <div class="section-header">
-      <div class="section-tag">Platform Capabilities</div>
-      <h2>Enterprise Security Suite</h2>
-      <p>Every tool your SOC team needs, powered by AI</p>
-    </div>
-
-    <div class="cards-grid">
-      <div class="cap-card">
-        <div class="cap-icon" style="background:rgba(0,240,255,.1); color:#00f0ff;"><i class="fas fa-brain"></i></div>
-        <h3>AI URL Threat Detection</h3>
-        <p>Scikit-learn Random Forest classifier extracts 10 lexical URL features to detect phishing, malware, and suspicious domains in milliseconds.</p>
-        <a href="scanner.html" class="cap-link">Scan URL <i class="fas fa-arrow-right"></i></a>
+    <div class="cap-grid">
+      <div class="glass-card">
+        <div class="stat-icon cyan" style="margin-bottom:20px;"><i class="fas fa-brain"></i></div>
+        <h4 style="font-size:18px;margin-bottom:12px;color:var(--text-primary);">AI Threat Detection</h4>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Our ML models analyze URLs and domain characteristics to detect zero-day phishing attempts with high confidence.</p>
       </div>
-
-      <div class="cap-card">
-        <div class="cap-icon" style="background:rgba(0,255,157,.1); color:#00ff9d;"><i class="fas fa-lock"></i></div>
-        <h3>SSL/TLS Security Audit</h3>
-        <p>Validate certificate chains, detect expired certs, analyze HSTS headers, and check TLS version compliance against modern standards.</p>
-        <a href="scanner.html" class="cap-link">Audit Website <i class="fas fa-arrow-right"></i></a>
+      <div class="glass-card">
+        <div class="stat-icon green" style="margin-bottom:20px;"><i class="fas fa-lock"></i></div>
+        <h4 style="font-size:18px;margin-bottom:12px;color:var(--text-primary);">SSL/TLS Security Audit</h4>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Deep inspection of cryptographic protocols, certificate chains, and potential vulnerabilities in transport layer security.</p>
       </div>
-
-      <div class="cap-card">
-        <div class="cap-icon" style="background:rgba(138,43,226,.1); color:#8a2be2;"><i class="fas fa-shield-halved"></i></div>
-        <h3>Security Header Analysis</h3>
-        <p>Evaluate CSP, X-Frame-Options, HSTS, Referrer-Policy, and 6 other critical HTTP security headers with weighted scoring.</p>
-        <a href="scanner.html" class="cap-link">Check Headers <i class="fas fa-arrow-right"></i></a>
+      <div class="glass-card">
+        <div class="stat-icon purple" style="margin-bottom:20px;"><i class="fas fa-shield-halved"></i></div>
+        <h4 style="font-size:18px;margin-bottom:12px;color:var(--text-primary);">Security Header Analysis</h4>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Automated auditing of CSP, HSTS, X-Frame-Options and other critical HTTP security headers.</p>
       </div>
-
-      <div class="cap-card">
-        <div class="cap-icon" style="background:rgba(255,183,0,.1); color:#ffb700;"><i class="fas fa-key"></i></div>
-        <h3>Password Entropy Analyzer</h3>
-        <p>Client-side entropy calculation, brute-force time estimation, criteria scoring, and a cryptographically secure password generator.</p>
-        <a href="password.html" class="cap-link">Analyze Password <i class="fas fa-arrow-right"></i></a>
+      <div class="glass-card">
+        <div class="stat-icon amber" style="margin-bottom:20px;"><i class="fas fa-key"></i></div>
+        <h4 style="font-size:18px;margin-bottom:12px;color:var(--text-primary);">Password Security Analyzer</h4>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Evaluate password strength and check against known data breaches using secure k-anonymity protocols.</p>
       </div>
-
-      <div class="cap-card">
-        <div class="cap-icon" style="background:rgba(255,0,85,.1); color:#ff0055;"><i class="fas fa-crosshairs"></i></div>
-        <h3>Threat Intelligence Feed</h3>
-        <p>Investigate suspicious IP addresses and domains against live OSINT threat feeds with ISP, geolocation, and abuse score data.</p>
-        <a href="threat-intelligence.html" class="cap-link">View Intel <i class="fas fa-arrow-right"></i></a>
+      <div class="glass-card">
+        <div class="stat-icon red" style="margin-bottom:20px;"><i class="fas fa-crosshairs"></i></div>
+        <h4 style="font-size:18px;margin-bottom:12px;color:var(--text-primary);">Threat Intelligence</h4>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Real-time cross-referencing with global threat databases to identify malicious IPs and known threat actors.</p>
       </div>
-
-      <div class="cap-card">
-        <div class="cap-icon" style="background:rgba(0,240,255,.1); color:#00f0ff;"><i class="fas fa-file-lines"></i></div>
-        <h3>Executive Audit Reports</h3>
-        <p>Generate branded PDF executive security audit reports with vulnerability findings, risk scores, and remediation recommendations.</p>
-        <a href="reports.html" class="cap-link">View Reports <i class="fas fa-arrow-right"></i></a>
+      <div class="glass-card">
+        <div class="stat-icon cyan" style="margin-bottom:20px;"><i class="fas fa-file-pdf"></i></div>
+        <h4 style="font-size:18px;margin-bottom:12px;color:var(--text-primary);">Professional Audits</h4>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Generate comprehensive, presentation-ready PDF reports detailing vulnerabilities and recommended mitigations.</p>
       </div>
     </div>
   </section>
 
-  <!-- How It Works -->
-  <section style="position:relative;z-index:1; background:rgba(255,255,255,.02); border-top:1px solid rgba(0,240,255,.08); border-bottom:1px solid rgba(0,240,255,.08);" id="how-it-works">
-    <div class="section" style="padding-top:60px;padding-bottom:60px;">
-      <div class="section-header">
-        <div class="section-tag">Process</div>
-        <h2>How CyberShield Works</h2>
-        <p>4-step AI-driven security analysis</p>
+  <section class="how-it-works" id="how-it-works">
+    <div class="section-title">
+      <h2>How CyberShield Works</h2>
+      <p>Our autonomous engine protects your environment in four seamless steps.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <div class="stat-icon cyan" style="width:36px;height:36px;font-size:14px;"><i class="fas fa-globe"></i></div>
+        <h4>Target Selection</h4>
+        <p>Enter any URL or domain for instant analysis, or configure the browser extension for continuous background monitoring.</p>
       </div>
-      <div class="steps-row">
-        <div class="step-item">
-          <div class="step-num">01</div>
-          <h3>Enter Target</h3>
-          <p>Provide a website URL, domain, or IP address to investigate</p>
-        </div>
-        <div class="step-item">
-          <div class="step-num">02</div>
-          <h3>AI Analysis</h3>
-          <p>Machine Learning model + live header checks run in parallel</p>
-        </div>
-        <div class="step-item">
-          <div class="step-num">03</div>
-          <h3>Threat Scoring</h3>
-          <p>Weighted 100-point security score with risk classification</p>
-        </div>
-        <div class="step-item">
-          <div class="step-num">04</div>
-          <h3>Full Report</h3>
-          <p>Detailed findings with actionable remediation steps</p>
-        </div>
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <div class="stat-icon purple" style="width:36px;height:36px;font-size:14px;"><i class="fas fa-microchip"></i></div>
+        <h4>Security Analysis</h4>
+        <p>The engine queries DNS, evaluates TLS configurations, and extracts security headers without executing dangerous payloads.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <div class="stat-icon amber" style="width:36px;height:36px;font-size:14px;"><i class="fas fa-brain"></i></div>
+        <h4>Threat Detection</h4>
+        <p>Extracted features are processed through our heuristic machine learning classifier to detect zero-day phishing.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">04</div>
+        <div class="stat-icon green" style="width:36px;height:36px;font-size:14px;"><i class="fas fa-file-lines"></i></div>
+        <h4>Intelligence Report</h4>
+        <p>Receive a detailed security score, specific vulnerability breakdowns, and actionable mitigation recommendations.</p>
       </div>
     </div>
   </section>
 
-  <!-- CTA -->
-  <div class="cta-section">
-    <h2>Start Securing Your Digital Assets</h2>
-    <p>Join security professionals using CyberShield AI to protect websites, detect threats, and generate compliance reports.</p>
-    <a href="register.html" class="btn btn-primary btn-lg"><i class="fas fa-rocket"></i> Get Started Free</a>
-  </div>
-
-  <!-- Footer -->
-  <footer>
+  <footer class="footer">
     <div class="footer-grid">
-      <div class="footer-brand">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <i class="fas fa-shield-halved" style="color:#00f0ff;font-size:22px;"></i>
-          <span style="font-size:18px;font-weight:800;background:linear-gradient(90deg,#fff,#00f0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">CyberShield AI</span>
+      <div class="footer-col">
+        <div class="sidebar-logo" style="border:none;padding:0;margin-bottom:20px;">
+          <i class="fas fa-shield-halved"></i><h2 style="font-size:18px;">CyberShield AI</h2>
         </div>
-        <p>Enterprise-grade AI cybersecurity platform for website security analysis, threat detection, and vulnerability auditing.</p>
-        <p style="color:#00f0ff;font-size:13px;">Designed &amp; Engineered by <strong>Vishva</strong> (CSE Capstone 2026)</p>
+        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:24px;max-width:300px;">Enterprise-grade web security and threat intelligence monitoring for modern digital environments.</p>
+        <p style="color:var(--text-muted);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Designed by Vishva (CSE Capstone 2026)</p>
       </div>
       <div class="footer-col">
-        <h4>Platform</h4>
-        <a href="dashboard.html">Dashboard</a>
-        <a href="scanner.html">Security Scanner</a>
-        <a href="threat-intelligence.html">Threat Intel</a>
-        <a href="password.html">Password Analyzer</a>
-        <a href="reports.html">Audit Reports</a>
+        <h5>Platform</h5>
+        <ul>
+          <li><a href="dashboard.html">SOC Dashboard</a></li>
+          <li><a href="scanner.html">Security Scanner</a></li>
+          <li><a href="threat-intelligence.html">Threat Intelligence</a></li>
+          <li><a href="password.html">Password Analyzer</a></li>
+        </ul>
       </div>
       <div class="footer-col">
-        <h4>Account</h4>
-        <a href="login.html">Login</a>
-        <a href="register.html">Register</a>
-        <a href="history.html">Scan History</a>
-        <a href="notifications.html">Notifications</a>
-        <a href="admin.html">Admin Panel</a>
+        <h5>Support</h5>
+        <ul>
+          <li><a href="#">Documentation</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Contact Engineering</a></li>
+        </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      © 2026 CyberShield AI — All rights reserved. Built by <strong>Vishva</strong> for CSE Final Year Capstone Project.
+      &copy; 2026 CyberShield AI Security Platform. All rights reserved.
     </div>
   </footer>
 
   <script src="/js/app.js"></script>
+  <script>
+    // Update auth buttons if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('cybershield_token') || sessionStorage.getItem('cybershield_token');
+      if (token) {
+        document.getElementById('nav-auth-actions').innerHTML = `
+          <a href="dashboard.html" class="btn btn-primary"><i class="fas fa-gauge-high"></i> Go to Dashboard</a>
+        `;
+      }
+    });
+
+    // Hero Canvas Animation
+    const canvas = document.getElementById('hero-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight * 0.8;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    
+    const particles = Array.from({ length: 40 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      size: Math.random() * 2 + 1
+    }));
+    
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 212, 255, 0.5)';
+        ctx.fill();
+      });
+      
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist < 150) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0, 212, 255, ${0.15 * (1 - dist / 150)})`;
+            ctx.lineWidth = 1;
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
 </body>
 </html>

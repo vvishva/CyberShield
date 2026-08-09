@@ -3,146 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Threat Intelligence – CyberShield AI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>Threat Intelligence — CyberShield AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=3.0">
+  <link rel="stylesheet" href="/css/style.css?v=5.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="app-container">
-    <aside class="sidebar" id="main-sidebar">
-      <div class="sidebar-logo">
-        <i class="fas fa-shield-halved"></i>
-        <h2>CyberShield AI</h2>
+<div class="app-container">
+  <aside class="sidebar" id="main-sidebar">
+    <div class="sidebar-logo"><i class="fas fa-shield-halved"></i><h2>CyberShield AI</h2></div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">MONITORING</li>
+      <li><a href="dashboard.html"><i class="fas fa-gauge-high"></i><span>Dashboard</span></a></li>
+      <li><a href="monitor.html"><i class="fas fa-radar"></i><span>Auto Monitoring</span></a></li>
+      <li class="nav-section-label">SECURITY TOOLS</li>
+      <li><a href="scanner.html"><i class="fas fa-shield-virus"></i><span>Security Scanners</span></a></li>
+      <li class="active"><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i><span>Threat Intelligence</span></a></li>
+      <li><a href="vulnerabilities.html"><i class="fas fa-bug"></i><span>Vulnerabilities</span></a></li>
+      <li><a href="password.html"><i class="fas fa-key"></i><span>Password Analyzer</span></a></li>
+      <li class="nav-section-label">REPORTS</li>
+      <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i><span>Scan History</span></a></li>
+      <li><a href="reports.html"><i class="fas fa-file-lines"></i><span>Audit Reports</span></a></li>
+      <li class="nav-section-label">ACCOUNT</li>
+      <li><a href="notifications.html"><i class="fas fa-bell"></i><span>Notifications</span></a></li>
+      <li><a href="profile.html"><i class="fas fa-user-cog"></i><span>Profile & Settings</span></a></li>
+      <li><a href="admin.html"><i class="fas fa-user-shield"></i><span>Admin Panel</span></a></li>
+    </ul>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title"><h1>Threat Intelligence Center</h1></div>
       </div>
-      <ul class="sidebar-nav">
-        <li class="nav-section-label">MONITORING</li>
-        <li><a href="dashboard.html"><i class="fas fa-gauge-high"></i> <span>Dashboard</span></a></li>
-        <li class="nav-section-label">SECURITY TOOLS</li>
-        <li><a href="scanner.html"><i class="fas fa-shield-virus"></i> <span>Security Scanners</span></a></li>
-        <li class="active"><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i> <span>Threat Intelligence</span></a></li>
-        <li><a href="password.html"><i class="fas fa-key"></i> <span>Password Analyzer</span></a></li>
-        <li class="nav-section-label">REPORTS</li>
-        <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i> <span>Scan History</span></a></li>
-        <li><a href="reports.html"><i class="fas fa-file-lines"></i> <span>Audit Reports</span></a></li>
-        <li class="nav-section-label">ACCOUNT</li>
-        <li><a href="notifications.html"><i class="fas fa-bell"></i> <span>Notifications</span></a></li>
-        <li><a href="profile.html"><i class="fas fa-user-cog"></i> <span>Profile & Settings</span></a></li>
-        <li><a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
-      </ul>
-    </aside>
+    </header>
 
-    <div class="main-wrapper">
-      <header class="topbar">
-        <div class="topbar-left" style="display:flex; align-items:center; gap:16px;">
-          <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
-          <div class="topbar-title">
-            <h1 style="margin:0;">Threat Intelligence</h1>
-          </div>
+    <main class="content-body">
+      <!-- Search -->
+      <div class="glass-card" style="padding: 24px; text-align: center; background: url('https://www.transparenttextures.com/patterns/cubes.png'), var(--bg-card);">
+        <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 12px;">Global Threat Search</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;">Query real-time intelligence on domains, IPs, and file hashes.</p>
+        <div style="max-width: 600px; margin: 0 auto; display: flex; gap: 12px;">
+          <input type="text" class="form-control" id="ti-search-input" placeholder="Enter IP (e.g. 192.168.1.1) or Domain" style="flex: 1; padding: 12px 16px;">
+          <button class="btn btn-primary" id="ti-search-btn" style="padding: 0 24px;"><i class="fas fa-search"></i> Search</button>
         </div>
-      </header>
+      </div>
 
-      <main class="content-body">
-        
-        <div style="display:grid; grid-template-columns:1fr 2fr; gap:32px;">
-          
-          <!-- IP / Domain Lookup -->
-          <div class="glass-card" style="align-self:start;">
-            <h3 style="margin-bottom:16px;"><i class="fas fa-network-wired" style="color:var(--neon-purple);"></i> Indicator Lookup</h3>
-            <p style="color:var(--text-muted); font-size:13px; margin-bottom:24px;">Investigate suspicious IP addresses, domains, or file hashes against global threat intelligence databases.</p>
-            
-            <div class="search-box" style="width:100%; margin-bottom:16px;">
-              <input type="text" id="ioc-input" placeholder="Enter IP or Domain (e.g. 185.220.101.5)" style="width:100%; padding:14px 14px 14px 44px; font-size:14px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid var(--border-glass); color:#fff;">
-              <i class="fas fa-search" style="position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:16px;"></i>
-            </div>
-            
-            <button id="lookup-btn" class="btn btn-primary" style="width:100%;"><i class="fas fa-bolt"></i> Run Investigation</button>
-
-            <!-- Results container -->
-            <div id="ti-results" style="display:none; margin-top:24px; padding-top:24px; border-top:1px solid var(--border-glass);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h4 style="color:#fff;">Reputation Score</h4>
-                <span id="ti-badge" class="badge badge-danger">High Risk</span>
-              </div>
-              
-              <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:12px; font-size:13px; color:var(--text-muted);">
-                <li><strong>Target:</strong> <span id="ti-target" style="float:right; color:#fff;">--</span></li>
-                <li><strong>ISP/ASN:</strong> <span id="ti-isp" style="float:right; color:#fff;">--</span></li>
-                <li><strong>Location:</strong> <span id="ti-location" style="float:right; color:#fff;">--</span></li>
-                <li><strong>Abuse Reports:</strong> <span id="ti-reports" style="float:right; color:var(--neon-red); font-weight:bold;">--</span></li>
-              </ul>
-              
-              <div style="margin-top:24px; padding:12px; background:rgba(255,183,0,0.1); border:1px solid rgba(255,183,0,0.3); border-radius:8px;">
-                <p style="font-size:12px; color:var(--neon-amber);"><i class="fas fa-exclamation-triangle"></i> AI Note: This indicator has been associated with recent brute-force campaigns.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Threat Feed -->
-          <div class="glass-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-              <h3><i class="fas fa-satellite-dish" style="color:var(--neon-cyan);"></i> Global Threat Feed</h3>
-              <span class="badge badge-safe"><span class="pulse-dot" style="display:inline-block; margin-right:6px;"></span> LIVE</span>
-            </div>
-            
-            <div class="table-responsive">
-              <table class="cyber-table">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Threat Indicator</th>
-                    <th>Type</th>
-                    <th>Severity</th>
-                  </tr>
-                </thead>
-                <tbody id="threat-feed-body">
-                  <tr>
-                    <td style="color:var(--text-muted);">Just now</td>
-                    <td><strong>paypal-security-update-alert.com</strong></td>
-                    <td>Phishing</td>
-                    <td><span class="badge badge-critical">Critical</span></td>
-                  </tr>
-                  <tr>
-                    <td style="color:var(--text-muted);">2 mins ago</td>
-                    <td><strong>185.220.101.5</strong></td>
-                    <td>Malicious IP / Tor</td>
-                    <td><span class="badge badge-danger">High Risk</span></td>
-                  </tr>
-                  <tr>
-                    <td style="color:var(--text-muted);">15 mins ago</td>
-                    <td><strong>apple-id-verify.support</strong></td>
-                    <td>Brand Impersonation</td>
-                    <td><span class="badge badge-danger">High Risk</span></td>
-                  </tr>
-                  <tr>
-                    <td style="color:var(--text-muted);">1 hour ago</td>
-                    <td><strong>44d88612fea8a8f36de82e1278abb02f</strong></td>
-                    <td>Malware Hash</td>
-                    <td><span class="badge badge-critical">Critical</span></td>
-                  </tr>
-                  <tr>
-                    <td style="color:var(--text-muted);">2 hours ago</td>
-                    <td><strong>104.28.19.44</strong></td>
-                    <td>Botnet C&C</td>
-                    <td><span class="badge badge-warning">Medium Risk</span></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            
-            <div style="margin-top:20px; text-align:center;">
-              <p style="font-size:13px; color:var(--text-dim);">Data aggregated from open-source threat intelligence platforms (OSINT).</p>
-            </div>
-          </div>
-
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="chart-card glass-card">
+          <h3>Detected Threats by Type</h3>
+          <canvas id="threatTypeChart" height="200"></canvas>
         </div>
+        <div class="chart-card glass-card">
+          <h3>Threat Severity Distribution</h3>
+          <canvas id="threatSeverityChart" height="200"></canvas>
+        </div>
+      </div>
 
-      </main>
-    </div>
+      <!-- Recent Threats -->
+      <div class="glass-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="font-size:16px; font-weight:700;"><i class="fas fa-radiation" style="color:var(--red); margin-right:10px;"></i> Recently Detected Threats</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="cyber-table">
+            <thead>
+              <tr>
+                <th>Indicator</th>
+                <th>Type</th>
+                <th>Source</th>
+                <th>Confidence</th>
+                <th>First Seen</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="ti-table-body">
+              <tr>
+                <td colspan="6" class="empty-state">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <p>Loading threat data...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
   </div>
+</div>
 
-  <script src="/js/app.js"></script>
-  <script src="/js/threat-intelligence.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/threat-intelligence.js"></script>
 </body>
 </html>
