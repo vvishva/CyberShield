@@ -172,9 +172,9 @@
 
         <div class="divider">or</div>
 
-        <a href="dashboard.html" class="btn btn-secondary" style="width:100%;padding:13px;font-size:14px;text-align:center;justify-content:center;">
+        <button type="button" id="guest-btn" class="btn btn-secondary" style="width:100%;padding:13px;font-size:14px;text-align:center;justify-content:center;">
           <i class="fas fa-eye"></i> Continue as Guest
-        </a>
+        </button>
       </form>
 
       <div class="auth-switch">
@@ -186,6 +186,31 @@
 
 <script src="/js/app.js"></script>
 <script>
+// ── Guest login submit ──
+document.getElementById('guest-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('guest-btn');
+  btn.classList.add('btn-loading');
+  btn.disabled = true;
+
+  try {
+    const data = await apiRequest('/auth/login', 'POST', { email: 'guest@cybershield.io', password: 'guest' });
+    if (data.success && data.token) {
+      setToken(data.token, false);
+      if (data.user) setUser(data.user, false);
+      btn.innerHTML = '<i class="fas fa-check"></i> Welcome Guest!';
+      btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
+      showToast('Logging in as guest...', 'success');
+      setTimeout(() => window.location.href = 'dashboard.html', 900);
+    } else {
+      throw new Error(data.error || 'Authentication failed');
+    }
+  } catch(err) {
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-eye"></i> Continue as Guest';
+    showToast(err.message || 'Guest Login failed.', 'danger');
+  }
+});
 // ── Terminal rotating messages ──
 const messages = [
   'Initializing Security Engine...',

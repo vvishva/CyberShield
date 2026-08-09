@@ -73,14 +73,15 @@ async function runMonitoringCycle() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// startScheduler — call once at server startup.
-// Runs a monitoring cycle every 5 minutes in the background.
-// ---------------------------------------------------------------------------
 function startScheduler(router) {
   eventsRouter = router;
-  setInterval(runMonitoringCycle, 5 * 60 * 1000);
-  console.log('[CyberShield Scheduler] Background monitoring active (5-min cycle)');
+  // Run every 1 minute
+  setInterval(runMonitoringCycle, 1 * 60 * 1000);
+  
+  // Also run immediately on startup (after 2 seconds)
+  setTimeout(runMonitoringCycle, 2000);
+  
+  console.log('[CyberShield Scheduler] Background monitoring active (1-min cycle)');
 }
 
 module.exports = { startScheduler, setEventsRouter, runMonitoringCycle };

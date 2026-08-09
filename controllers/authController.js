@@ -94,7 +94,7 @@ exports.login = async (req, res, next) => {
       }
     } catch (dbErr) {}
 
-    // Fallback demo user check if DB is disconnected
+    // Fallback demo user check if DB is disconnected or user not found
     if (!user) {
       if (email === 'admin@cybershield.io' && password === 'Admin@123456') {
         user = {
@@ -103,12 +103,12 @@ exports.login = async (req, res, next) => {
           email: 'admin@cybershield.io',
           role: 'admin'
         };
-      } else if (password.length >= 6) {
+      } else if (email === 'guest@cybershield.io' || email === 'analyst@example.com') {
         user = {
           _id: 'usr_demo_' + Date.now(),
-          username: email.split('@')[0],
-          email,
-          role: email.includes('admin') ? 'admin' : 'user'
+          username: 'Guest Analyst',
+          email: email,
+          role: 'user'
         };
       } else {
         return res.status(401).json({ success: false, error: 'Invalid login credentials.' });
