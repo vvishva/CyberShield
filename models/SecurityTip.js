@@ -29,4 +29,10 @@ const SecurityTipSchema = new mongoose.Schema({
   }
 });
 
+// Indexes
+SecurityTipSchema.index({ category: 1, createdAt: -1 });
+SecurityTipSchema.index({ severity: 1, createdAt: -1 });
+SecurityTipSchema.index({ createdAt: -1 });
+SecurityTipSchema.index({ title: 'text', content: 'text' });
+
 module.exports = mongoose.model('SecurityTip', SecurityTipSchema);

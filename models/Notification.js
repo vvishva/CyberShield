@@ -29,4 +29,10 @@ const NotificationSchema = new mongoose.Schema({
   }
 });
 
+// Indexes for query performance
+NotificationSchema.index({ user: 1, read: 1, createdAt: -1 });
+NotificationSchema.index({ user: 1, createdAt: -1 });
+NotificationSchema.index({ type: 1, createdAt: -1 });
+NotificationSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Notification', NotificationSchema);

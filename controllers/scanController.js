@@ -281,43 +281,16 @@ exports.getScanHistory = async (req, res) => {
     const riskLevelCounts = {};
 
     try {
-      history = await Scan.find().sort({ createdAt: -1 }).limit(20);
+      history = await Scan.find({ user: req.user ? req.user._id : null }).sort({ createdAt: -1 }).limit(20);
 
       // Count distinct risk levels from the full collection for dashboard stats
-      const allScans = await Scan.find({}, 'status').lean();
+      const allScans = await Scan.find({ user: req.user ? req.user._id : null }, 'status').lean();
       for (const s of allScans) {
         const lvl = s.status || 'Unknown';
         riskLevelCounts[lvl] = (riskLevelCounts[lvl] || 0) + 1;
       }
-    } catch (e) {}
-
-    if (!history || history.length === 0) {
-      history = [
-        {
-          _id: 'scan_101',
-          scanType: 'url_phishing',
-          target: 'https://paypal-security-update-alert.com',
-          status: 'Phishing',
-          riskScore: 89,
-          createdAt: new Date(Date.now() - 3600000)
-        },
-        {
-          _id: 'scan_102',
-          scanType: 'website_security',
-          target: 'https://github.com',
-          status: 'Safe',
-          riskScore: 5,
-          createdAt: new Date(Date.now() - 7200000)
-        },
-        {
-          _id: 'scan_103',
-          scanType: 'ip_reputation',
-          target: '185.220.101.5',
-          status: 'Medium Risk',
-          riskScore: 55,
-          createdAt: new Date(Date.now() - 14400000)
-        }
-      ];
+    } catch (e) {
+      // DB unavailable - return empty arrays
     }
 
     res.status(200).json({
@@ -344,14 +317,17 @@ exports.getStats = async (req, res) => {
     let scansByType = {};
 
     try {
-      totalScans = await Scan.countDocuments();
+      const userId = req.user ? req.user._id : null;
+      const query = userId ? { user: userId } : {};
+
+      totalScans = await Scan.countDocuments(query);
 
       // Threat / safe counts based on riskScore threshold
-      threatsDetected = await Scan.countDocuments({ riskScore: { $gte: 50 } });
-      safeScans       = await Scan.countDocuments({ riskScore: { $lt: 25 } });
+      threatsDetected = await Scan.countDocuments({ ...query, riskScore: { $gte: 50 } });
+      safeScans       = await Scan.countDocuments({ ...query, riskScore: { $lt: 25 } });
 
       // Average security score (inverse of riskScore for website_security scans)
-      const websiteScans = await Scan.find({ scanType: 'website_security' }, 'riskScore').lean();
+      const websiteScans = await Scan.find({ ...query, scanType: 'website_security' }, 'riskScore').lean();
       if (websiteScans.length > 0) {
         const sum = websiteScans.reduce((acc, s) => acc + (100 - (s.riskScore || 0)), 0);
         avgSecurityScore = Math.round(sum / websiteScans.length);
@@ -359,29 +335,14 @@ exports.getStats = async (req, res) => {
 
       // Counts per scan type
       const typeAgg = await Scan.aggregate([
+        { $match: query },
         { $group: { _id: '$scanType', count: { $sum: 1 } } }
       ]);
       for (const { _id, count } of typeAgg) {
         scansByType[_id] = count;
       }
     } catch (e) {
-      // DB unavailable — return demo data
-      return res.status(200).json({
-        success: true,
-        demo: true,
-        data: {
-          totalScans: 142,
-          threatsDetected: 37,
-          safeScans: 89,
-          avgSecurityScore: 68,
-          scansByType: {
-            url_phishing: 64,
-            website_security: 48,
-            ip_reputation: 18,
-            password_check: 12
-          }
-        }
-      });
+      // DB unavailable - return zeros
     }
 
     res.status(200).json({

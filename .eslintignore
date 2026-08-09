@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+client/
+python-ai/
+*.pkl
+*.lock
+*.log
+.env
+.env.local
+.DS_Store
+jest.config.js
+jest.setup.js

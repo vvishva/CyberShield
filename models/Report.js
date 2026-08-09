@@ -43,4 +43,11 @@ const ReportSchema = new mongoose.Schema({
   }
 });
 
+// Indexes
+ReportSchema.index({ user: 1, createdAt: -1 });
+ReportSchema.index({ reportId: 1 }, { unique: true });
+ReportSchema.index({ scanType: 1, createdAt: -1 });
+ReportSchema.index({ target: 'text' });
+ReportSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Report', ReportSchema);

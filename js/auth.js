@@ -20,21 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Authentication Successful. Redirecting to Dashboard...', 'success');
         setTimeout(() => window.location.href = 'dashboard.html', 1000);
       } catch (err) {
-        // Standalone Demo Fallback Login
-        if (password.length >= 6) {
-          const demoUser = {
-            id: 'usr_demo',
-            username: email.split('@')[0],
-            email,
-            role: email.includes('admin') ? 'admin' : 'user'
-          };
-          setToken('demo_jwt_token_' + Date.now(), remember);
-          setUser(demoUser, remember);
-          showToast('Offline Mode: Signed in as Demo User', 'success');
-          setTimeout(() => window.location.href = 'dashboard.html', 1000);
-        } else {
-          showToast(err.message || 'Login failed. Check your email and password.', 'danger');
-        }
+        showToast(err.message || 'Login failed. Check your email and password.', 'danger');
       }
     });
   }
@@ -59,12 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Registration complete! Account created.', 'success');
         setTimeout(() => window.location.href = 'dashboard.html', 1000);
       } catch (err) {
-        // Standalone fallback
-        const demoUser = { id: 'usr_' + Date.now(), username, email, role: email.includes('admin') ? 'admin' : 'user' };
-        setToken('demo_jwt_token', true);
-        setUser(demoUser, true);
-        showToast('Offline Demo: Account created successfully.', 'success');
-        setTimeout(() => window.location.href = 'dashboard.html', 1000);
+        showToast(err.message || 'Registration failed. Please try again.', 'danger');
       }
     });
   }

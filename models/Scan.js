@@ -45,4 +45,11 @@ const ScanSchema = new mongoose.Schema({
   }
 });
 
+// Indexes for query performance
+ScanSchema.index({ user: 1, createdAt: -1 });
+ScanSchema.index({ scanType: 1, status: 1 });
+ScanSchema.index({ target: 'text' });
+ScanSchema.index({ riskScore: -1 });
+ScanSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Scan', ScanSchema);

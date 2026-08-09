@@ -18,7 +18,10 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    const secret = process.env.JWT_SECRET || 'cybershield_super_secret_jwt_key_2026_cse_final_year';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
     const decoded = jwt.verify(token, secret);
 
     try {

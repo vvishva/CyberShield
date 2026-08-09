@@ -19,7 +19,7 @@ const UserSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Please provide a password'],
-    minlength: 6,
+    minlength: 8,
     select: false
   },
   role: {
@@ -46,6 +46,12 @@ const UserSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+// Indexes
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ username: 1 });
+UserSchema.index({ role: 1 });
+UserSchema.index({ createdAt: -1 });
 
 // Encrypt password using bcrypt before saving
 UserSchema.pre('save', async function(next) {

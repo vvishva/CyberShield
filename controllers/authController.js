@@ -4,7 +4,10 @@ const User = require('../models/User');
 const Log = require('../models/Log');
 
 const generateToken = (user) => {
-  const secret = process.env.JWT_SECRET || 'cybershield_super_secret_jwt_key_2026_cse_final_year';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
   return jwt.sign(
     { id: user._id, username: user.username, email: user.email, role: user.role },
     secret,
@@ -33,17 +36,10 @@ exports.register = async (req, res, next) => {
         username,
         email,
         password,
-        role: email.includes('admin') ? 'admin' : 'user'
+        role: 'user'
       });
     } catch (dbErr) {
-      // In-memory fallback if MongoDB connection is inactive
-      user = {
-        _id: 'usr_' + Date.now(),
-        username,
-        email,
-        role: email.includes('admin') ? 'admin' : 'user',
-        createdAt: new Date()
-      };
+      return res.status(503).json({ success: false, error: 'Database unavailable. Please try again later.' });
     }
 
     const token = generateToken(user);
@@ -92,27 +88,12 @@ exports.login = async (req, res, next) => {
           return res.status(401).json({ success: false, error: 'Invalid login credentials.' });
         }
       }
-    } catch (dbErr) {}
+    } catch (dbErr) {
+      return res.status(503).json({ success: false, error: 'Database unavailable. Please try again later.' });
+    }
 
-    // Fallback demo user check if DB is disconnected or user not found
     if (!user) {
-      if (email === 'admin@cybershield.io' && password === 'Admin@123456') {
-        user = {
-          _id: 'admin_demo_id',
-          username: 'CyberAdmin',
-          email: 'admin@cybershield.io',
-          role: 'admin'
-        };
-      } else if (email === 'guest@cybershield.io' || email === 'analyst@example.com') {
-        user = {
-          _id: 'usr_demo_' + Date.now(),
-          username: 'Guest Analyst',
-          email: email,
-          role: 'user'
-        };
-      } else {
-        return res.status(401).json({ success: false, error: 'Invalid login credentials.' });
-      }
+      return res.status(401).json({ success: false, error: 'Invalid login credentials.' });
     }
 
     const token = generateToken(user);

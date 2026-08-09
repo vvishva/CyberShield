@@ -7,46 +7,10 @@ exports.getReports = async (req, res) => {
   try {
     let reports = [];
     try {
-      reports = await Report.find().sort({ createdAt: -1 });
-    } catch (e) {}
-
-    if (!reports || reports.length === 0) {
-      reports = [
-        {
-          reportId: 'REP-2026-0091',
-          title: 'Phishing Threat Audit Report',
-          scanType: 'url_phishing',
-          target: 'http://verify-bank-access-online.net/login',
-          overallStatus: 'Phishing Alert',
-          riskScore: 92,
-          findings: [
-            { category: 'Domain Heuristics', status: 'CRITICAL', detail: 'Impersonates financial institution' },
-            { category: 'SSL Encryption', status: 'HIGH', detail: 'Missing TLS certificate' },
-            { category: 'IP Blacklist', status: 'MEDIUM', detail: 'Host IP listed on AbuseIPDB' }
-          ],
-          recommendations: [
-            'Block domain on perimeter firewalls.',
-            'Issue security warning to user accounts.',
-            'Report to phishing registrar.'
-          ],
-          createdAt: new Date()
-        },
-        {
-          reportId: 'REP-2026-0084',
-          title: 'Website SSL & Security Headers Audit',
-          scanType: 'website_security',
-          target: 'https://cybershield.io',
-          overallStatus: 'Secure & Compliant',
-          riskScore: 8,
-          findings: [
-            { category: 'HTTP Strict Transport Security', status: 'PASS', detail: 'HSTS Enabled' },
-            { category: 'Content Security Policy', status: 'PASS', detail: 'Strict CSP configured' },
-            { category: 'Clickjacking Protection', status: 'PASS', detail: 'X-Frame-Options: SAMEORIGIN' }
-          ],
-          recommendations: ['Maintain periodic automated scanning routine.'],
-          createdAt: new Date(Date.now() - 86400000)
-        }
-      ];
+      const query = req.user ? { user: req.user._id } : {};
+      reports = await Report.find(query).sort({ createdAt: -1 });
+    } catch (e) {
+      // DB unavailable - return empty array
     }
 
     res.status(200).json({
@@ -85,7 +49,9 @@ exports.generateReport = async (req, res) => {
 
   try {
     await Report.create(reportObj);
-  } catch (e) {}
+  } catch (e) {
+    // Ignore if DB unavailable
+  }
 
   res.status(201).json({
     success: true,
@@ -96,12 +62,23 @@ exports.generateReport = async (req, res) => {
 // @desc    Export Reports or Scans to CSV format
 // @route   GET /api/reports/export-csv
 exports.exportCsv = async (req, res) => {
-  let csvContent = 'ID,Target,Scan Type,Status,Risk Score,Date\n';
-  csvContent += `REP-001,https://paypal-fake-login.com,URL Phishing,Phishing,92%,${new Date().toISOString()}\n`;
-  csvContent += `REP-002,https://google.com,Website Audit,Safe,5%,${new Date().toISOString()}\n`;
-  csvContent += `REP-003,185.220.101.5,IP Reputation,Medium Risk,55%,${new Date().toISOString()}\n`;
+  try {
+    const query = req.user ? { user: req.user._id } : {};
+    const reports = await Report.find(query).sort({ createdAt: -1 }).lean();
+    
+    let csvContent = 'ID,Target,Scan Type,Status,Risk Score,Date\n';
+    if (reports.length > 0) {
+      reports.forEach(r => {
+        csvContent += `${r.reportId},${r.target},${r.scanType},${r.overallStatus},${r.riskScore}%,${r.createdAt}\n`;
+      });
+    } else {
+      csvContent += 'No reports available,,,\n';
+    }
 
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename="CyberShield_Security_Report.csv"');
-  res.status(200).send(csvContent);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="CyberShield_Security_Report.csv"');
+    res.status(200).send(csvContent);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 };

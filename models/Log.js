@@ -37,4 +37,11 @@ const LogSchema = new mongoose.Schema({
   }
 });
 
+// Indexes for query performance
+LogSchema.index({ user: 1, createdAt: -1 });
+LogSchema.index({ action: 1, createdAt: -1 });
+LogSchema.index({ status: 1, createdAt: -1 });
+LogSchema.index({ username: 1, createdAt: -1 });
+LogSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Log', LogSchema);

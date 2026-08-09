@@ -11,9 +11,11 @@ services:
       - key: MONGO_URI
         sync: false  # You will set this manually in Render dashboard
       - key: JWT_SECRET
-        value: cybershield_super_secret_jwt_key_2026_cse_final_year
+        sync: false  # Generate a secure secret: openssl rand -base64 32
       - key: PYTHON_AI_URL
         sync: false  # You will set this after deploying Flask service
+      - key: NODE_ENV
+        value: production
 
   # Python Flask AI Microservice
   - type: web

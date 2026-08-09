@@ -2,6 +2,8 @@
  * CyberShield - Password Strength & Entropy Analyzer
  */
 
+const crypto = require('crypto');
+
 const commonPasswords = [
   'password', '123456', '123456789', 'qwerty', '12345678', '111111', 
   '1234567', 'dragon', 'welcome', 'admin', 'cybershield', 'iloveyou', 
@@ -131,17 +133,30 @@ function generateStrongPassword(length = 16) {
 
   const all = uppers + lowers + numbers + symbols;
   let pwd = '';
-  pwd += uppers[Math.floor(Math.random() * uppers.length)];
-  pwd += lowers[Math.floor(Math.random() * lowers.length)];
-  pwd += numbers[Math.floor(Math.random() * numbers.length)];
-  pwd += symbols[Math.floor(Math.random() * symbols.length)];
+  
+  // Ensure at least one of each character type
+  const secureRandom = (max) => {
+    const randomBytes = crypto.randomBytes(4);
+    const randomInt = randomBytes.readUInt32BE(0);
+    return randomInt % max;
+  };
+
+  pwd += uppers[secureRandom(uppers.length)];
+  pwd += lowers[secureRandom(lowers.length)];
+  pwd += numbers[secureRandom(numbers.length)];
+  pwd += symbols[secureRandom(symbols.length)];
 
   for (let i = 4; i < length; i++) {
-    pwd += all[Math.floor(Math.random() * all.length)];
+    pwd += all[secureRandom(all.length)];
   }
 
-  // Shuffle password
-  return pwd.split('').sort(() => 0.5 - Math.random()).join('');
+  // Fisher-Yates shuffle using crypto
+  const arr = pwd.split('');
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = secureRandom(i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.join('');
 }
 
 module.exports = {
