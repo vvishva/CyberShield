@@ -59,35 +59,36 @@ const sendEmail = async (options) => {
     }
   }
 
-  // ── Strategy 2: Brevo HTTP API ──
+  // ── Strategy 2: Brevo HTTP API (Sends up to 300 emails/day to ANY email address) ──
   if (brevoKey) {
-    const senderEmail = process.env.FROM_EMAIL || user || 'vvishva450@gmail.com';
-    const senderName = process.env.FROM_NAME || 'CyberShield AI Security';
+    try {
+      const senderEmail = process.env.FROM_EMAIL || user || 'vvishva450@gmail.com';
+      const senderName = process.env.FROM_NAME || 'CyberShield AI Security';
 
-    const body = JSON.stringify({
-      sender: { name: senderName, email: senderEmail },
-      to: [{ email: options.email }],
-      subject: options.subject,
-      htmlContent: htmlContent,
-      textContent: options.message
-    });
+      const body = JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: options.email }],
+        subject: options.subject,
+        htmlContent: htmlContent,
+        textContent: options.message
+      });
 
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': brevoKey.trim(),
-        'content-type': 'application/json'
-      },
-      body: body
-    });
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': brevoKey.trim(),
+          'content-type': 'application/json'
+        },
+        body: body
+      });
 
-    const responseData = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      console.error('[Brevo API Error]', response.status, responseData);
-      throw new Error(`Email delivery failed: ${responseData.message || response.statusText}`);
+      const responseData = await response.json().catch(() => ({}));
+      if (response.ok) return responseData;
+      console.warn('[Brevo API Warning]', response.status, responseData);
+    } catch (err) {
+      console.warn('[Brevo API Error]', err.message);
     }
-    return responseData;
   }
 
   // ── Strategy 3: Direct Gmail / SMTP Transport (Fallback) ──
