@@ -20,7 +20,7 @@ const sendEmail = async (options) => {
   let pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS;
   let service = process.env.SMTP_SERVICE || process.env.EMAIL_SERVICE;
 
-  // Clean strings (remove surrounding quotes and whitespaces)
+  // Clean strings
   if (user) user = user.trim().replace(/^["']|["']$/g, '');
   if (pass) pass = pass.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '');
   if (host) host = host.trim().replace(/^["']|["']$/g, '');
@@ -75,8 +75,14 @@ const sendEmail = async (options) => {
   if (brevoKey) {
     console.log('[EMAIL DIAGNOSTIC] EMAIL_SERVICE_INITIALIZED: Brevo HTTP API');
     try {
-      const senderEmail = process.env.FROM_EMAIL || user || 'vvishva450@gmail.com';
+      let senderEmail = process.env.FROM_EMAIL || user;
+      if (!senderEmail || senderEmail.includes('your_email') || senderEmail.includes('example.com') || !senderEmail.includes('@')) {
+        senderEmail = 'vvishva450@gmail.com';
+      }
+      senderEmail = senderEmail.trim().replace(/^["']|["']$/g, '');
       const senderName = process.env.FROM_NAME || 'CyberShield AI Security';
+
+      console.log(`[EMAIL DIAGNOSTIC] SENDER_ADDRESS: ${senderEmail}`);
 
       const body = JSON.stringify({
         sender: { name: senderName, email: senderEmail },
