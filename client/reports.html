@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css?v=5.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     /* Report specific styles */
     .report-page { max-width: 900px; margin: 0 auto; background: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 40px 60px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
@@ -74,10 +75,11 @@
       
       <div class="pdf-actions">
         <button class="btn btn-secondary" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
-        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print / Save as PDF</button>
+        <button class="btn btn-primary" id="btn-generate-pdf" onclick="downloadPDF()"><i class="fas fa-download"></i> Download PDF Report</button>
       </div>
 
-      <div class="report-page" id="report-content">
+      <div id="report-page-container">
+        <div class="report-page" id="report-content">
         <div class="report-header">
           <div class="report-title">
             <h1>Security Audit Report</h1>
@@ -149,8 +151,8 @@
           <div style="text-align:center; margin-top:80px; padding-top:20px; border-top:1px solid var(--border-subtle); font-size:12px; color:var(--text-muted);">
             <i class="fas fa-shield-halved"></i> <strong>CyberShield AI</strong> — End of Report
           </div>
+          </div>
         </div>
-
       </div>
     </main>
   </div>
@@ -158,5 +160,24 @@
 
 <script src="/js/app.js"></script>
 <script src="/js/reports.js"></script>
-<script src="/js/cursor.js"></script>`n</body>
+<script>
+  function downloadPDF() {
+    const element = document.getElementById('report-page-container');
+    const btn = document.getElementById('btn-generate-pdf');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    
+    html2pdf().set({
+      margin: [15, 15, 15, 15],
+      filename: 'CyberShield_Audit_Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(element).save().then(() => {
+      btn.innerHTML = originalText;
+    });
+  }
+</script>
+<script src="/js/cursor.js"></script>
+</body>
 </html>
