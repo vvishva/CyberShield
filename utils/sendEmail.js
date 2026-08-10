@@ -2,15 +2,17 @@ const nodemailer = require('nodemailer');
 
 /**
  * Send email using the best available transport:
- *   1. Brevo HTTP API (BREVO_API_KEY) - Works on ALL cloud platforms (Render, AWS, etc.)
- *   2. Gmail SMTP (SMTP_USER + SMTP_PASS) - Works locally, blocked by some cloud platforms
- *   3. Ethereal test account - Development fallback
+ *   1. Resend HTTP API (RESEND_API_KEY)
+ *   2. Brevo HTTP API (BREVO_API_KEY)
+ *   3. Direct Gmail / SMTP Transport
+ *   4. Development Ethereal Fallback
  */
 const sendEmail = async (options) => {
-  // Extract env variables with multi-name support
+  const resendKey = process.env.RESEND_API_KEY;
   const brevoKey = process.env.BREVO_API_KEY;
+
   let host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
-  let user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER;
+  let user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || 'vvishva450@gmail.com';
   let pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS;
   let service = process.env.SMTP_SERVICE || process.env.EMAIL_SERVICE;
 
@@ -31,7 +33,33 @@ const sendEmail = async (options) => {
     <p style="font-size: 12px; color: #64748b;">If you did not request this verification code, please ignore this email.</p>
   </div>`;
 
-  // ── Strategy 1: Brevo HTTP API (Best for Cloud Deployments like Render/AWS) ──
+  // ── Strategy 1: Resend HTTP API (Instant 1-sec Delivery) ──
+  if (resendKey) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'CyberShield AI <onboarding@resend.dev>',
+          to: [options.email],
+          subject: options.subject,
+          html: htmlContent,
+          text: options.message
+        })
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (response.ok) return resData;
+      console.warn('[Resend API Warning]', response.status, resData);
+    } catch (err) {
+      console.warn('[Resend API Error]', err.message);
+    }
+  }
+
+  // ── Strategy 2: Brevo HTTP API ──
   if (brevoKey) {
     const senderEmail = process.env.FROM_EMAIL || user || 'vvishva450@gmail.com';
     const senderName = process.env.FROM_NAME || 'CyberShield AI Security';
@@ -62,7 +90,7 @@ const sendEmail = async (options) => {
     return responseData;
   }
 
-  // ── Strategy 2: Direct Gmail / SMTP Transport (Fallback) ──
+  // ── Strategy 3: Direct Gmail / SMTP Transport (Fallback) ──
   if (user && pass) {
     let transporter;
     if (isGmail || !host) {
@@ -94,7 +122,7 @@ const sendEmail = async (options) => {
     return await transporter.sendMail(message);
   }
 
-  // ── Strategy 3: Development Ethereal Fallback ──
+  // ── Strategy 4: Development Ethereal Fallback ──
   try {
     const testAccount = await nodemailer.createTestAccount();
     const transporter = nodemailer.createTransport({
