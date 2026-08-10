@@ -20,8 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-pdf').addEventListener('click', () => {
-    // Basic PDF redirect
-    window.location.href = 'reports.html';
+    // Basic PDF redirect with auto-download trigger
+    window.location.href = 'reports.html?download=true';
   });
 
   document.getElementById('btn-investigate').addEventListener('click', () => {
