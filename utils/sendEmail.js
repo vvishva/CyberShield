@@ -26,6 +26,7 @@ const sendEmail = async (options) => {
   if (host) host = host.trim().replace(/^["']|["']$/g, '');
   if (service) service = service.trim().replace(/^["']|["']$/g, '');
 
+  const recipientDomain = options.email ? options.email.split('@')[1] : 'unknown';
   const isGmail = (service && service.toLowerCase() === 'gmail') ||
                   (host && host.toLowerCase().includes('gmail')) ||
                   (user && user.toLowerCase().includes('@gmail.com'));
@@ -37,8 +38,11 @@ const sendEmail = async (options) => {
     <p style="font-size: 12px; color: #64748b;">If you did not request this verification code, please ignore this email.</p>
   </div>`;
 
+  console.log(`[EMAIL DIAGNOSTIC] RECIPIENT_DOMAIN: @${recipientDomain}`);
+
   // ── Strategy 1: Resend HTTP API (Instant 1-sec Delivery) ──
   if (resendKey) {
+    console.log('[EMAIL DIAGNOSTIC] EMAIL_SERVICE_INITIALIZED: Resend HTTP API');
     try {
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -56,15 +60,20 @@ const sendEmail = async (options) => {
       });
 
       const resData = await response.json().catch(() => ({}));
-      if (response.ok) return resData;
-      console.warn('[Resend API Warning]', response.status, resData);
+      console.log(`[EMAIL DIAGNOSTIC] PROVIDER_RESPONSE_CODE: ${response.status}`);
+      if (response.ok) {
+        console.log('[EMAIL DIAGNOSTIC] EMAIL_SEND_STATUS: SUCCESS (Resend)');
+        return { provider: 'Resend API', status: 'SUCCESS', responseCode: response.status, data: resData };
+      }
+      console.warn(`[EMAIL DIAGNOSTIC] PROVIDER_ERROR_MESSAGE: ${JSON.stringify(resData)}`);
     } catch (err) {
-      console.warn('[Resend API Error]', err.message);
+      console.warn(`[EMAIL DIAGNOSTIC] PROVIDER_ERROR_MESSAGE: ${err.message}`);
     }
   }
 
   // ── Strategy 2: Brevo HTTP API (Sends up to 300 emails/day to ANY email address) ──
   if (brevoKey) {
+    console.log('[EMAIL DIAGNOSTIC] EMAIL_SERVICE_INITIALIZED: Brevo HTTP API');
     try {
       const senderEmail = process.env.FROM_EMAIL || user || 'vvishva450@gmail.com';
       const senderName = process.env.FROM_NAME || 'CyberShield AI Security';
@@ -88,46 +97,59 @@ const sendEmail = async (options) => {
       });
 
       const responseData = await response.json().catch(() => ({}));
-      if (response.ok) return responseData;
-      console.warn('[Brevo API Warning]', response.status, responseData);
+      console.log(`[EMAIL DIAGNOSTIC] PROVIDER_RESPONSE_CODE: ${response.status}`);
+      if (response.ok) {
+        console.log('[EMAIL DIAGNOSTIC] EMAIL_SEND_STATUS: SUCCESS (Brevo)');
+        return { provider: 'Brevo API', status: 'SUCCESS', responseCode: response.status, data: responseData };
+      }
+      console.warn(`[EMAIL DIAGNOSTIC] PROVIDER_ERROR_MESSAGE: ${JSON.stringify(responseData)}`);
     } catch (err) {
-      console.warn('[Brevo API Error]', err.message);
+      console.warn(`[EMAIL DIAGNOSTIC] PROVIDER_ERROR_MESSAGE: ${err.message}`);
     }
   }
 
   // ── Strategy 3: Direct Gmail / SMTP Transport (Fallback) ──
   if (user && pass) {
-    let transporter;
-    if (isGmail || !host) {
-      transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: { user, pass },
-        tls: { rejectUnauthorized: false }
-      });
-    } else {
-      const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
-      transporter = nodemailer.createTransport({
-        host, port,
-        secure: port === 465,
-        auth: { user, pass },
-        tls: { rejectUnauthorized: false }
-      });
+    console.log('[EMAIL DIAGNOSTIC] EMAIL_SERVICE_INITIALIZED: Direct Gmail SMTP SSL');
+    try {
+      let transporter;
+      if (isGmail || !host) {
+        transporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,
+          auth: { user, pass },
+          tls: { rejectUnauthorized: false }
+        });
+      } else {
+        const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+        transporter = nodemailer.createTransport({
+          host, port,
+          secure: port === 465,
+          auth: { user, pass },
+          tls: { rejectUnauthorized: false }
+        });
+      }
+
+      const message = {
+        from: `${process.env.FROM_NAME || 'CyberShield AI Security'} <${user}>`,
+        to: options.email,
+        subject: options.subject,
+        text: options.message,
+        html: htmlContent
+      };
+
+      const info = await transporter.sendMail(message);
+      console.log('[EMAIL DIAGNOSTIC] EMAIL_SEND_STATUS: SUCCESS (Gmail SMTP)');
+      return { provider: 'Gmail SMTP', status: 'SUCCESS', responseCode: 200, data: info };
+    } catch (smtpErr) {
+      console.error(`[EMAIL DIAGNOSTIC] PROVIDER_ERROR_MESSAGE: ${smtpErr.message}`);
+      throw smtpErr;
     }
-
-    const message = {
-      from: `${process.env.FROM_NAME || 'CyberShield AI Security'} <${user}>`,
-      to: options.email,
-      subject: options.subject,
-      text: options.message,
-      html: htmlContent
-    };
-
-    return await transporter.sendMail(message);
   }
 
   // ── Strategy 4: Development Ethereal Fallback ──
+  console.log('[EMAIL DIAGNOSTIC] EMAIL_SERVICE_INITIALIZED: Ethereal Fallback');
   try {
     const testAccount = await nodemailer.createTestAccount();
     const transporter = nodemailer.createTransport({
@@ -141,11 +163,11 @@ const sendEmail = async (options) => {
       text: options.message,
       html: htmlContent
     });
-    console.log('[Dev Email Preview]: %s', nodemailer.getTestMessageUrl(info));
-    return info;
+    console.log('[EMAIL DIAGNOSTIC] EMAIL_SEND_STATUS: SUCCESS (Ethereal)');
+    return { provider: 'Ethereal', status: 'SUCCESS', responseCode: 200, data: info };
   } catch (e) {
-    console.warn('[Email Warning] No email transport available.');
-    throw new Error('No email transport configured.');
+    console.error(`[EMAIL DIAGNOSTIC] PROVIDER_ERROR_MESSAGE: ${e.message}`);
+    throw new Error('No email transport configured or reachable.');
   }
 };
 

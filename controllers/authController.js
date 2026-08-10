@@ -307,3 +307,41 @@ exports.resetPassword = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Production Email Diagnostic Endpoint
+// @route   POST /api/auth/test-email
+exports.testEmail = async (req, res, next) => {
+  try {
+    const { targetEmail } = req.body;
+    if (!targetEmail) {
+      return res.status(400).json({ success: false, error: 'Please provide targetEmail' });
+    }
+
+    const recipientDomain = targetEmail.split('@')[1];
+    const message = `CyberShield Diagnostic Email Test\nRecipient Domain: ${recipientDomain}\nTime: ${new Date().toISOString()}`;
+
+    const result = await sendEmail({
+      email: targetEmail,
+      subject: 'CyberShield Production Email Diagnostic',
+      message
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Diagnostic email dispatched to ${targetEmail}`,
+      diagnostic: {
+        recipientDomain,
+        provider: result?.provider || 'Unknown',
+        sendResult: result?.status || 'SUCCESS',
+        responseCode: result?.responseCode || 200,
+        providerData: result?.data || {}
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: 'Email diagnostic failed',
+      providerErrorMessage: err.message
+    });
+  }
+};
