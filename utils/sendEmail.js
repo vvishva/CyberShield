@@ -19,12 +19,17 @@ const sendEmail = async (options) => {
                   (user && user.toLowerCase().includes('@gmail.com'));
 
   if (isGmail && user && pass) {
-    // Official Nodemailer Gmail Service transport
+    // Direct SSL on port 465 is the most reliable transport for Gmail on cloud hosts (Render/AWS)
     transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: user,
         pass: pass
+      },
+      tls: {
+        rejectUnauthorized: false
       }
     });
   } else if (host && user && pass) {
