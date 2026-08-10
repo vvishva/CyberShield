@@ -269,7 +269,7 @@
             document.getElementById('register-form').style.display = 'none';
             document.getElementById('otp-form').style.display = 'block';
             document.querySelector('.auth-brand p').innerText = 'Enter the OTP sent to your email';
-            showToast('Registration successful! Please verify your email.', 'success');
+            showToast(data.message || 'Verification code sent to your email.', 'success');
           }
         } catch (err) {
           btn.classList.remove('btn-loading');
@@ -312,8 +312,8 @@
         btn.classList.add('btn-loading');
         btn.disabled = true;
         try {
-          await apiRequest('/auth/resend-otp', 'POST', { email: registeredEmail });
-          showToast('OTP resent successfully!', 'success');
+          const resData = await apiRequest('/auth/resend-otp', 'POST', { email: registeredEmail });
+          showToast(resData.message || 'Verification code sent to your email.', 'success');
         } catch (err) {
           showToast(err.message || 'Failed to resend OTP', 'danger');
         } finally {

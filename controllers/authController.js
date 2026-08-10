@@ -63,6 +63,8 @@ exports.register = async (req, res, next) => {
         });
       } catch (err) {
         console.error('Email failed:', err);
+        await User.findByIdAndDelete(user._id);
+        return res.status(500).json({ success: false, error: 'Unable to send verification email. Please try again later.' });
       }
 
     } catch (dbErr) {
@@ -81,7 +83,7 @@ exports.register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful. Please check your email for the OTP.'
+      message: 'Verification code sent to your email.'
     });
   } catch (err) {
     next(err);
@@ -105,18 +107,18 @@ exports.verifyOTP = async (req, res, next) => {
     }
 
     if (user.otpAttempts >= 5) {
-      return res.status(400).json({ success: false, error: 'Maximum verification attempts exceeded. Please request a new OTP.' });
+      return res.status(400).json({ success: false, error: 'Too many attempts. Please try again later.' });
     }
 
     if (!user.verificationOTPExpire || user.verificationOTPExpire < Date.now()) {
-      return res.status(400).json({ success: false, error: 'OTP has expired. Please request a new one.' });
+      return res.status(400).json({ success: false, error: 'Verification code expired. Please request a new code.' });
     }
 
     const isMatch = await bcrypt.compare(otp, user.verificationOTP);
     if (!isMatch) {
       user.otpAttempts += 1;
       await user.save();
-      return res.status(400).json({ success: false, error: 'Invalid OTP.' });
+      return res.status(400).json({ success: false, error: 'Invalid verification code.' });
     }
 
     user.isVerified = true;
@@ -162,9 +164,10 @@ exports.resendOTP = async (req, res, next) => {
       await sendEmail({ email: user.email, subject: 'CyberShield Account Verification OTP', message });
     } catch (err) {
       console.error('Email failed:', err);
+      return res.status(500).json({ success: false, error: 'Unable to send verification email. Please try again later.' });
     }
 
-    res.status(200).json({ success: true, message: 'OTP resent to your email.' });
+    res.status(200).json({ success: true, message: 'Verification code sent to your email.' });
   } catch (err) {
     next(err);
   }
