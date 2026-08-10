@@ -108,18 +108,19 @@ function renderResults(data) {
   const badge = document.getElementById('res-risk-badge');
   const invBtn = document.getElementById('btn-investigate');
   
-  badge.textContent = data.status || 'Unknown';
+  const status = data.status || data.riskLevel || 'Unknown';
+  badge.textContent = status;
   badge.className = 'badge';
   invBtn.style.display = 'none'; // hide by default
   
-  if (['Safe', 'Clean'].includes(data.status)) {
+  if (['Safe', 'Clean', 'Low Risk'].includes(status)) {
     badge.classList.add('badge-safe');
   }
-  else if (['Medium Risk'].includes(data.status)) {
+  else if (['Medium Risk'].includes(status)) {
     badge.classList.add('badge-warning');
     invBtn.style.display = 'inline-block';
   }
-  else if (['Phishing', 'Critical', 'High Risk'].includes(data.status)) {
+  else if (['Phishing', 'Critical', 'High Risk'].includes(status)) {
     badge.classList.add('badge-critical');
     invBtn.style.display = 'inline-block';
   }
@@ -128,7 +129,7 @@ function renderResults(data) {
   }
 
   // AI Verdict
-  document.getElementById('res-ai-verdict').textContent = data.status || 'Unknown';
+  document.getElementById('res-ai-verdict').textContent = status;
   document.getElementById('res-ai-verdict').style.color = color;
   document.getElementById('res-ai-conf').textContent = (data.confidenceScore || 95) + '%';
 
