@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "CyberShield - AI-Based Web Security Monitoring System",
   "main": "server/server.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
