@@ -36,7 +36,11 @@ exports.register = async (req, res, next) => {
     try {
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        return res.status(400).json({ success: false, error: 'User with this email already exists.' });
+        if (existingUser.isVerified) {
+          return res.status(400).json({ success: false, error: 'User with this email already exists.' });
+        }
+        // Stale unverified account — delete it so user can register cleanly
+        await User.deleteOne({ _id: existingUser._id });
       }
 
       const otp = generateOTP();
