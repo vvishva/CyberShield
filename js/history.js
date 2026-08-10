@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderTable(allData);
       }
     } catch (e) {
-      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--neon-red);">Failed to load history</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--red);">Failed to load history</td></tr>';
     }
   }
 
@@ -42,10 +42,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       return `
         <tr>
-          <td><strong style="color:#fff;">${item.target.substring(0, 40)}${item.target.length > 40 ? '...' : ''}</strong></td>
+          <td><strong style="color:#fff;">${escapeHtml((item.target || '').substring(0, 40))}${(item.target || '').length > 40 ? '...' : ''}</strong></td>
           <td><span style="color:var(--text-muted); font-size:13px;">${typeMap[item.scanType] || item.scanType}</span></td>
-          <td><span class="badge ${badgeClass}">${item.status}</span></td>
-          <td><span style="color:${isThreat ? 'var(--neon-red)' : 'var(--neon-green)'}; font-weight:600;">${item.riskScore}% Risk</span></td>
+          <td><span class="badge ${badgeClass}">${escapeHtml(item.status)}</span></td>
+          <td><span style="color:${isThreat ? 'var(--red)' : 'var(--green)'}; font-weight:600;">${item.riskScore}% Risk</span></td>
           <td style="color:var(--text-muted); font-size:13px;">${time}</td>
           <td><button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="viewReport('${item._id}')"><i class="fas fa-eye"></i> View</button></td>
         </tr>
@@ -54,11 +54,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function filterData() {
-    const search = searchInput.value.toLowerCase();
-    const filter = filterSelect.value;
+    const search = (searchInput?.value || '').toLowerCase();
+    const filter = filterSelect?.value || 'all';
     
     const filtered = allData.filter(item => {
-      const matchSearch = item.target.toLowerCase().includes(search);
+      const matchSearch = (item.target || '').toLowerCase().includes(search);
       const matchFilter = filter === 'all' || item.status === filter;
       return matchSearch && matchFilter;
     });
@@ -66,13 +66,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderTable(filtered);
   }
 
-  searchInput.addEventListener('input', filterData);
-  filterSelect.addEventListener('change', filterData);
+  if (searchInput) searchInput.addEventListener('input', filterData);
+  if (filterSelect) filterSelect.addEventListener('change', filterData);
   
+  // View report — store data and redirect
   window.viewReport = (id) => {
-    // Basic stub for view functionality
-    showToast('Report generation feature coming soon for id: ' + id, 'info');
+    const item = allData.find(d => d._id === id);
+    if (item) {
+      localStorage.setItem('lastScanData', JSON.stringify(item));
+      window.location.href = 'reports.html';
+    } else {
+      showToast('Scan data not found', 'warning');
+    }
   };
+
+  // ─── CSV EXPORT ──────────────────────────────────────────────────
+  const csvBtn = document.getElementById('export-csv-btn');
+  if (csvBtn) {
+    csvBtn.addEventListener('click', () => {
+      if (!allData || allData.length === 0) {
+        showToast('No data to export', 'warning');
+        return;
+      }
+
+      const headers = ['Target', 'Type', 'Status', 'Risk Score', 'Date'];
+      const rows = allData.map(item => [
+        '"' + (item.target || '').replace(/"/g, '""') + '"',
+        item.scanType || '',
+        item.status || '',
+        item.riskScore || 0,
+        new Date(item.createdAt).toLocaleString()
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cybershield_scan_history_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('CSV exported successfully', 'success');
+    });
+  }
 
   await loadHistory();
 });

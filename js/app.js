@@ -7,8 +7,9 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
   ? '/api'
   : 'https://cybershield-backend-uhwn.onrender.com/api';
 
-// Toast Notification Manager
+// Toast & Browser Notification Manager
 function showToast(message, type = 'info') {
+  // In-app Toast
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -30,6 +31,22 @@ function showToast(message, type = 'info') {
     toast.style.opacity = '0';
     setTimeout(() => toast.remove(), 300);
   }, 4000);
+
+  // Native Browser Notification
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      new Notification('CyberShield AI', {
+        body: message,
+        icon: '/images/favicon.png' // assuming there's an icon, or fallback to default
+      });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          new Notification('CyberShield AI', { body: message });
+        }
+      });
+    }
+  }
 }
 
 // HTML Escape utility (used globally across JS files)

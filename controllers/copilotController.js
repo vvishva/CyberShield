@@ -105,6 +105,14 @@ function isRecentScansIntent(text) {
   return /\b(my (recent )?(scans|history|activity)|recent scans|scan history|last scan|show.*scan)\b/i.test(text);
 }
 
+function isDnsIntent(text) {
+  return /\b(dns|whois|nslookup|resolve|dig)\b/i.test(text);
+}
+
+function isJokeIntent(text) {
+  return /\b(joke|funny|laugh|humor)\b/i.test(text);
+}
+
 // Simple knowledge base for security Q&A
 const KNOWLEDGE = [
   {
@@ -295,6 +303,47 @@ async function runRecentScans(userId) {
   };
 }
 
+const dnsPromises = require('dns').promises;
+
+async function runDnsLookup(domain) {
+  try {
+    const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    const records = await dnsPromises.resolveAny(cleanDomain);
+    const formatted = records.map(r => {
+      if (r.type === 'A' || r.type === 'AAAA') return `<li><b>${r.type}</b>: ${r.address}</li>`;
+      if (r.type === 'MX') return `<li><b>MX</b>: ${r.exchange} (priority: ${r.priority})</li>`;
+      if (r.type === 'TXT') return `<li><b>TXT</b>: ${r.entries.join(' ')}</li>`;
+      if (r.type === 'NS') return `<li><b>NS</b>: ${r.value}</li>`;
+      if (r.type === 'CNAME') return `<li><b>CNAME</b>: ${r.value}</li>`;
+      return `<li><b>${r.type}</b></li>`;
+    }).join('');
+    
+    return {
+      reply: `🔍 <b>DNS Records for ${escapeHtml(cleanDomain)}</b><ul style="margin:4px 0 0 18px;">${formatted || '<li>No standard records found.</li>'}</ul>`,
+      data: { type: 'dns', domain: cleanDomain, records }
+    };
+  } catch (err) {
+    return {
+      reply: `⚠️ Failed to resolve DNS for <b>${escapeHtml(domain)}</b>: ${escapeHtml(err.message)}`,
+      data: { type: 'dns', error: err.message }
+    };
+  }
+}
+
+function runJoke() {
+  const jokes = [
+    "Why did the web developer leave the restaurant? Because of the cross-site scripting!",
+    "A SQL query goes into a bar, walks up to two tables and asks: 'Can I join you?'",
+    "Why do programmers prefer dark mode? Because light attracts bugs!",
+    "How many programmers does it take to change a light bulb? None, that's a hardware problem.",
+    "There are 10 types of people in the world: those who understand binary, and those who don't."
+  ];
+  return {
+    reply: `😄 ${pick(...jokes)}`,
+    data: { type: 'joke' }
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Intent Router
 // ---------------------------------------------------------------------------
@@ -366,10 +415,29 @@ exports.processChat = async (req, res) => {
         if (urls.length === 0) {
           reply = '🤔 I\'d love to scan something for you, but I couldn\'t find a URL in your message. Try: <b>"is https://example.com safe?"</b>';
         } else {
-          const run = await runUrlScan(text, urls[0]);
-          reply = run.reply;
-          data = run.data;
+          // If user specifically asked for DNS
+          if (isDnsIntent(text)) {
+            const run = await runDnsLookup(urls[0]);
+            reply = run.reply;
+            data = run.data;
+          } else {
+            const run = await runUrlScan(text, urls[0]);
+            reply = run.reply;
+            data = run.data;
+          }
         }
+      }
+      // 7. DNS Lookup specifically
+      else if (isDnsIntent(text) && extractUrls(text).length > 0) {
+         const run = await runDnsLookup(extractUrls(text)[0]);
+         reply = run.reply;
+         data = run.data;
+      }
+      // 8. Joke
+      else if (isJokeIntent(text)) {
+         const run = runJoke();
+         reply = run.reply;
+         data = run.data;
       }
       // 7. Knowledge base Q&A
       else {

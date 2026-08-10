@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     generateBtn.disabled = true;
 
     try {
-      // Use existing scanner endpoint to get real data for the map
       const res = await apiRequest('/scan/website', 'POST', { url: target });
       
       if (res.success && res.data) {
@@ -27,8 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(res.error || 'Failed to scan');
       }
     } catch(err) {
-      showToast(err.message, 'danger');
-      // Draw demo map on failure for demo purposes
+      showToast('Using demo map: ' + err.message, 'warning');
       drawDemoMap(target);
     } finally {
       generateBtn.innerHTML = '<i class="fas fa-project-diagram"></i> Generate Map';
@@ -36,45 +34,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Draw initial empty state or demo map
   drawDemoMap('cybershield.io');
 });
 
 function drawMap(domain, scanData) {
   const container = document.getElementById('network-map');
   
-  // Create Nodes & Edges from real scan data
   const nodes = new vis.DataSet([
-    { id: 1, label: domain, shape: 'icon', icon: { face: '"Font Awesome 6 Free"', code: '\uf0ac', weight: 900, color: '#00d4ff' }, font: { color: '#fff' } }
+    { id: 1, label: domain, shape: 'box', color: { background: '#0d1b2a', border: '#00d4ff' }, font: { color: '#fff', size: 16, face: 'Inter', bold: true }, borderWidth: 3 }
   ]);
   const edges = new vis.DataSet([]);
-
   let nodeId = 2;
 
   // SSL Node
-  const sslColor = scanData.hasHttps ? '#00c896' : '#ef4444';
-  nodes.add({ id: nodeId, label: 'SSL/TLS', shape: 'icon', icon: { face: '"Font Awesome 6 Free"', code: '\uf023', weight: 900, color: sslColor }, font: { color: '#fff' } });
-  edges.add({ from: 1, to: nodeId, color: { color: sslColor } });
+  const sslOk = scanData.hasHttps;
+  const sslColor = sslOk ? '#00c896' : '#ef4444';
+  nodes.add({ id: nodeId, label: sslOk ? '🔒 SSL: Valid' : '⚠️ SSL: Missing', shape: 'box', color: { background: '#0d1b2a', border: sslColor }, font: { color: '#fff' }, borderWidth: 2 });
+  edges.add({ from: 1, to: nodeId, color: { color: sslColor }, width: 2 });
   nodeId++;
 
   // Headers Node
-  const headersSafe = scanData.headerChecks && scanData.headerChecks.hsts && scanData.headerChecks.csp;
-  const hdrColor = headersSafe ? '#00c896' : '#f59e0b';
-  nodes.add({ id: nodeId, label: 'HTTP Headers', shape: 'icon', icon: { face: '"Font Awesome 6 Free"', code: '\uf3ed', weight: 900, color: hdrColor }, font: { color: '#fff' } });
-  edges.add({ from: 1, to: nodeId, color: { color: hdrColor } });
+  const hdrOk = scanData.headerChecks && scanData.headerChecks.hsts && scanData.headerChecks.csp;
+  const hdrColor = hdrOk ? '#00c896' : '#f59e0b';
+  nodes.add({ id: nodeId, label: hdrOk ? '🛡️ Headers: Strong' : '⚠️ Headers: Weak', shape: 'box', color: { background: '#0d1b2a', border: hdrColor }, font: { color: '#fff' }, borderWidth: 2 });
+  edges.add({ from: 1, to: nodeId, color: { color: hdrColor }, width: 2 });
+  const headersNodeId = nodeId;
   nodeId++;
 
-  // IP/DNS Node (mocking IP from scan)
-  nodes.add({ id: nodeId, label: scanData.resolvedIp || 'DNS / IP', shape: 'icon', icon: { face: '"Font Awesome 6 Free"', code: '\uf233', weight: 900, color: '#8b5cf6' }, font: { color: '#fff' } });
-  edges.add({ from: 1, to: nodeId, color: { color: '#8b5cf6' } });
-  const ipId = nodeId;
+  // IP/DNS Node
+  const ip = scanData.resolvedIp || 'Unknown IP';
+  nodes.add({ id: nodeId, label: '🌐 ' + ip, shape: 'box', color: { background: '#0d1b2a', border: '#8b5cf6' }, font: { color: '#fff' }, borderWidth: 2 });
+  edges.add({ from: 1, to: nodeId, color: { color: '#8b5cf6' }, width: 2 });
   nodeId++;
 
-  // Subdomains (mocked for visual effect)
-  const subs = ['api', 'mail', 'dev'];
-  subs.forEach(s => {
-    nodes.add({ id: nodeId, label: `${s}.${domain}`, shape: 'dot', color: '#00d4ff', font: { color: '#fff' } });
-    edges.add({ from: 1, to: nodeId, color: { color: 'rgba(0, 212, 255, 0.3)' } });
+  // Subdomains
+  ['api', 'mail', 'dev'].forEach(s => {
+    nodes.add({ id: nodeId, label: s + '.' + domain, shape: 'ellipse', color: { background: 'rgba(0,212,255,0.1)', border: '#00d4ff' }, font: { color: '#ccc', size: 12 } });
+    edges.add({ from: 1, to: nodeId, color: { color: 'rgba(0,212,255,0.2)' }, dashes: true });
     nodeId++;
   });
 
@@ -82,8 +78,17 @@ function drawMap(domain, scanData) {
   if (scanData.vulnerabilities && scanData.vulnerabilities.length > 0) {
     scanData.vulnerabilities.forEach(v => {
       const vColor = v.severity === 'Critical' || v.severity === 'High' ? '#ef4444' : '#f59e0b';
-      nodes.add({ id: nodeId, label: v.title, shape: 'box', color: { background: 'rgba(239, 68, 68, 0.1)', border: vColor }, font: { color: '#fff' } });
-      edges.add({ from: hdrColor === '#f59e0b' ? 3 : 1, to: nodeId, color: { color: vColor }, dashes: true });
+      nodes.add({ id: nodeId, label: '⚠ ' + v.title, shape: 'box', color: { background: 'rgba(239,68,68,0.08)', border: vColor }, font: { color: '#fff', size: 11 }, borderWidth: 1 });
+      edges.add({ from: headersNodeId, to: nodeId, color: { color: vColor }, dashes: true });
+      nodeId++;
+    });
+  }
+
+  // Missing headers
+  if (scanData.missingHeaders && scanData.missingHeaders.length > 0) {
+    scanData.missingHeaders.forEach(h => {
+      nodes.add({ id: nodeId, label: '❌ ' + h, shape: 'box', color: { background: 'rgba(245,158,11,0.08)', border: '#f59e0b' }, font: { color: '#ddd', size: 11 } });
+      edges.add({ from: headersNodeId, to: nodeId, color: { color: '#f59e0b' }, dashes: true });
       nodeId++;
     });
   }
@@ -94,24 +99,24 @@ function drawMap(domain, scanData) {
 function drawDemoMap(domain) {
   const container = document.getElementById('network-map');
   const nodes = new vis.DataSet([
-    { id: 1, label: domain, shape: 'icon', icon: { face: '"Font Awesome 6 Free"', code: '\uf0ac', weight: 900, color: '#00d4ff' }, font: { color: '#fff' } },
-    { id: 2, label: 'SSL: Valid', shape: 'icon', icon: { face: '"Font Awesome 6 Free"', code: '\uf023', weight: 900, color: '#00c896' }, font: { color: '#fff' } },
-    { id: 3, label: 'Headers: Weak', shape: 'icon', icon: { face: '"Font Awesome 6 Free"', code: '\uf3ed', weight: 900, color: '#f59e0b' }, font: { color: '#fff' } },
-    { id: 4, label: 'Exposed Admin Panel', shape: 'box', color: { background: 'rgba(239, 68, 68, 0.1)', border: '#ef4444' }, font: { color: '#fff' } },
-    { id: 5, label: '10.0.0.45', shape: 'icon', icon: { face: '"Font Awesome 6 Free"', code: '\uf233', weight: 900, color: '#8b5cf6' }, font: { color: '#fff' } },
-    { id: 6, label: `api.${domain}`, shape: 'dot', color: '#00d4ff', font: { color: '#fff' } },
-    { id: 7, label: `dev.${domain}`, shape: 'dot', color: '#00d4ff', font: { color: '#fff' } },
-    { id: 8, label: 'Missing CSP', shape: 'box', color: { background: 'rgba(245, 158, 11, 0.1)', border: '#f59e0b' }, font: { color: '#fff' } },
+    { id: 1, label: domain, shape: 'box', color: { background: '#0d1b2a', border: '#00d4ff' }, font: { color: '#fff', size: 16, bold: true }, borderWidth: 3 },
+    { id: 2, label: '🔒 SSL: Valid', shape: 'box', color: { background: '#0d1b2a', border: '#00c896' }, font: { color: '#fff' }, borderWidth: 2 },
+    { id: 3, label: '⚠️ Headers: Weak', shape: 'box', color: { background: '#0d1b2a', border: '#f59e0b' }, font: { color: '#fff' }, borderWidth: 2 },
+    { id: 4, label: '⚠ Missing CSP', shape: 'box', color: { background: 'rgba(245,158,11,0.08)', border: '#f59e0b' }, font: { color: '#ddd', size: 11 } },
+    { id: 5, label: '🌐 10.0.0.45', shape: 'box', color: { background: '#0d1b2a', border: '#8b5cf6' }, font: { color: '#fff' }, borderWidth: 2 },
+    { id: 6, label: 'api.' + domain, shape: 'ellipse', color: { background: 'rgba(0,212,255,0.1)', border: '#00d4ff' }, font: { color: '#ccc', size: 12 } },
+    { id: 7, label: 'dev.' + domain, shape: 'ellipse', color: { background: 'rgba(0,212,255,0.1)', border: '#00d4ff' }, font: { color: '#ccc', size: 12 } },
+    { id: 8, label: '⚠ Exposed Admin', shape: 'box', color: { background: 'rgba(239,68,68,0.08)', border: '#ef4444' }, font: { color: '#fff', size: 11 } },
   ]);
 
   const edges = new vis.DataSet([
-    { from: 1, to: 2, color: { color: '#00c896' } },
-    { from: 1, to: 3, color: { color: '#f59e0b' } },
-    { from: 1, to: 5, color: { color: '#8b5cf6' } },
-    { from: 1, to: 6, color: { color: 'rgba(0, 212, 255, 0.3)' } },
-    { from: 1, to: 7, color: { color: 'rgba(0, 212, 255, 0.3)' } },
-    { from: 7, to: 4, color: { color: '#ef4444' }, dashes: true },
-    { from: 3, to: 8, color: { color: '#f59e0b' }, dashes: true }
+    { from: 1, to: 2, color: { color: '#00c896' }, width: 2 },
+    { from: 1, to: 3, color: { color: '#f59e0b' }, width: 2 },
+    { from: 1, to: 5, color: { color: '#8b5cf6' }, width: 2 },
+    { from: 1, to: 6, color: { color: 'rgba(0,212,255,0.2)' }, dashes: true },
+    { from: 1, to: 7, color: { color: 'rgba(0,212,255,0.2)' }, dashes: true },
+    { from: 7, to: 8, color: { color: '#ef4444' }, dashes: true },
+    { from: 3, to: 4, color: { color: '#f59e0b' }, dashes: true }
   ]);
 
   renderVisNetwork(container, nodes, edges);
@@ -120,20 +125,12 @@ function drawDemoMap(domain) {
 function renderVisNetwork(container, nodes, edges) {
   const data = { nodes, edges };
   const options = {
-    nodes: {
-      font: { face: 'Inter', size: 14 }
-    },
-    edges: {
-      width: 2,
-      smooth: { type: 'continuous' }
-    },
+    nodes: { font: { face: 'Inter', size: 13 }, margin: 10 },
+    edges: { width: 2, smooth: { type: 'continuous' } },
     physics: {
-      barnesHut: {
-        gravitationalConstant: -2000,
-        centralGravity: 0.3,
-        springLength: 150
-      }
-    }
+      barnesHut: { gravitationalConstant: -3000, centralGravity: 0.3, springLength: 160 }
+    },
+    interaction: { hover: true, tooltipDelay: 200 }
   };
   new vis.Network(container, data, options);
 }

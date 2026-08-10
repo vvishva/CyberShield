@@ -1,84 +1,88 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
-const Scan = require('../models/Scan');
+const { scanWebsiteSecurity } = require('../utils/securityScanner');
 
-const MONITOR_INTERVALS = {
-  '1h': 60 * 60 * 1000,
-  '6h': 6 * 60 * 60 * 1000,
-  '24h': 24 * 60 * 60 * 1000,
-  '7d': 7 * 24 * 60 * 60 * 1000
-};
+// In-memory monitor store (per-process; for production use MongoDB)
+const monitors = new Map();
 
-// Get monitored domains for current user
-router.get('/', protect, async (req, res) => {
-  try {
-    const scans = await Scan.find({ 
-      user: req.user._id,
-      scanType: { $in: ['website_security', 'url_phishing'] }
-    })
-    .select('target scanType status riskScore createdAt details')
-    .sort({ createdAt: -1 })
-    .limit(50);
-
-    // Group by target to get latest status per domain
-    const domainMap = new Map();
-    scans.forEach(scan => {
-      if (!domainMap.has(scan.target) || new Date(scan.createdAt) > new Date(domainMap.get(scan.target).createdAt)) {
-        domainMap.set(scan.target, scan);
-      }
-    });
-
-    const monitored = Array.from(domainMap.values()).map(scan => ({
-      target: scan.target,
-      scanType: scan.scanType,
-      status: scan.status,
-      riskScore: scan.riskScore,
-      lastScanned: scan.createdAt,
-      details: scan.details
-    }));
-
-    res.status(200).json({
-      success: true,
-      count: monitored.length,
-      data: monitored
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+// GET /api/monitor — list user's monitored domains
+router.get('/', protect, (req, res) => {
+  const userId = String(req.user._id);
+  const userMonitors = [];
+  monitors.forEach((m, id) => {
+    if (m.userId === userId) userMonitors.push({ _id: id, ...m });
+  });
+  res.json({ success: true, data: userMonitors });
 });
 
-// Add domain to monitoring
+// POST /api/monitor — add domain
 router.post('/', protect, async (req, res) => {
   try {
-    const { target, interval = '24h' } = req.body;
-    
-    if (!target) {
-      return res.status(400).json({ success: false, error: 'Target URL is required' });
-    }
+    const { domain, interval } = req.body;
+    if (!domain) return res.status(400).json({ success: false, error: 'Domain is required' });
 
-    // For now, just return success - actual scheduling would be implemented in a job queue
-    res.status(201).json({
-      success: true,
-      message: `Monitoring scheduled for ${target} every ${interval}`,
-      data: { target, interval, nextRun: new Date(Date.now() + MONITOR_INTERVALS[interval]) }
-    });
+    const id = 'mon_' + Date.now();
+    const userId = String(req.user._id);
+    const intervalMs = (parseInt(interval) || 30) * 60 * 1000;
+    const entry = {
+      userId,
+      domain: domain.replace(/^https?:\/\//, '').replace(/\/+$/, ''),
+      interval: parseInt(interval) || 30,
+      active: true,
+      lastScore: null,
+      lastScan: null,
+      nextScan: new Date(Date.now() + intervalMs).toISOString()
+    };
+    monitors.set(id, entry);
+
+    // Run first scan immediately in background
+    runMonitorScan(id, entry);
+
+    res.status(201).json({ success: true, data: { _id: id, ...entry } });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Remove domain from monitoring
-router.delete('/:target', protect, async (req, res) => {
+// PATCH /api/monitor/:id/toggle — pause/resume
+router.patch('/:id/toggle', protect, (req, res) => {
+  const m = monitors.get(req.params.id);
+  if (!m) return res.status(404).json({ success: false, error: 'Monitor not found' });
+  m.active = !m.active;
+  if (m.active) m.nextScan = new Date(Date.now() + m.interval * 60000).toISOString();
+  res.json({ success: true, data: { _id: req.params.id, ...m } });
+});
+
+// DELETE /api/monitor/:id — remove
+router.delete('/:id', protect, (req, res) => {
+  monitors.delete(req.params.id);
+  res.json({ success: true, message: 'Monitor removed' });
+});
+
+// Background scan runner
+async function runMonitorScan(id, entry) {
   try {
-    const { target } = req.params;
-    res.status(200).json({
-      success: true,
-      message: `Monitoring removed for ${target}`
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const result = await scanWebsiteSecurity(entry.domain);
+    if (monitors.has(id)) {
+      const m = monitors.get(id);
+      m.lastScore = result.securityScore || 0;
+      m.lastScan = new Date().toISOString();
+      m.nextScan = m.active ? new Date(Date.now() + m.interval * 60000).toISOString() : null;
+    }
+  } catch (e) {
+    console.warn('[Monitor] Scan failed for', entry.domain, e.message);
   }
-});
+}
+
+// Background loop — runs every 60 seconds
+setInterval(() => {
+  const now = Date.now();
+  monitors.forEach((m, id) => {
+    if (m.active && m.nextScan && new Date(m.nextScan).getTime() <= now) {
+      runMonitorScan(id, m);
+    }
+  });
+}, 60 * 1000);
 
 module.exports = router;
