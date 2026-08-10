@@ -31,6 +31,17 @@ const validators = {
     handleValidationErrors
   ],
 
+  verifyOTP: [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('otp').isString().isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 characters'),
+    handleValidationErrors
+  ],
+
+  resendOTP: [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    handleValidationErrors
+  ],
+
   // Scan validators
   scanUrl: [
     body('url').trim().notEmpty().withMessage('URL is required')

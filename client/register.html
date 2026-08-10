@@ -197,6 +197,24 @@
       </button>
     </form>
 
+    <form id="otp-form" style="display: none;">
+      <div class="form-group">
+        <label>Security OTP</label>
+        <div class="input-group">
+          <i class="fas fa-key input-icon"></i>
+          <input type="text" id="reg-otp" class="form-control" placeholder="123456" required maxlength="6" pattern="\d{6}">
+        </div>
+        <small style="color: var(--text-muted); display: block; margin-top: 8px;">A 6-digit code has been sent to your email.</small>
+      </div>
+
+      <button type="submit" class="btn btn-primary auth-btn" id="otp-btn">
+        <i class="fas fa-unlock-keyhole"></i> Verify Account
+      </button>
+      <button type="button" class="btn btn-secondary auth-btn" id="resend-otp-btn" style="margin-top: 8px;">
+        <i class="fas fa-rotate"></i> Resend OTP
+      </button>
+    </form>
+
     <div class="auth-footer">
       Already have an account? <a href="login.html">Login here</a>
     </div>
@@ -226,6 +244,8 @@
       setupToggle('toggle-pwd1', 'reg-password');
       setupToggle('toggle-pwd2', 'reg-confirm');
 
+      let registeredEmail = '';
+
       document.getElementById('register-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('reg-btn');
@@ -244,21 +264,61 @@
 
         try {
           const data = await apiRequest('/auth/register', 'POST', { username, email, password });
+          if (data.success) {
+            registeredEmail = email;
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('otp-form').style.display = 'block';
+            document.querySelector('.auth-brand p').innerText = 'Enter the OTP sent to your email';
+            showToast('Registration successful! Please verify your email.', 'success');
+          }
+        } catch (err) {
+          btn.classList.remove('btn-loading');
+          btn.disabled = false;
+          document.querySelector('.auth-card').classList.add('shake');
+          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
+          showToast(err.message || 'Registration failed', 'danger');
+        }
+      });
+
+      document.getElementById('otp-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('otp-btn');
+        const otp = document.getElementById('reg-otp').value.trim();
+
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+
+        try {
+          const data = await apiRequest('/auth/verify-otp', 'POST', { email: registeredEmail, otp });
           if (data.success && data.token) {
             setToken(data.token, false);
             if (data.user) setUser(data.user, false);
-            btn.innerHTML = '<i class="fas fa-check"></i> Account Initialized!';
+            btn.innerHTML = '<i class="fas fa-check"></i> Verified!';
             btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
-            showToast('Registration successful! Accessing SOC...', 'success');
+            showToast('Account verified! Accessing SOC...', 'success');
             setTimeout(() => window.location.href = 'dashboard.html', 800);
           }
         } catch (err) {
           btn.classList.remove('btn-loading');
           btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-shield-check"></i> Initialize Account';
           document.querySelector('.auth-card').classList.add('shake');
           setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          showToast(err.message || 'Registration failed', 'danger');
+          showToast(err.message || 'Verification failed', 'danger');
+        }
+      });
+
+      document.getElementById('resend-otp-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('resend-otp-btn');
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+        try {
+          await apiRequest('/auth/resend-otp', 'POST', { email: registeredEmail });
+          showToast('OTP resent successfully!', 'success');
+        } catch (err) {
+          showToast(err.message || 'Failed to resend OTP', 'danger');
+        } finally {
+          btn.classList.remove('btn-loading');
+          setTimeout(() => btn.disabled = false, 15000); // 15 sec cooldown
         }
       });
     });

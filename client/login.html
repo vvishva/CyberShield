@@ -234,11 +234,6 @@
         <i class="fas fa-sign-in-alt"></i> Authenticate & Enter
       </button>
 
-      <div class="divider">or</div>
-
-      <button type="button" id="guest-btn" class="btn btn-secondary guest-btn">
-        <i class="fas fa-eye"></i> Continue as Guest
-      </button>
     </form>
 
     <div class="auth-footer">
@@ -263,34 +258,6 @@
         } else {
           input.type = 'password';
           this.classList.replace('fa-eye-slash', 'fa-eye');
-        }
-      });
-
-      // Guest Login
-      document.getElementById('guest-btn').addEventListener('click', async () => {
-        const btn = document.getElementById('guest-btn');
-        btn.classList.add('btn-loading');
-        btn.disabled = true;
-        
-        try {
-          const data = await apiRequest('/auth/login', 'POST', {
-            email: 'guest@cybershield.io',
-            password: 'guest'
-          });
-          
-          if (data.success && data.token) {
-            setToken(data.token, false);
-            if (data.user) setUser(data.user, false);
-            btn.innerHTML = '<i class="fas fa-check"></i> Welcome Guest!';
-            btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
-            showToast('Logging in as guest...', 'success');
-            setTimeout(() => window.location.href = 'dashboard.html', 800);
-          }
-        } catch (err) {
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-eye"></i> Continue as Guest';
-          showToast(err.message || 'Guest Login failed.', 'danger');
         }
       });
 

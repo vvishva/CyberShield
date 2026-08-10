@@ -27,22 +27,19 @@ const protect = async (req, res, next) => {
     try {
       req.user = await User.findById(decoded.id).select('-password');
     } catch (e) {
-      // Fallback user object if database is disconnected
-      req.user = {
-        _id: decoded.id,
-        username: decoded.username || 'Demo User',
-        email: decoded.email || 'user@cybershield.io',
-        role: decoded.role || 'user'
-      };
+      return res.status(503).json({ success: false, error: 'Database unavailable' });
     }
 
     if (!req.user) {
-      req.user = {
-        _id: decoded.id,
-        username: decoded.username || 'User',
-        email: 'user@cybershield.io',
-        role: decoded.role || 'user'
-      };
+      return res.status(401).json({ success: false, error: 'User no longer exists.' });
+    }
+
+    // Check if user changed password after the token was issued
+    if (req.user.passwordChangedAt) {
+      const changedTimestamp = parseInt(req.user.passwordChangedAt.getTime() / 1000, 10);
+      if (decoded.iat < changedTimestamp) {
+        return res.status(401).json({ success: false, error: 'Password recently changed. Please log in again.' });
+      }
     }
 
     next();
@@ -69,20 +66,14 @@ const optionalAuth = async (req, res, next) => {
     const secret = process.env.JWT_SECRET;
     if (!secret) return next();
     const decoded = jwt.verify(token, secret);
-    req.user = await User.findById(decoded.id).select('-password')
-      .catch(() => ({
-        _id: decoded.id,
-        username: decoded.username || 'User',
-        email: decoded.email || 'user@cybershield.io',
-        role: decoded.role || 'user'
-      }));
-    if (!req.user) {
-      req.user = {
-        _id: decoded.id,
-        username: decoded.username || 'User',
-        email: 'user@cybershield.io',
-        role: decoded.role || 'user'
-      };
+    try {
+      req.user = await User.findById(decoded.id).select('-password');
+      if (req.user && req.user.passwordChangedAt) {
+        const changedTimestamp = parseInt(req.user.passwordChangedAt.getTime() / 1000, 10);
+        if (decoded.iat < changedTimestamp) req.user = null; // invalid token
+      }
+    } catch (err) {
+      req.user = null;
     }
   } catch (err) {
     // Invalid token — treat as anonymous
