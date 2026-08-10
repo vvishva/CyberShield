@@ -62,9 +62,9 @@ exports.register = async (req, res, next) => {
           message
         });
       } catch (err) {
-        console.error('Email failed:', err);
+        console.error('[SMTP Error] Email delivery failed:', err.message || err);
         await User.findByIdAndDelete(user._id);
-        return res.status(500).json({ success: false, error: 'Unable to send verification email. Please try again later.' });
+        return res.status(500).json({ success: false, error: 'Unable to send verification code. Please try again.' });
       }
 
     } catch (dbErr) {
@@ -83,7 +83,7 @@ exports.register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Verification code sent to your email.'
+      message: 'Verification code sent successfully to your email.'
     });
   } catch (err) {
     next(err);
@@ -163,11 +163,11 @@ exports.resendOTP = async (req, res, next) => {
     try {
       await sendEmail({ email: user.email, subject: 'CyberShield Account Verification OTP', message });
     } catch (err) {
-      console.error('Email failed:', err);
-      return res.status(500).json({ success: false, error: 'Unable to send verification email. Please try again later.' });
+      console.error('[SMTP Error] Resend email delivery failed:', err.message || err);
+      return res.status(500).json({ success: false, error: 'Unable to send verification code. Please try again.' });
     }
 
-    res.status(200).json({ success: true, message: 'Verification code sent to your email.' });
+    res.status(200).json({ success: true, message: 'Verification code sent successfully to your email.' });
   } catch (err) {
     next(err);
   }

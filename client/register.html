@@ -204,19 +204,25 @@
           <i class="fas fa-key input-icon"></i>
           <input type="text" id="reg-otp" class="form-control" placeholder="123456" required maxlength="6" pattern="\d{6}">
         </div>
-        <small style="color: var(--text-muted); display: block; margin-top: 8px;">A 6-digit code has been sent to your email.</small>
+        <small style="color: var(--text-muted); display: block; margin-top: 8px;" id="otp-sent-notice">A 6-digit verification code has been sent to your email.</small>
       </div>
 
       <button type="submit" class="btn btn-primary auth-btn" id="otp-btn">
         <i class="fas fa-unlock-keyhole"></i> Verify Account
       </button>
-      <button type="button" class="btn btn-secondary auth-btn" id="resend-otp-btn" style="margin-top: 8px;">
-        <i class="fas fa-rotate"></i> Resend OTP
-      </button>
+      
+      <div style="display: flex; gap: 10px; margin-top: 12px;">
+        <button type="button" class="btn btn-secondary" id="resend-otp-btn" style="flex: 1; padding: 12px; font-size: 13px;">
+          <i class="fas fa-rotate"></i> Resend OTP <span id="cooldown-timer">(60s)</span>
+        </button>
+        <button type="button" class="btn btn-secondary" id="change-email-btn" style="flex: 1; padding: 12px; font-size: 13px;">
+          <i class="fas fa-pen"></i> Change Email
+        </button>
+      </div>
     </form>
 
     <div class="auth-footer">
-      Already have an account? <a href="login.html">Login here</a>
+      Already registered? <a href="login.html">Back to Login</a>
     </div>
   </div>
 
@@ -245,6 +251,28 @@
       setupToggle('toggle-pwd2', 'reg-confirm');
 
       let registeredEmail = '';
+      let timerInterval = null;
+
+      const startResendTimer = (seconds = 60) => {
+        const btn = document.getElementById('resend-otp-btn');
+        const timerSpan = document.getElementById('cooldown-timer');
+        btn.disabled = true;
+        let remaining = seconds;
+        
+        if (timerInterval) clearInterval(timerInterval);
+        
+        timerSpan.innerText = `(${remaining}s)`;
+        timerInterval = setInterval(() => {
+          remaining -= 1;
+          if (remaining <= 0) {
+            clearInterval(timerInterval);
+            timerSpan.innerText = '';
+            btn.disabled = false;
+          } else {
+            timerSpan.innerText = `(${remaining}s)`;
+          }
+        }, 1000);
+      };
 
       document.getElementById('register-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -268,15 +296,17 @@
             registeredEmail = email;
             document.getElementById('register-form').style.display = 'none';
             document.getElementById('otp-form').style.display = 'block';
-            document.querySelector('.auth-brand p').innerText = 'Enter the OTP sent to your email';
-            showToast(data.message || 'Verification code sent to your email.', 'success');
+            document.querySelector('.auth-brand p').innerText = `Enter the 6-digit code sent to ${email}`;
+            document.getElementById('otp-sent-notice').innerText = `A 6-digit code has been sent to ${email}`;
+            showToast(data.message || 'Verification code sent successfully to your email.', 'success');
+            startResendTimer(60);
           }
         } catch (err) {
           btn.classList.remove('btn-loading');
           btn.disabled = false;
           document.querySelector('.auth-card').classList.add('shake');
           setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          showToast(err.message || 'Registration failed', 'danger');
+          showToast(err.message || 'Unable to send verification code. Please try again.', 'danger');
         }
       });
 
@@ -303,7 +333,7 @@
           btn.disabled = false;
           document.querySelector('.auth-card').classList.add('shake');
           setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          showToast(err.message || 'Verification failed', 'danger');
+          showToast(err.message || 'Invalid verification code.', 'danger');
         }
       });
 
@@ -313,13 +343,24 @@
         btn.disabled = true;
         try {
           const resData = await apiRequest('/auth/resend-otp', 'POST', { email: registeredEmail });
-          showToast(resData.message || 'Verification code sent to your email.', 'success');
+          showToast(resData.message || 'Verification code sent successfully to your email.', 'success');
+          startResendTimer(60);
         } catch (err) {
-          showToast(err.message || 'Failed to resend OTP', 'danger');
+          showToast(err.message || 'Unable to send verification code. Please try again.', 'danger');
+          btn.disabled = false;
         } finally {
           btn.classList.remove('btn-loading');
-          setTimeout(() => btn.disabled = false, 15000); // 15 sec cooldown
         }
+      });
+
+      document.getElementById('change-email-btn').addEventListener('click', () => {
+        if (timerInterval) clearInterval(timerInterval);
+        document.getElementById('otp-form').style.display = 'none';
+        document.getElementById('register-form').style.display = 'block';
+        document.querySelector('.auth-brand p').innerText = 'Register as a new CyberShield Security Analyst';
+        const regBtn = document.getElementById('reg-btn');
+        regBtn.classList.remove('btn-loading');
+        regBtn.disabled = false;
       });
     });
   </script>
