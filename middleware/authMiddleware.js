@@ -54,6 +54,42 @@ const protect = async (req, res, next) => {
   }
 };
 
+// Attach user if a valid token is present, otherwise continue as anonymous.
+const optionalAuth = async (req, res, next) => {
+  let token;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+
+  if (!token) return next();
+
+  try {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) return next();
+    const decoded = jwt.verify(token, secret);
+    req.user = await User.findById(decoded.id).select('-password')
+      .catch(() => ({
+        _id: decoded.id,
+        username: decoded.username || 'User',
+        email: decoded.email || 'user@cybershield.io',
+        role: decoded.role || 'user'
+      }));
+    if (!req.user) {
+      req.user = {
+        _id: decoded.id,
+        username: decoded.username || 'User',
+        email: 'user@cybershield.io',
+        role: decoded.role || 'user'
+      };
+    }
+  } catch (err) {
+    // Invalid token — treat as anonymous
+  }
+  next();
+};
+
 // Grant access to specific roles
 const authorize = (...roles) => {
   return (req, res, next) => {
@@ -67,4 +103,4 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, authorize };
+module.exports = { protect, optionalAuth, authorize };

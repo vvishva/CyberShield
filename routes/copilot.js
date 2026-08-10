@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { processChat } = require('../controllers/copilotController');
-const { protect } = require('../middleware/authMiddleware');
+const { optionalAuth } = require('../middleware/authMiddleware');
 
-router.post('/chat', protect, processChat);
+router.post('/chat', optionalAuth, processChat);
 
 module.exports = router;

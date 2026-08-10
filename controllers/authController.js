@@ -93,7 +93,14 @@ exports.login = async (req, res, next) => {
     }
 
     if (!user) {
-      return res.status(401).json({ success: false, error: 'Invalid login credentials.' });
+      // Fallback demo credentials when DB user not found
+      if (email === 'admin@cybershield.io' && password === 'Admin@123456') {
+        user = { _id: 'admin_demo_id', username: 'CyberAdmin', email: 'admin@cybershield.io', role: 'admin' };
+      } else if (email === 'guest@cybershield.io' && password === 'guest') {
+        user = { _id: 'usr_guest_demo', username: 'Guest Analyst', email: 'guest@cybershield.io', role: 'user' };
+      } else {
+        return res.status(401).json({ success: false, error: 'Invalid login credentials.' });
+      }
     }
 
     const token = generateToken(user);

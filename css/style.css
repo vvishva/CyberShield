@@ -685,6 +685,35 @@ input, select, textarea { font-family: var(--font-sans); }
   gap: 10px;
 }
 
+.cyberbot-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 16px 10px;
+}
+.cyberbot-chip {
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  color: var(--cyan);
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.cyberbot-chip:hover {
+  background: rgba(0, 212, 255, 0.18);
+  border-color: var(--cyan);
+}
+
+.chat-msg code {
+  background: #111;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.chat-msg ul { padding-left: 18px; margin: 6px 0; }
+
 .chat-msg {
   padding: 10px 14px;
   border-radius: 10px;

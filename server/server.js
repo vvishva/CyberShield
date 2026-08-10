@@ -14,7 +14,9 @@ const errorHandler = require('../middleware/errorHandler');
 const app = express();
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  try { require('../utils/seeder').seedAdmin(); } catch(e) {}
+});
 
 // Security Middlewares
 const isProduction = process.env.NODE_ENV === 'production';
@@ -22,11 +24,11 @@ app.use(helmet({
   contentSecurityPolicy: isProduction ? {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", process.env.PYTHON_AI_URL ? new URL(process.env.PYTHON_AI_URL).origin : "http://localhost:5001"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", process.env.PYTHON_AI_URL ? new URL(process.env.PYTHON_AI_URL).origin : 'http://localhost:5001'],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]
@@ -89,6 +91,9 @@ app.use('/api/reports', require('../routes/report'));
 app.use('/api/user', require('../routes/user'));
 app.use('/api/admin', require('../routes/admin'));
 app.use('/api/tips', require('../routes/tip'));
+app.use('/api/copilot', require('../routes/copilot'));
+app.use('/api/events', require('../routes/events').router);
+app.use('/api/monitor', require('../routes/monitor'));
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
@@ -109,9 +114,9 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`=======================================================`);
+  console.log('=======================================================');
   console.log(`   CYBERSHIELD AI SECURITY SYSTEM ACTIVE ON PORT ${PORT} `);
   console.log(`   Access Web Dashboard: http://localhost:${PORT}        `);
   console.log(`   API Documentation: http://localhost:${PORT}/api/docs  `);
-  console.log(`=======================================================`);
+  console.log('=======================================================');
 });

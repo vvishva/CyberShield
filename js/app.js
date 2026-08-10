@@ -32,6 +32,17 @@ function showToast(message, type = 'info') {
   }, 4000);
 }
 
+// HTML Escape utility (used globally across JS files)
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Token & Session Storage Helpers
 function getToken() {
   return localStorage.getItem('cybershield_token') || sessionStorage.getItem('cybershield_token');
@@ -102,7 +113,7 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
 // Initialize Sidebar Active Links & User Info
 document.addEventListener('DOMContentLoaded', () => {
   const currentUser = getUser();
-  
+
   // Update sidebar user details & developer credit badge
   const nameEl = document.getElementById('user-display-name');
   const roleEl = document.getElementById('user-display-role');
@@ -202,9 +213,10 @@ function initCyberBotAI() {
     </div>
     <div class="cyberbot-messages" id="cyberbot-messages">
       <div class="chat-msg bot">
-        👋 Hello! I am <strong>CyberBot AI</strong>, your real-time security assistant for <strong>CyberShield</strong> (engineered by <strong>Vishva</strong>). Ask me about phishing detection, password entropy, SSL audits, or project specs!
+        👋 Hello! I am <strong>CyberBot AI</strong>, your real-time security assistant for <strong>CyberShield</strong> (engineered by <strong>Vishva</strong>). Ask me to scan a URL, audit a website, test a password, or check an IP!
       </div>
     </div>
+    <div class="cyberbot-suggestions" id="cyberbot-suggestions"></div>
     <div class="cyberbot-input-area">
       <input type="text" id="cyberbot-input" class="form-control" placeholder="Ask CyberBot anything..." style="font-size: 13px;">
       <button id="cyberbot-send" class="btn btn-primary" style="padding: 8px 14px;"><i class="fas fa-paper-plane"></i></button>
@@ -218,6 +230,29 @@ function initCyberBotAI() {
   const sendBtn = document.getElementById('cyberbot-send');
   const inputEl = document.getElementById('cyberbot-input');
   const msgContainer = document.getElementById('cyberbot-messages');
+  const suggestionsEl = document.getElementById('cyberbot-suggestions');
+
+  const SUGGESTIONS = [
+    'What can you do?',
+    'Scan https://example.com',
+    'Check password Abc!123xyz',
+    'Generate a password',
+    'What is phishing?',
+    'Show my recent scans'
+  ];
+
+  function renderSuggestions() {
+    if (!suggestionsEl) return;
+    suggestionsEl.innerHTML = SUGGESTIONS
+      .map(s => `<button class="cyberbot-chip" data-text="${s.replace(/"/g, '&quot;')}">${s}</button>`)
+      .join('');
+    suggestionsEl.querySelectorAll('.cyberbot-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        inputEl.value = chip.dataset.text;
+        handleSend();
+      });
+    });
+  }
 
   async function handleSend() {
     const text = inputEl.value.trim();
@@ -229,6 +264,7 @@ function initCyberBotAI() {
     userMsg.textContent = text;
     msgContainer.appendChild(userMsg);
     inputEl.value = '';
+    if (suggestionsEl) suggestionsEl.innerHTML = '';
     msgContainer.scrollTop = msgContainer.scrollHeight;
 
     // Bot Typing Indicator
@@ -240,14 +276,16 @@ function initCyberBotAI() {
 
     try {
       const data = await apiRequest('/copilot/chat', 'POST', { message: text });
-      typingMsg.innerHTML = data.reply;
+      typingMsg.innerHTML = data.reply || 'Hmm, I got no response. Please try again.';
     } catch(err) {
-      typingMsg.innerHTML = `<span style="color:var(--red);">Connection error: ${err.message}</span>`;
+      typingMsg.innerHTML = `<span style="color:var(--red);">⚠️ ${err.message}. Make sure you are connected.</span>`;
     }
-    
+
+    renderSuggestions();
     msgContainer.scrollTop = msgContainer.scrollHeight;
   }
 
+  renderSuggestions();
   sendBtn.addEventListener('click', handleSend);
   inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
 }
