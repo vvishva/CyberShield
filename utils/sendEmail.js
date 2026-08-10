@@ -9,9 +9,46 @@ const nodemailer = require('nodemailer');
 const sendEmail = async (options) => {
   const brevoKey = process.env.BREVO_API_KEY;
 
-  // ── Strategy 1: Brevo HTTP API (Recommended for Production) ──
+  // ── Strategy 1: Direct Gmail SMTP over Port 465 SSL (Passes DMARC & Arrives in Inbox) ──
+  if (user && pass) {
+    let transporter;
+    if (isGmail || !host) {
+      transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, // SSL
+        auth: { user, pass },
+        tls: { rejectUnauthorized: false }
+      });
+    } else {
+      const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+      transporter = nodemailer.createTransport({
+        host, port,
+        secure: port === 465,
+        auth: { user, pass },
+        tls: { rejectUnauthorized: false }
+      });
+    }
+
+    const message = {
+      from: `${process.env.FROM_NAME || 'CyberShield AI Security'} <${user}>`,
+      to: options.email,
+      subject: options.subject,
+      text: options.message,
+      html: options.html || `<div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0b0f1a; color: #ffffff; border-radius: 8px;">
+        <h2 style="color: #00d4ff;">CyberShield Security Gateway</h2>
+        <p style="font-size: 16px;">${options.message.replace(/\n/g, '<br>')}</p>
+        <hr style="border: 0; border-top: 1px solid #1e293b; margin: 20px 0;">
+        <p style="font-size: 12px; color: #64748b;">If you did not request this verification code, please ignore this email.</p>
+      </div>`
+    };
+
+    return await transporter.sendMail(message);
+  }
+
+  // ── Strategy 2: Brevo HTTP API ──
   if (brevoKey) {
-    const senderEmail = process.env.FROM_EMAIL || process.env.SMTP_USER || 'noreply@cybershield.io';
+    const senderEmail = process.env.FROM_EMAIL || user || 'noreply@cybershield.io';
     const senderName = process.env.FROM_NAME || 'CyberShield AI Security';
 
     const htmlContent = options.html || `<div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0b0f1a; color: #ffffff; border-radius: 8px;">
@@ -29,8 +66,6 @@ const sendEmail = async (options) => {
       textContent: options.message
     });
 
-    console.log('[Brevo] Sending email to:', options.email, 'from:', senderEmail);
-
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -42,64 +77,10 @@ const sendEmail = async (options) => {
     });
 
     const responseData = await response.json().catch(() => ({}));
-    console.log('[Brevo] Response status:', response.status, 'Body:', JSON.stringify(responseData));
-
     if (!response.ok) {
-      console.error('[Brevo API Error]', response.status, responseData);
       throw new Error(`Email delivery failed: ${responseData.message || response.statusText}`);
     }
-
     return responseData;
-  }
-
-  // ── Strategy 2: Gmail SMTP (Works locally, may be blocked on cloud) ──
-  let user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER;
-  let pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS;
-  let host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
-
-  if (user) user = user.trim().replace(/^["']|["']$/g, '');
-  if (pass) pass = pass.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '');
-  if (host) host = host.trim().replace(/^["']|["']$/g, '');
-
-  const isGmail = (user && user.toLowerCase().includes('@gmail.com')) ||
-                  (host && host.toLowerCase().includes('gmail'));
-
-  if (user && pass) {
-    let transporter;
-    if (isGmail) {
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass }
-      });
-    } else if (host) {
-      const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
-      transporter = nodemailer.createTransport({
-        host, port,
-        secure: port === 465,
-        auth: { user, pass },
-        tls: { rejectUnauthorized: false }
-      });
-    } else {
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass }
-      });
-    }
-
-    const message = {
-      from: `${process.env.FROM_NAME || 'CyberShield AI Security'} <${process.env.FROM_EMAIL || user}>`,
-      to: options.email,
-      subject: options.subject,
-      text: options.message,
-      html: options.html || `<div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0b0f1a; color: #ffffff; border-radius: 8px;">
-        <h2 style="color: #00d4ff;">CyberShield Security Gateway</h2>
-        <p style="font-size: 16px;">${options.message.replace(/\n/g, '<br>')}</p>
-        <hr style="border: 0; border-top: 1px solid #1e293b; margin: 20px 0;">
-        <p style="font-size: 12px; color: #64748b;">If you did not request this, please ignore this email.</p>
-      </div>`
-    };
-
-    return await transporter.sendMail(message);
   }
 
   // ── Strategy 3: Ethereal (Development Only) ──
