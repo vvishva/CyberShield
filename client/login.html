@@ -3,325 +3,333 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login — CyberShield AI Security Platform</title>
+  <title>Login - CyberShield AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=5.0">
+  <link rel="stylesheet" href="../css/style.css">
   <style>
-    body { margin:0; background:#080b14; font-family:'Inter',sans-serif; overflow:hidden; }
-
-    .auth-container { display:flex; height:100vh; width:100vw; }
-
-    /* ── Left Panel ── */
-    .auth-left {
-      flex:1; background: linear-gradient(145deg, #080b14 0%, #0a1020 100%);
-      border-right:1px solid rgba(0,212,255,.1);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      position:relative; overflow:hidden; padding:40px;
+    body {
+      background: var(--bg-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
     }
-    /* grid bg */
-    .auth-left::before {
-      content:''; position:absolute; inset:0;
-      background-image: linear-gradient(rgba(0,212,255,.04) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(0,212,255,.04) 1px, transparent 1px);
-      background-size:50px 50px;
+    .auth-card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
     }
-    /* glow orb */
-    .auth-left::after {
-      content:''; position:absolute;
-      width:400px; height:400px; border-radius:50%;
-      background: radial-gradient(circle, rgba(0,212,255,.06) 0%, transparent 70%);
-      top:50%; left:50%; transform:translate(-50%,-50%);
-      animation: orbPulse 4s ease-in-out infinite;
+    .auth-card::before {
+      content: "";
+      position: absolute;
+      top: -50px; left: -50px; right: -50px; height: 150px;
+      background: radial-gradient(ellipse at top, rgba(0, 212, 255, 0.15), transparent 70%);
+      pointer-events: none;
     }
-    @keyframes orbPulse { 0%,100%{transform:translate(-50%,-50%) scale(1);} 50%{transform:translate(-50%,-50%) scale(1.15);} }
-
-    .auth-left-content { position:relative; z-index:2; text-align:center; max-width:400px; }
-
-    .brand { display:flex; align-items:center; gap:12px; justify-content:center; margin-bottom:48px; }
-    .brand i { font-size:32px; color:#00d4ff; filter:drop-shadow(0 0 12px rgba(0,212,255,.6)); }
-    .brand-name { font-size:24px; font-weight:800; background:linear-gradient(135deg,#fff,#00d4ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-
-    /* Canvas visualization */
-    #securityCanvas { border-radius:16px; max-width:100%; }
-
-    /* Terminal messages */
-    .terminal-wrap {
-      margin-top:32px; background:rgba(0,212,255,.04);
-      border:1px solid rgba(0,212,255,.15); border-radius:10px;
-      padding:16px 20px; text-align:left; font-family:'JetBrains Mono',monospace;
+    .auth-brand {
+      text-align: center;
+      margin-bottom: 30px;
     }
-    .terminal-header { font-size:10px; color:rgba(0,212,255,.5); margin-bottom:12px; letter-spacing:1px; }
-    .terminal-line { font-size:12px; color:#00d4ff; display:flex; align-items:center; gap:8px; }
-    .terminal-prompt { color:rgba(0,212,255,.4); }
-    #terminal-msg { color:#e8edf5; }
-    .terminal-cursor { display:inline-block; width:8px; height:14px; background:#00d4ff; animation:blink .8s step-end infinite; margin-left:2px; vertical-align:middle; }
-    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
-
-    /* ── Right Panel ── */
-    .auth-right {
-      width:480px; display:flex; align-items:center; justify-content:center;
-      padding:40px 48px; background:var(--bg-surface); overflow-y:auto;
+    .auth-brand i {
+      font-size: 42px;
+      color: var(--cyan);
+      margin-bottom: 12px;
     }
-    .auth-form-box { width:100%; max-width:380px; }
-
-    .auth-form-box h2 { font-size:26px; font-weight:800; color:#e8edf5; margin-bottom:6px; }
-    .auth-form-box p { font-size:13px; color:#8b95a8; margin-bottom:32px; line-height:1.6; }
-
-    .input-group { position:relative; }
-    .input-group .input-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#5a6478; font-size:14px; pointer-events:none; }
-    .input-group input { padding-left:40px !important; }
-    .input-group .eye-icon { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#5a6478; cursor:pointer; font-size:14px; transition:color .2s; }
-    .input-group .eye-icon:hover { color:#00d4ff; }
-
-    .auth-extras { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; font-size:13px; }
-    .remember-label { display:flex; align-items:center; gap:8px; color:#8b95a8; cursor:pointer; }
-    .remember-label input { accent-color:#00d4ff; }
-    .forgot-link { color:#00d4ff; font-size:13px; }
-    .forgot-link:hover { color:#33deff; }
-
-    .divider { display:flex; align-items:center; gap:12px; margin:24px 0; color:#3d4556; font-size:12px; }
-    .divider::before, .divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.06); }
-
-    .auth-switch { text-align:center; margin-top:24px; font-size:13px; color:#8b95a8; }
-    .auth-switch a { color:#00d4ff; font-weight:600; }
-
-    /* Loading state */
-    .btn-loading { position:relative; color:transparent !important; }
-    .btn-loading::after {
-      content:''; position:absolute; width:16px; height:16px;
-      border:2px solid rgba(0,0,0,.3); border-top-color:#000;
-      border-radius:50%; animation:spin .6s linear infinite;
-      top:50%; left:50%; transform:translate(-50%,-50%);
+    .auth-brand h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.5px;
     }
-    @keyframes spin { to{transform:translate(-50%,-50%) rotate(360deg);} }
-
-    /* shake error animation */
-    @keyframes shake {
-      0%,100%{transform:translateX(0);}
-      20%,60%{transform:translateX(-6px);}
-      40%,80%{transform:translateX(6px);}
+    .auth-brand p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-top: 8px;
     }
-    .shake { animation: shake .4s var(--ease); }
-
-    @media(max-width:768px) {
-      .auth-left { display:none; }
-      .auth-right { width:100%; padding:32px 24px; }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .input-group {
+      position: relative;
+    }
+    .input-group .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .form-control {
+      width: 100%;
+      background: rgba(15, 22, 40, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px 12px 40px;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s var(--ease);
+      font-family: 'Inter', sans-serif;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+      background: rgba(15, 22, 40, 0.9);
+    }
+    .eye-icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 5px;
+    }
+    .eye-icon:hover { color: var(--cyan); }
+    .auth-extras {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+    .remember-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .forgot-link {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+    .forgot-link:hover { text-decoration: underline; }
+    .auth-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      border-radius: var(--radius-md);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .guest-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .divider {
+      text-align: center;
+      margin: 20px 0;
+      position: relative;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .divider::before, .divider::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+    .auth-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .auth-footer a {
+      color: var(--cyan);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .auth-footer a:hover { text-decoration: underline; }
+    
+    @media (max-width: 480px) {
+      .auth-card {
+        padding: 30px 20px;
+        border: none;
+        box-shadow: none;
+        background: transparent;
+      }
+      body {
+        padding: 0;
+        align-items: flex-start;
+        padding-top: 40px;
+      }
     }
   </style>
 </head>
 <body>
 
-<div class="auth-container">
-  <!-- Left: Animated Security Panel -->
-  <div class="auth-left">
-    <div class="auth-left-content">
-      <div class="brand">
-        <i class="fas fa-shield-halved"></i>
-        <span class="brand-name">CyberShield AI</span>
-      </div>
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
 
-      <canvas id="securityCanvas" width="360" height="240"></canvas>
+  <div class="auth-card">
+    <div class="auth-brand">
+      <i class="fas fa-shield-halved"></i>
+      <h2>CyberShield Gateway</h2>
+      <p>Enter your credentials to access the SOC</p>
+    </div>
 
-      <div class="terminal-wrap">
-        <div class="terminal-header">// CYBERSHIELD SECURITY ENGINE</div>
-        <div class="terminal-line">
-          <span class="terminal-prompt">$</span>
-          <span id="terminal-msg">Initializing Security Engine...</span>
-          <span class="terminal-cursor"></span>
+    <form id="login-form">
+      <div class="form-group">
+        <label>Email Address</label>
+        <div class="input-group">
+          <i class="fas fa-envelope input-icon"></i>
+          <input type="email" id="login-email" class="form-control" placeholder="analyst@example.com" required>
         </div>
       </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-group">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+          <i class="fas fa-eye eye-icon" id="toggle-pwd"></i>
+        </div>
+      </div>
+
+      <div class="auth-extras">
+        <label class="remember-label">
+          <input type="checkbox" id="login-remember"> Remember me
+        </label>
+        <a href="#" class="forgot-link" onclick="showToast('Password reset email sent!','info'); return false;">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="btn btn-primary auth-btn" id="login-btn">
+        <i class="fas fa-sign-in-alt"></i> Authenticate & Enter
+      </button>
+
+      <div class="divider">or</div>
+
+      <button type="button" id="guest-btn" class="btn btn-secondary guest-btn">
+        <i class="fas fa-eye"></i> Continue as Guest
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="register.html">Create Account</a>
     </div>
   </div>
 
-  <!-- Right: Login Form -->
-  <div class="auth-right">
-    <div class="auth-form-box">
-      <h2>Welcome Back</h2>
-      <p>Sign in to your CyberShield account to access the Security Operations Center.</p>
-
-      <form id="login-form">
-        <div class="form-group">
-          <label>Email Address</label>
-          <div class="input-group">
-            <i class="fas fa-envelope input-icon"></i>
-            <input type="email" id="login-email" class="form-control" placeholder="analyst@example.com" required>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Password</label>
-          <div class="input-group">
-            <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="login-password" class="form-control" placeholder="••••••••••••" required>
-            <i class="fas fa-eye eye-icon" id="toggle-pwd"></i>
-          </div>
-        </div>
-
-        <div class="auth-extras">
-          <label class="remember-label">
-            <input type="checkbox" id="login-remember"> Remember me
-          </label>
-          <a href="#" class="forgot-link" onclick="showToast('Password reset email sent!','info'); return false;">Forgot password?</a>
-        </div>
-
-        <button type="submit" class="btn btn-primary" id="login-btn" style="width:100%;padding:13px;font-size:15px;">
-          <i class="fas fa-sign-in-alt"></i> Authenticate & Enter
-        </button>
-
-        <div class="divider">or</div>
-
-        <button type="button" id="guest-btn" class="btn btn-secondary" style="width:100%;padding:13px;font-size:14px;text-align:center;justify-content:center;">
-          <i class="fas fa-eye"></i> Continue as Guest
-        </button>
-      </form>
-
-      <div class="auth-switch">
-        Don't have an account? <a href="register.html">Create Account</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="/js/app.js"></script>
-<script>
-// ── Guest login submit ──
-document.getElementById('guest-btn').addEventListener('click', async () => {
-  const btn = document.getElementById('guest-btn');
-  btn.classList.add('btn-loading');
-  btn.disabled = true;
-
-  try {
-    const data = await apiRequest('/auth/login', 'POST', { email: 'guest@cybershield.io', password: 'guest' });
-    if (data.success && data.token) {
-      setToken(data.token, false);
-      if (data.user) setUser(data.user, false);
-      btn.innerHTML = '<i class="fas fa-check"></i> Welcome Guest!';
-      btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
-      showToast('Logging in as guest...', 'success');
-      setTimeout(() => window.location.href = 'dashboard.html', 900);
-    } else {
-      throw new Error(data.error || 'Authentication failed');
-    }
-  } catch(err) {
-    btn.classList.remove('btn-loading');
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-eye"></i> Continue as Guest';
-    showToast(err.message || 'Guest Login failed.', 'danger');
-  }
-});
-// ── Terminal rotating messages ──
-const messages = [
-  'Initializing Security Engine...',
-  'Threat Intelligence Connected',
-  'AI Detection Engine Online',
-  'Real-Time Monitoring Active',
-  'Security Systems Operational',
-  'SSRF Protection Enabled',
-  'ML Model v2.1 Loaded',
-  'CyberBot AI Ready'
-];
-let msgIdx = 0;
-const termMsg = document.getElementById('terminal-msg');
-function rotateMessages() {
-  if (!termMsg) return;
-  termMsg.style.opacity = 0;
-  setTimeout(() => {
-    msgIdx = (msgIdx + 1) % messages.length;
-    termMsg.textContent = messages[msgIdx];
-    termMsg.style.opacity = 1;
-  }, 300);
-}
-termMsg.style.transition = 'opacity .3s';
-setInterval(rotateMessages, 2400);
-
-// ── Canvas security visualization ──
-const canvas = document.getElementById('securityCanvas');
-const ctx = canvas.getContext('2d');
-const nodes = Array.from({length: 16}, () => ({
-  x: Math.random() * canvas.width,
-  y: Math.random() * canvas.height,
-  vx: (Math.random() - .5) * .5,
-  vy: (Math.random() - .5) * .5,
-  r: Math.random() * 3 + 2,
-  color: Math.random() > .3 ? '#00d4ff' : (Math.random() > .5 ? '#00c896' : '#ef4444')
-}));
-
-function drawCanvas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // connections
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i+1; j < nodes.length; j++) {
-      const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < 110) {
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(0,212,255,${.25 * (1 - dist/110)})`;
-        ctx.lineWidth = .8;
-        ctx.moveTo(nodes[i].x, nodes[i].y);
-        ctx.lineTo(nodes[j].x, nodes[j].y);
-        ctx.stroke();
+  <script src="../js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // If already logged in
+      if(getToken() && getUser()) {
+        window.location.href = 'dashboard.html';
       }
-    }
-  }
-  // nodes
-  nodes.forEach(n => {
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
-    ctx.fillStyle = n.color;
-    ctx.shadowColor = n.color;
-    ctx.shadowBlur = 8;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    // move
-    n.x += n.vx; n.y += n.vy;
-    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
-    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
-  });
-  requestAnimationFrame(drawCanvas);
-}
-drawCanvas();
 
-// ── Password toggle ──
-document.getElementById('toggle-pwd').addEventListener('click', function() {
-  const pwd = document.getElementById('login-password');
-  if (pwd.type === 'password') { pwd.type = 'text'; this.className = 'fas fa-eye-slash eye-icon'; }
-  else { pwd.type = 'password'; this.className = 'fas fa-eye eye-icon'; }
-});
+      // Toggle Password Visibility
+      document.getElementById('toggle-pwd').addEventListener('click', function() {
+        const input = document.getElementById('login-password');
+        if (input.type === 'password') {
+          input.type = 'text';
+          this.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+          input.type = 'password';
+          this.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+      });
 
-// ── Login form submit ──
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('login-btn');
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const remember = document.getElementById('login-remember').checked;
+      // Guest Login
+      document.getElementById('guest-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('guest-btn');
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+        
+        try {
+          const data = await apiRequest('/auth/login', 'POST', {
+            email: 'guest@cybershield.io',
+            password: 'guest'
+          });
+          
+          if (data.success && data.token) {
+            setToken(data.token, false);
+            if (data.user) setUser(data.user, false);
+            btn.innerHTML = '<i class="fas fa-check"></i> Welcome Guest!';
+            btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
+            showToast('Logging in as guest...', 'success');
+            setTimeout(() => window.location.href = 'dashboard.html', 800);
+          }
+        } catch (err) {
+          btn.classList.remove('btn-loading');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-eye"></i> Continue as Guest';
+          showToast(err.message || 'Guest Login failed.', 'danger');
+        }
+      });
 
-  btn.classList.add('btn-loading');
-  btn.disabled = true;
+      // Login Form Submit
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('login-btn');
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        const remember = document.getElementById('login-remember').checked;
 
-  try {
-    const data = await apiRequest('/auth/login', 'POST', { email, password });
-    if (data.success && data.token) {
-      setToken(data.token, remember);
-      if (data.user) setUser(data.user, remember);
-      btn.innerHTML = '<i class="fas fa-check"></i> Authenticated!';
-      btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
-      showToast('Welcome back! Redirecting...', 'success');
-      setTimeout(() => window.location.href = 'dashboard.html', 900);
-    } else {
-      throw new Error(data.error || 'Authentication failed');
-    }
-  } catch(err) {
-    btn.classList.remove('btn-loading');
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Authenticate & Enter';
-    document.getElementById('login-form').classList.add('shake');
-    setTimeout(() => document.getElementById('login-form').classList.remove('shake'), 400);
-    showToast(err.message || 'Login failed. Please try again.', 'danger');
-  }
-});
-</script>
-<script src="/js/cursor.js"></script>`n</body>
+        if (!email || !password) {
+          showToast('Please enter both email and password', 'warning');
+          return;
+        }
+
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+
+        try {
+          const data = await apiRequest('/auth/login', 'POST', { email, password });
+          if (data.success && data.token) {
+            setToken(data.token, remember);
+            if (data.user) setUser(data.user, remember);
+            btn.innerHTML = '<i class="fas fa-check"></i> Authenticated!';
+            btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
+            showToast('Welcome back! Redirecting...', 'success');
+            setTimeout(() => window.location.href = 'dashboard.html', 800);
+          }
+        } catch (err) {
+          btn.classList.remove('btn-loading');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Authenticate & Enter';
+          document.querySelector('.auth-card').classList.add('shake');
+          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
+          showToast(err.message || 'Login failed', 'danger');
+        }
+      });
+    });
+  </script>
+</body>
 </html>

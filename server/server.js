@@ -40,6 +40,9 @@ app.use(cors({
   credentials: true
 }));
 
+// Trust proxy for rate limiting behind render/heroku
+app.set('trust proxy', 1);
+
 // Rate Limiter to prevent DoS attacks
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -53,7 +56,7 @@ app.use('/api', limiter);
 // Stricter rate limits for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  max: 20, // Increased to 20 to prevent locking out legitimate users
   message: { success: false, error: 'Too many login attempts, please try again later.' }
 });
 app.use('/api/auth/login', authLimiter);

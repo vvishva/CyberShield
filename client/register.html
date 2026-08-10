@@ -3,220 +3,265 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Account — CyberShield AI Security Platform</title>
+  <title>Register - CyberShield AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=5.0">
+  <link rel="stylesheet" href="../css/style.css">
   <style>
-    body { margin:0; background:#080b14; font-family:'Inter',sans-serif; }
-    .auth-container { display:flex; min-height:100vh; width:100vw; }
-    .auth-left {
-      flex:1; background:linear-gradient(145deg,#080b14 0%,#0a1020 100%);
-      border-right:1px solid rgba(0,212,255,.1);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      position:sticky; top:0; height:100vh; overflow:hidden; padding:40px;
+    body {
+      background: var(--bg-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
     }
-    .auth-left::before {
-      content:''; position:absolute; inset:0;
-      background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),
-                       linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);
-      background-size:50px 50px;
+    .auth-card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
     }
-    .auth-left::after {
-      content:''; position:absolute; width:350px; height:350px; border-radius:50%;
-      background:radial-gradient(circle,rgba(139,92,246,.08) 0%,transparent 70%);
-      top:50%; left:50%; transform:translate(-50%,-50%);
-      animation:orbPulse 5s ease-in-out infinite;
+    .auth-card::before {
+      content: "";
+      position: absolute;
+      top: -50px; left: -50px; right: -50px; height: 150px;
+      background: radial-gradient(ellipse at top, rgba(0, 212, 255, 0.15), transparent 70%);
+      pointer-events: none;
     }
-    @keyframes orbPulse{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.2);}}
-    .auth-left-content { position:relative; z-index:2; text-align:center; max-width:380px; }
-    .brand { display:flex; align-items:center; gap:12px; justify-content:center; margin-bottom:36px; }
-    .brand i { font-size:30px; color:#00d4ff; filter:drop-shadow(0 0 10px rgba(0,212,255,.5)); }
-    .brand-name { font-size:22px; font-weight:800; background:linear-gradient(135deg,#fff,#00d4ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-    .left-headline { font-size:28px; font-weight:800; color:#e8edf5; line-height:1.2; margin-bottom:16px; }
-    .left-headline span { background:linear-gradient(135deg,#00d4ff,#00c896); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-    .left-features { list-style:none; padding:0; margin:32px 0; text-align:left; display:flex; flex-direction:column; gap:14px; }
-    .left-features li { display:flex; align-items:center; gap:12px; color:#8b95a8; font-size:13.5px; }
-    .left-features li i { color:#00d4ff; width:18px; font-size:15px; }
-    #regCanvas { border-radius:12px; max-width:100%; margin-top:24px; }
-
-    .auth-right { width:520px; display:flex; align-items:flex-start; justify-content:center; padding:40px 48px; background:#0d1117; overflow-y:auto; }
-    .auth-form-box { width:100%; max-width:400px; padding:20px 0; }
-    .auth-form-box h2 { font-size:24px; font-weight:800; color:#e8edf5; margin-bottom:6px; }
-    .auth-form-box p { font-size:13px; color:#8b95a8; margin-bottom:28px; }
-    .input-group { position:relative; }
-    .input-group .input-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#5a6478; font-size:13px; pointer-events:none; }
-    .input-group input { padding-left:40px !important; }
-    .input-group .eye-icon { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#5a6478; cursor:pointer; font-size:13px; }
-    .input-group .eye-icon:hover { color:#00d4ff; }
-
-    /* Password strength */
-    .pwd-strength-wrap { margin-top:8px; }
-    .pwd-strength-bar-bg { height:4px; background:rgba(255,255,255,.08); border-radius:2px; overflow:hidden; }
-    .pwd-strength-bar { height:100%; width:0%; border-radius:2px; transition:width .3s,background .3s; }
-    .pwd-strength-text { font-size:11px; margin-top:5px; font-weight:600; }
-
-    .terms-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:20px; font-size:12px; color:#8b95a8; cursor:pointer; }
-    .terms-row input { accent-color:#00d4ff; margin-top:1px; flex-shrink:0; }
-    .terms-row a { color:#00d4ff; }
-    .auth-switch { text-align:center; margin-top:20px; font-size:13px; color:#8b95a8; }
-    .auth-switch a { color:#00d4ff; font-weight:600; }
-    .btn-loading { position:relative; color:transparent !important; }
-    .btn-loading::after { content:''; position:absolute; width:16px; height:16px; border:2px solid rgba(0,0,0,.3); border-top-color:#000; border-radius:50%; animation:spin .6s linear infinite; top:50%; left:50%; transform:translate(-50%,-50%); }
-    @keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg);}}
-    @media(max-width:768px){ .auth-left{display:none;} .auth-right{width:100%;padding:32px 20px;} }
+    .auth-brand {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .auth-brand i {
+      font-size: 42px;
+      color: var(--cyan);
+      margin-bottom: 12px;
+    }
+    .auth-brand h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+    .auth-brand p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .input-group {
+      position: relative;
+    }
+    .input-group .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .form-control {
+      width: 100%;
+      background: rgba(15, 22, 40, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px 12px 40px;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s var(--ease);
+      font-family: 'Inter', sans-serif;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+      background: rgba(15, 22, 40, 0.9);
+    }
+    .eye-icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 5px;
+    }
+    .eye-icon:hover { color: var(--cyan); }
+    .auth-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 24px;
+      border-radius: var(--radius-md);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .auth-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .auth-footer a {
+      color: var(--cyan);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .auth-footer a:hover { text-decoration: underline; }
+    
+    @media (max-width: 480px) {
+      .auth-card {
+        padding: 30px 20px;
+        border: none;
+        box-shadow: none;
+        background: transparent;
+      }
+      body {
+        padding: 0;
+        align-items: flex-start;
+        padding-top: 20px;
+      }
+    }
   </style>
 </head>
 <body>
 
-<div class="auth-container">
-  <!-- Left Panel -->
-  <div class="auth-left">
-    <div class="auth-left-content">
-      <div class="brand">
-        <i class="fas fa-shield-halved"></i>
-        <span class="brand-name">CyberShield AI</span>
-      </div>
-      <h2 class="left-headline">Join the Security <span>Operations Center</span></h2>
-      <ul class="left-features">
-        <li><i class="fas fa-brain"></i> AI-powered URL threat detection</li>
-        <li><i class="fas fa-globe"></i> Automated website security auditing</li>
-        <li><i class="fas fa-crosshairs"></i> Real-time threat intelligence feed</li>
-        <li><i class="fas fa-bell"></i> Instant security alerts & notifications</li>
-        <li><i class="fas fa-file-lines"></i> Professional PDF audit reports</li>
-        <li><i class="fas fa-puzzle-piece"></i> Browser extension for live protection</li>
-      </ul>
-      <canvas id="regCanvas" width="340" height="180"></canvas>
-    </div>
-  </div>
+  <div id="toast-container"></div>
 
-  <!-- Right Form -->
-  <div class="auth-right">
-    <div class="auth-form-box">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <i class="fas fa-user-plus"></i>
       <h2>Create Account</h2>
-      <p>Start protecting your digital environment with AI-powered security monitoring.</p>
+      <p>Register as a new CyberShield Security Analyst</p>
+    </div>
 
-      <form id="register-form">
-        <div class="form-group">
-          <label>Full Username</label>
-          <div class="input-group">
-            <i class="fas fa-user input-icon"></i>
-            <input type="text" id="reg-username" class="form-control" placeholder="SecurityAnalyst" required minlength="3">
-          </div>
+    <form id="register-form">
+      <div class="form-group">
+        <label>Username</label>
+        <div class="input-group">
+          <i class="fas fa-user input-icon"></i>
+          <input type="text" id="reg-username" class="form-control" placeholder="SecurityAnalyst" required minlength="3">
         </div>
+      </div>
 
-        <div class="form-group">
-          <label>Email Address</label>
-          <div class="input-group">
-            <i class="fas fa-envelope input-icon"></i>
-            <input type="email" id="reg-email" class="form-control" placeholder="analyst@company.com" required>
-          </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <div class="input-group">
+          <i class="fas fa-envelope input-icon"></i>
+          <input type="email" id="reg-email" class="form-control" placeholder="analyst@example.com" required>
         </div>
+      </div>
 
-        <div class="form-group">
-          <label>Password</label>
-          <div class="input-group">
-            <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="reg-password" class="form-control" placeholder="Create strong password" required minlength="6">
-            <i class="fas fa-eye eye-icon" id="toggle-pwd"></i>
-          </div>
-          <div class="pwd-strength-wrap">
-            <div class="pwd-strength-bar-bg"><div class="pwd-strength-bar" id="strength-bar"></div></div>
-            <div class="pwd-strength-text" id="strength-text" style="color:#5a6478;">Enter password</div>
-          </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-group">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required>
+          <i class="fas fa-eye eye-icon" id="toggle-pwd1"></i>
         </div>
-
-        <div class="form-group">
-          <label>Confirm Password</label>
-          <div class="input-group">
-            <i class="fas fa-check-double input-icon"></i>
-            <input type="password" id="reg-confirm" class="form-control" placeholder="Repeat password" required>
-          </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <div class="input-group">
+          <i class="fas fa-check-double input-icon"></i>
+          <input type="password" id="reg-confirm" class="form-control" placeholder="••••••••" required>
+          <i class="fas fa-eye eye-icon" id="toggle-pwd2"></i>
         </div>
+      </div>
 
-        <label class="terms-row">
-          <input type="checkbox" id="reg-terms" required>
-          I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
-        </label>
+      <button type="submit" class="btn btn-primary auth-btn" id="reg-btn">
+        <i class="fas fa-shield-check"></i> Initialize Account
+      </button>
+    </form>
 
-        <button type="submit" id="reg-btn" class="btn btn-primary" style="width:100%;padding:13px;font-size:15px;">
-          <i class="fas fa-user-plus"></i> Create Security Account
-        </button>
-      </form>
-
-      <div class="auth-switch">Already have an account? <a href="login.html">Sign In</a></div>
+    <div class="auth-footer">
+      Already have an account? <a href="login.html">Login here</a>
     </div>
   </div>
-</div>
 
-<script src="/js/app.js"></script>
-<script>
-// Canvas
-const c = document.getElementById('regCanvas');
-const ctx2 = c.getContext('2d');
-const nodes2 = Array.from({length:14},()=>({
-  x:Math.random()*c.width, y:Math.random()*c.height,
-  vx:(Math.random()-.5)*.5, vy:(Math.random()-.5)*.5,
-  r:Math.random()*2+2,
-  color:['#00d4ff','#00c896','#8b5cf6'][Math.floor(Math.random()*3)]
-}));
-function draw2(){
-  ctx2.clearRect(0,0,c.width,c.height);
-  for(let i=0;i<nodes2.length;i++) for(let j=i+1;j<nodes2.length;j++){
-    const dx=nodes2[i].x-nodes2[j].x,dy=nodes2[i].y-nodes2[j].y,d=Math.sqrt(dx*dx+dy*dy);
-    if(d<90){ctx2.beginPath();ctx2.strokeStyle=`rgba(0,212,255,${.2*(1-d/90)})`;ctx2.lineWidth=.7;ctx2.moveTo(nodes2[i].x,nodes2[i].y);ctx2.lineTo(nodes2[j].x,nodes2[j].y);ctx2.stroke();}
-  }
-  nodes2.forEach(n=>{ctx2.beginPath();ctx2.arc(n.x,n.y,n.r,0,Math.PI*2);ctx2.fillStyle=n.color;ctx2.shadowColor=n.color;ctx2.shadowBlur=6;ctx2.fill();ctx2.shadowBlur=0;n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>c.width)n.vx*=-1;if(n.y<0||n.y>c.height)n.vy*=-1;});
-  requestAnimationFrame(draw2);
-}
-draw2();
+  <script src="../js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if(getToken() && getUser()) {
+        window.location.href = 'dashboard.html';
+      }
 
-// Password visibility
-document.getElementById('toggle-pwd').addEventListener('click',function(){
-  const p=document.getElementById('reg-password');
-  p.type=p.type==='password'?'text':'password';
-  this.className=p.type==='text'?'fas fa-eye-slash eye-icon':'fas fa-eye eye-icon';
-});
+      // Password toggles
+      const setupToggle = (toggleId, inputId) => {
+        document.getElementById(toggleId).addEventListener('click', function() {
+          const input = document.getElementById(inputId);
+          if (input.type === 'password') {
+            input.type = 'text';
+            this.classList.replace('fa-eye', 'fa-eye-slash');
+          } else {
+            input.type = 'password';
+            this.classList.replace('fa-eye-slash', 'fa-eye');
+          }
+        });
+      };
+      
+      setupToggle('toggle-pwd1', 'reg-password');
+      setupToggle('toggle-pwd2', 'reg-confirm');
 
-// Password strength
-document.getElementById('reg-password').addEventListener('input',function(){
-  const v=this.value,bar=document.getElementById('strength-bar'),txt=document.getElementById('strength-text');
-  let s=0;
-  if(v.length>=8)s+=25; if(v.length>=12)s+=15;
-  if(/[A-Z]/.test(v))s+=20; if(/[0-9]/.test(v))s+=20; if(/[^A-Za-z0-9]/.test(v))s+=20;
-  s=Math.min(100,s);
-  bar.style.width=s+'%';
-  if(s<30){bar.style.background='#ef4444';txt.textContent='Weak';txt.style.color='#ef4444';}
-  else if(s<60){bar.style.background='#f59e0b';txt.textContent='Fair';txt.style.color='#f59e0b';}
-  else if(s<80){bar.style.background='#00d4ff';txt.textContent='Good';txt.style.color='#00d4ff';}
-  else{bar.style.background='#00c896';txt.textContent='Strong';txt.style.color='#00c896';}
-});
+      document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('reg-btn');
+        const username = document.getElementById('reg-username').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const confirm = document.getElementById('reg-confirm').value;
 
-// Register form
-document.getElementById('register-form').addEventListener('submit',async(e)=>{
-  e.preventDefault();
-  const btn=document.getElementById('reg-btn');
-  const username=document.getElementById('reg-username').value.trim();
-  const email=document.getElementById('reg-email').value.trim();
-  const password=document.getElementById('reg-password').value;
-  const confirm=document.getElementById('reg-confirm').value;
-  if(password!==confirm){showToast('Passwords do not match','danger');return;}
-  btn.classList.add('btn-loading'); btn.disabled=true;
-  try{
-    const data=await apiRequest('/auth/register','POST',{username,email,password});
-    if(data.success&&data.token){
-      setToken(data.token,false);
-      if(data.user)setUser(data.user,false);
-      showToast('Account created! Welcome to CyberShield!','success');
-      setTimeout(()=>window.location.href='dashboard.html',900);
-    }else throw new Error(data.error||'Registration failed');
-  }catch(err){
-    btn.classList.remove('btn-loading'); btn.disabled=false;
-    btn.innerHTML='<i class="fas fa-user-plus"></i> Create Security Account';
-    showToast(err.message||'Registration failed','danger');
-  }
-});
-</script>
-<script src="/js/cursor.js"></script>`n</body>
+        if (password !== confirm) {
+          showToast('Passwords do not match', 'warning');
+          return;
+        }
+
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+
+        try {
+          const data = await apiRequest('/auth/register', 'POST', { username, email, password });
+          if (data.success && data.token) {
+            setToken(data.token, false);
+            if (data.user) setUser(data.user, false);
+            btn.innerHTML = '<i class="fas fa-check"></i> Account Initialized!';
+            btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
+            showToast('Registration successful! Accessing SOC...', 'success');
+            setTimeout(() => window.location.href = 'dashboard.html', 800);
+          }
+        } catch (err) {
+          btn.classList.remove('btn-loading');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-shield-check"></i> Initialize Account';
+          document.querySelector('.auth-card').classList.add('shake');
+          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
+          showToast(err.message || 'Registration failed', 'danger');
+        }
+      });
+    });
+  </script>
+</body>
 </html>
