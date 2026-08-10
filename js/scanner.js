@@ -23,6 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Basic PDF redirect
     window.location.href = 'reports.html';
   });
+
+  document.getElementById('btn-investigate').addEventListener('click', () => {
+    window.location.href = 'investigation.html';
+  });
 });
 
 async function startScan(targetUrl) {
@@ -100,14 +104,28 @@ function renderResults(data) {
     scoreEl.style.color = color;
   }, 100);
 
-  // Badge
+  // Badge & Investigate Button
   const badge = document.getElementById('res-risk-badge');
+  const invBtn = document.getElementById('btn-investigate');
+  
   badge.textContent = data.status || 'Unknown';
   badge.className = 'badge';
-  if (['Safe', 'Clean'].includes(data.status)) badge.classList.add('badge-safe');
-  else if (['Medium Risk'].includes(data.status)) badge.classList.add('badge-warning');
-  else if (['Phishing', 'Critical', 'High Risk'].includes(data.status)) badge.classList.add('badge-critical');
-  else badge.classList.add('badge-info');
+  invBtn.style.display = 'none'; // hide by default
+  
+  if (['Safe', 'Clean'].includes(data.status)) {
+    badge.classList.add('badge-safe');
+  }
+  else if (['Medium Risk'].includes(data.status)) {
+    badge.classList.add('badge-warning');
+    invBtn.style.display = 'inline-block';
+  }
+  else if (['Phishing', 'Critical', 'High Risk'].includes(data.status)) {
+    badge.classList.add('badge-critical');
+    invBtn.style.display = 'inline-block';
+  }
+  else {
+    badge.classList.add('badge-info');
+  }
 
   // AI Verdict
   document.getElementById('res-ai-verdict').textContent = data.status || 'Unknown';

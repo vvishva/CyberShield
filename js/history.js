@@ -47,7 +47,12 @@ document.addEventListener('DOMContentLoaded', async () => {
           <td><span class="badge ${badgeClass}">${escapeHtml(item.status)}</span></td>
           <td><span style="color:${isThreat ? 'var(--red)' : 'var(--green)'}; font-weight:600;">${item.riskScore}% Risk</span></td>
           <td style="color:var(--text-muted); font-size:13px;">${time}</td>
-          <td><button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="viewReport('${item._id}')"><i class="fas fa-eye"></i> View</button></td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="viewReport('${item._id}')"><i class="fas fa-eye"></i> View</button>
+              ${isThreat ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px; box-shadow:0 0 8px rgba(239,68,68,0.4);" onclick="investigateReport('${item._id}')"><i class="fas fa-crosshairs"></i> Investigate</button>` : ''}
+            </div>
+          </td>
         </tr>
       `;
     }).join('');
@@ -75,6 +80,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (item) {
       localStorage.setItem('lastScanData', JSON.stringify(item));
       window.location.href = 'reports.html';
+    } else {
+      showToast('Scan data not found', 'warning');
+    }
+  };
+
+  window.investigateReport = (id) => {
+    const item = allData.find(d => d._id === id);
+    if (item) {
+      localStorage.setItem('lastScanData', JSON.stringify(item));
+      window.location.href = 'investigation.html';
     } else {
       showToast('Scan data not found', 'warning');
     }
