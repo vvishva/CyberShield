@@ -29,6 +29,8 @@ const sendEmail = async (options) => {
       textContent: options.message
     });
 
+    console.log('[Brevo] Sending email to:', options.email, 'from:', senderEmail);
+
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -39,13 +41,15 @@ const sendEmail = async (options) => {
       body: body
     });
 
+    const responseData = await response.json().catch(() => ({}));
+    console.log('[Brevo] Response status:', response.status, 'Body:', JSON.stringify(responseData));
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('[Brevo API Error]', response.status, errorData);
-      throw new Error(`Email delivery failed: ${errorData.message || response.statusText}`);
+      console.error('[Brevo API Error]', response.status, responseData);
+      throw new Error(`Email delivery failed: ${responseData.message || response.statusText}`);
     }
 
-    return await response.json();
+    return responseData;
   }
 
   // ── Strategy 2: Gmail SMTP (Works locally, may be blocked on cloud) ──
