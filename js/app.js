@@ -165,26 +165,43 @@ document.addEventListener('DOMContentLoaded', () => {
       topbar.querySelector('.topbar-title')?.appendChild(statusPill);
     }
 
-    if (!document.querySelector('.mobile-nav-toggle')) {
-      const toggleBtn = document.createElement('button');
+    let toggleBtn = document.querySelector('.mobile-nav-toggle');
+    if (!toggleBtn) {
+      toggleBtn = document.createElement('button');
       toggleBtn.className = 'mobile-nav-toggle btn btn-secondary';
       toggleBtn.style.marginRight = '12px';
       toggleBtn.style.padding = '8px 12px';
       toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
       topbar.insertBefore(toggleBtn, topbar.firstChild);
+    }
+    
+    const sidebar = document.querySelector('.sidebar');
+    let overlay = document.querySelector('.sidebar-overlay');
+    
+    if (sidebar && !overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'sidebar-overlay';
+      document.body.appendChild(overlay);
+    }
 
-      const sidebar = document.querySelector('.sidebar');
-      toggleBtn.addEventListener('click', () => {
-        if (sidebar) sidebar.classList.toggle('active');
-      });
-
-      document.addEventListener('click', (e) => {
-        if (sidebar && sidebar.classList.contains('active')) {
-          if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-            sidebar.classList.remove('active');
-          }
+    if (sidebar && toggleBtn && overlay) {
+      // Remove old listeners by cloning (if re-init occurs)
+      const newToggle = toggleBtn.cloneNode(true);
+      if(toggleBtn.parentNode) toggleBtn.parentNode.replaceChild(newToggle, toggleBtn);
+      
+      const toggleSidebar = () => {
+        const isActive = sidebar.classList.contains('active');
+        if (isActive) {
+          sidebar.classList.remove('active');
+          overlay.classList.remove('active');
+        } else {
+          sidebar.classList.add('active');
+          overlay.classList.add('active');
         }
-      });
+      };
+
+      newToggle.addEventListener('click', toggleSidebar);
+      overlay.addEventListener('click', toggleSidebar);
     }
   }
 

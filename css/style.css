@@ -287,17 +287,46 @@ input, select, textarea { font-family: var(--font-sans); }
   font-size: 13px;
   pointer-events: none;
 }
-.search-box input {
+.search-box input.glass-card {
   background: var(--bg-glass);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 7px 12px 7px 34px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 24px;
   color: var(--text-primary);
-  font-size: 13px;
-  width: 220px;
-  transition: var(--transition);
-  outline: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease);
+  position: relative;
+  overflow: hidden;
 }
+
+/* Premium Spotlight Effect */
+.glass-card::before, .stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle 300px at var(--mouse-x, -500px) var(--mouse-y, -500px), rgba(0, 212, 255, 0.1), transparent 80%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.glass-card:hover::before, .stat-card:hover::before {
+  opacity: 1;
+}
+
+.glass-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.25);
+}
+
 .search-box input::placeholder { color: var(--text-muted); }
 .search-box input:focus {
   border-color: var(--border-glass);
@@ -324,7 +353,6 @@ input, select, textarea { font-family: var(--font-sans); }
   padding: 24px;
   transition: var(--transition);
 }
-.glass-card:hover { border-color: var(--border-glass); }
 
 /* ── Stat Cards ──────────────────────────────────────────────── */
 .grid-stats {
@@ -338,6 +366,13 @@ input, select, textarea { font-family: var(--font-sans); }
   align-items: center;
   gap: 16px;
   padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.08);
 }
 
 .stat-icon {
@@ -835,9 +870,29 @@ input, select, textarea { font-family: var(--font-sans); }
 /* ── Counter Animation ──────────────────────────────────────── */
 .count-up { transition: all 0.5s ease; }
 
-/* ── Responsive ─────────────────────────────────────────────── */
+/* 📱 Responsive ─────────────────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 290;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
 @media (max-width: 1024px) {
   .charts-grid { grid-template-columns: 1fr; }
+  .grid-stats { grid-template-columns: repeat(3, 1fr); }
+  .auth-container { flex-direction: column; height: auto; min-height: 100vh; }
+  .auth-left, .auth-right { width: 100%; min-height: auto; }
+  .auth-left { padding: 40px 20px; }
+  .auth-right { padding: 40px 20px; }
 }
 
 @media (max-width: 768px) {
@@ -849,6 +904,7 @@ input, select, textarea { font-family: var(--font-sans); }
     transform: translateX(-100%);
     z-index: 300;
     box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+    width: 280px;
   }
   .sidebar.active { transform: translateX(0); }
   .grid-stats { grid-template-columns: repeat(2, 1fr); }
@@ -858,6 +914,13 @@ input, select, textarea { font-family: var(--font-sans); }
   .topbar-title h1 { font-size: 14px; }
   #cyberbot-modal { width: calc(100vw - 32px); right: 16px; }
   nav { padding: 16px 20px !important; }
+  
+  .hero-section h1 { font-size: clamp(1.8rem, 6vw, 2.5rem); }
+  .hero-section p { font-size: 15px; }
+  
+  /* Fix tables on mobile */
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 600px; }
 }
 
 @media (max-width: 480px) {
