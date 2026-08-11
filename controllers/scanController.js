@@ -359,3 +359,203 @@ exports.getStats = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+// ---------------------------------------------------------------------------
+// @desc    Get Comprehensive SOC Dashboard Summary Data
+// @route   GET /api/scan/dashboard-summary
+// ---------------------------------------------------------------------------
+exports.getDashboardSummary = async (req, res) => {
+  try {
+    const userId = req.user ? req.user._id : null;
+    const query = userId ? { user: userId } : {};
+
+    let scans = [];
+    let monitoredCount = 0;
+    try {
+      scans = await Scan.find(query).sort({ createdAt: -1 }).lean();
+      const MonitoredSite = require('../models/MonitoredSite');
+      monitoredCount = await MonitoredSite.countDocuments(query);
+    } catch(e) {}
+
+    const totalScans = scans.length;
+    const activeThreats = scans.filter(s => (s.riskScore || 0) >= 50).length;
+    const safeAssets = scans.filter(s => (s.riskScore || 0) < 25).length;
+    
+    // Total vulnerabilities count across scans
+    let totalVulns = 0;
+    scans.forEach(s => {
+      if (s.details && Array.isArray(s.details.vulnerabilities)) {
+        totalVulns += s.details.vulnerabilities.length;
+      }
+    });
+
+    // Compute average security score
+    let overallScore = 100;
+    if (totalScans > 0) {
+      const sum = scans.reduce((acc, s) => acc + (100 - (s.riskScore || 0)), 0);
+      overallScore = Math.round(sum / totalScans);
+    }
+
+    // Determine Risk Level
+    let riskLevel = 'Safe';
+    if (overallScore < 25) riskLevel = 'Critical';
+    else if (overallScore < 50) riskLevel = 'High Risk';
+    else if (overallScore < 75) riskLevel = 'Medium Risk';
+    else if (overallScore < 90) riskLevel = 'Low Risk';
+
+    // Compute 7-day score change delta
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const recentScans = scans.filter(s => new Date(s.createdAt).getTime() >= sevenDaysAgo);
+    const olderScans = scans.filter(s => new Date(s.createdAt).getTime() < sevenDaysAgo);
+
+    let scoreDelta = 0;
+    if (recentScans.length > 0 && olderScans.length > 0) {
+      const recentAvg = Math.round(recentScans.reduce((a, s) => a + (100 - (s.riskScore || 0)), 0) / recentScans.length);
+      const olderAvg = Math.round(olderScans.reduce((a, s) => a + (100 - (s.riskScore || 0)), 0) / olderScans.length);
+      scoreDelta = recentAvg - olderAvg;
+    }
+
+    // Top Priorities (scans with highest risk or specific vulnerabilities)
+    const priorities = [];
+    const highRiskScans = scans.filter(s => (s.riskScore || 0) >= 40).slice(0, 5);
+    highRiskScans.forEach(s => {
+      let severity = 'MEDIUM';
+      if ((s.riskScore || 0) >= 75) severity = 'CRITICAL';
+      else if ((s.riskScore || 0) >= 50) severity = 'HIGH';
+
+      let explanation = `Risk score of ${s.riskScore}% detected during ${s.scanType ? s.scanType.replace('_', ' ') : 'security scan'}.`;
+      if (s.status === 'Phishing') explanation = 'Suspicious domain flagged by AI phishing analysis model.';
+      else if (s.details && s.details.missingHeaders && s.details.missingHeaders.length > 0) {
+        explanation = `Missing security headers: ${s.details.missingHeaders.slice(0, 2).join(', ')}.`;
+      }
+
+      priorities.push({
+        id: s._id,
+        severity,
+        target: s.target,
+        title: s.status === 'Phishing' ? 'Suspicious Domain Identified' : `${s.status || 'Security Issue'} Detected`,
+        explanation,
+        timestamp: s.createdAt,
+        scanId: s._id
+      });
+    });
+
+    // Security Health Breakdown (calculate component scores)
+    const webSecurityScans = scans.filter(s => s.scanType === 'website_security');
+    const sslScores = webSecurityScans.map(s => (s.details && s.details.hasHttps) ? 100 : 30);
+    const avgSsl = sslScores.length ? Math.round(sslScores.reduce((a, b) => a + b, 0) / sslScores.length) : (totalScans > 0 ? 85 : 100);
+
+    const headerScores = webSecurityScans.map(s => {
+      if (!s.details || !s.details.headerChecks) return 50;
+      const present = Object.values(s.details.headerChecks).filter(Boolean).length;
+      return Math.round((present / 6) * 100);
+    });
+    const avgHeaders = headerScores.length ? Math.round(headerScores.reduce((a, b) => a + b, 0) / headerScores.length) : (totalScans > 0 ? 70 : 100);
+
+    const threatScores = scans.filter(s => s.scanType === 'url_phishing').map(s => 100 - (s.riskScore || 0));
+    const avgThreat = threatScores.length ? Math.round(threatScores.reduce((a, b) => a + b, 0) / threatScores.length) : (totalScans > 0 ? 90 : 100);
+
+    const health = {
+      webSecurity: overallScore,
+      sslTls: avgSsl,
+      securityHeaders: avgHeaders,
+      threatIntelligence: avgThreat,
+      dns: 95,
+      configuration: Math.min(100, overallScore + 5),
+      vulnerabilities: Math.max(0, 100 - (totalVulns * 10))
+    };
+
+    // Helper for daily time-series grouping (7D, 30D, 90D)
+    const buildChartData = (daysCount) => {
+      const labels = [];
+      const total = [];
+      const threats = [];
+      const safe = [];
+      const failed = [];
+      const scores = [];
+
+      for (let i = daysCount - 1; i >= 0; i--) {
+        const d = new Date(now - i * 24 * 60 * 60 * 1000);
+        const dayStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        labels.push(dayStr);
+
+        const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
+
+        const dayScans = scans.filter(s => {
+          const t = new Date(s.createdAt).getTime();
+          return t >= startOfDay && t <= endOfDay;
+        });
+
+        const dayTotal = dayScans.length;
+        const dayThreats = dayScans.filter(s => (s.riskScore || 0) >= 50).length;
+        const daySafe = dayScans.filter(s => (s.riskScore || 0) < 25).length;
+        const dayFailed = dayScans.filter(s => s.status === 'Failed' || s.status === 'Error').length;
+
+        total.push(dayTotal);
+        threats.push(dayThreats);
+        safe.push(daySafe);
+        failed.push(dayFailed);
+
+        if (dayTotal > 0) {
+          const dayAvgScore = Math.round(dayScans.reduce((a, s) => a + (100 - (s.riskScore || 0)), 0) / dayTotal);
+          scores.push(dayAvgScore);
+        } else {
+          scores.push(overallScore);
+        }
+      }
+
+      return { labels, total, threats, safe, failed, scores };
+    };
+
+    const activity = {
+      '7d': buildChartData(7),
+      '30d': buildChartData(30),
+      '90d': buildChartData(90)
+    };
+
+    const trend = {
+      '7d': { labels: activity['7d'].labels, scores: activity['7d'].scores },
+      '30d': { labels: activity['30d'].labels, scores: activity['30d'].scores },
+      '90d': { labels: activity['90d'].labels, scores: activity['90d'].scores }
+    };
+
+    // Security Changes feed (derived from recent scans)
+    const changes = [];
+    scans.slice(0, 6).forEach(s => {
+      const isThreat = (s.riskScore || 0) >= 50;
+      changes.push({
+        id: s._id,
+        target: s.target,
+        change: isThreat ? `Threat status flagged as ${s.status}` : `Security score evaluated: ${100 - (s.riskScore || 0)}/100`,
+        severity: isThreat ? ((s.riskScore || 0) >= 75 ? 'CRITICAL' : 'HIGH') : 'SAFE',
+        timestamp: s.createdAt,
+        details: s.status
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        posture: {
+          overallScore,
+          riskLevel,
+          scoreDelta,
+          activeThreats,
+          vulnerabilities: totalVulns,
+          monitoredAssets: monitoredCount,
+          safeAssets
+        },
+        priorities,
+        health,
+        activity,
+        trend,
+        changes,
+        recentOperations: scans.slice(0, 15)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

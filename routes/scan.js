@@ -8,7 +8,8 @@ const {
   checkIp,
   checkFileHash,
   getScanHistory,
-  getStats
+  getStats,
+  getDashboardSummary
 } = require('../controllers/scanController');
 const { protect } = require('../middleware/authMiddleware');
 const { scanUrl: scanUrlValidator, scanWebsite: scanWebsiteValidator, scanPassword: scanPasswordValidator, scanIp: scanIpValidator, scanHash: scanHashValidator } = require('../middleware/validation');
@@ -21,5 +22,6 @@ router.post('/ip', protect, scanIpValidator, checkIp);
 router.post('/hash', protect, scanHashValidator, checkFileHash);
 router.get('/history', protect, getScanHistory);
 router.get('/stats', protect, getStats);
+router.get('/dashboard-summary', protect, getDashboardSummary);
 
 module.exports = router;

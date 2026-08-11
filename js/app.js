@@ -225,14 +225,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Interactive CyberBot AI Assistant Handler
+// Interactive CyberShield AI Security Copilot Handler
 function initCyberBotAI() {
   if (document.getElementById('cyberbot-fab')) return;
 
   const fab = document.createElement('button');
   fab.id = 'cyberbot-fab';
-  fab.title = 'Ask CyberBot AI Assistant';
-  fab.innerHTML = '<i class="fas fa-robot"></i>';
+  fab.title = 'CyberShield AI Security Copilot';
+  fab.innerHTML = '<i class="fas fa-brain"></i>';
   document.body.appendChild(fab);
 
   const modal = document.createElement('div');
@@ -242,26 +242,29 @@ function initCyberBotAI() {
       <div style="display: flex; align-items: center; gap: 10px;">
         <i class="fas fa-brain" style="color: var(--cyan); font-size: 20px;"></i>
         <div>
-          <h4 style="font-size: 14px; font-weight: 700; margin: 0;">CyberBot AI Security Advisor</h4>
-          <span style="font-size: 11px; color: var(--green);">● Online | Created by Vishva</span>
+          <h4 style="font-size: 14px; font-weight: 700; margin: 0;">CyberShield AI Security Copilot</h4>
+          <span style="font-size: 11px; color: var(--green);">● Active SOC Intelligence</span>
         </div>
       </div>
       <button id="cyberbot-close" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;"><i class="fas fa-times"></i></button>
     </div>
     <div class="cyberbot-messages" id="cyberbot-messages">
-      <div class="chat-msg bot">
-        👋 Hello! I am <strong>CyberBot AI</strong>, your real-time security assistant for <strong>CyberShield</strong> (engineered by <strong>Vishva</strong>). Ask me to scan a URL, audit a website, test a password, or check an IP!
+      <div class="chat-msg bot" id="copilot-initial-msg">
+        👋 Welcome to <strong>CyberShield AI Security Copilot</strong>. I am analyzing your real-time SOC command telemetry...
       </div>
     </div>
     <div class="cyberbot-suggestions" id="cyberbot-suggestions"></div>
     <div class="cyberbot-input-area">
-      <input type="text" id="cyberbot-input" class="form-control" placeholder="Ask CyberBot anything..." style="font-size: 13px;">
+      <input type="text" id="cyberbot-input" class="form-control" placeholder="Ask Copilot for analysis, investigation, or guidance..." style="font-size: 13px;">
       <button id="cyberbot-send" class="btn btn-primary" style="padding: 8px 14px;"><i class="fas fa-paper-plane"></i></button>
     </div>
   `;
   document.body.appendChild(modal);
 
-  fab.addEventListener('click', () => modal.classList.toggle('active'));
+  fab.addEventListener('click', () => {
+    modal.classList.toggle('active');
+    loadCopilotContext();
+  });
   document.getElementById('cyberbot-close').addEventListener('click', () => modal.classList.remove('active'));
 
   const sendBtn = document.getElementById('cyberbot-send');
@@ -269,13 +272,33 @@ function initCyberBotAI() {
   const msgContainer = document.getElementById('cyberbot-messages');
   const suggestionsEl = document.getElementById('cyberbot-suggestions');
 
+  async function loadCopilotContext() {
+    const initMsg = document.getElementById('copilot-initial-msg');
+    if (!initMsg) return;
+
+    try {
+      const stats = await apiRequest('/scan/stats');
+      if (stats.success && stats.data) {
+        const threats = stats.data.threatsDetected || 0;
+        const score = stats.data.avgSecurityScore || 100;
+        initMsg.innerHTML = `
+          🛡️ <strong>CyberShield AI Copilot Briefing</strong>:<br>
+          • <strong>Active Threats</strong>: ${threats}<br>
+          • <strong>Average Security Score</strong>: ${score}/100<br><br>
+          Ask me to analyze a specific target, investigate vulnerabilities, or recommend mitigation steps!
+        `;
+      }
+    } catch(e) {
+      initMsg.innerHTML = `👋 Hello! I am <strong>CyberShield AI Security Copilot</strong>. Ask me to scan a target, evaluate security headers, test a password, or investigate active threats!`;
+    }
+  }
+
   const SUGGESTIONS = [
-    'What can you do?',
+    'Investigate highest threat',
     'Scan https://example.com',
-    'Check password Abc!123xyz',
-    'Generate a password',
-    'What is phishing?',
-    'Show my recent scans'
+    'Evaluate security headers',
+    'Check password strength',
+    'View threat report'
   ];
 
   function renderSuggestions() {
@@ -307,15 +330,24 @@ function initCyberBotAI() {
     // Bot Typing Indicator
     const typingMsg = document.createElement('div');
     typingMsg.className = 'chat-msg bot';
-    typingMsg.innerHTML = '<span class="pulse-dot"></span> <em>Analyzing...</em>';
+    typingMsg.innerHTML = '<span class="pulse-dot"></span> <em>Copilot is evaluating security telemetry...</em>';
     msgContainer.appendChild(typingMsg);
     msgContainer.scrollTop = msgContainer.scrollHeight;
 
     try {
       const data = await apiRequest('/copilot/chat', 'POST', { message: text });
-      typingMsg.innerHTML = data.reply || 'Hmm, I got no response. Please try again.';
+      let replyHtml = data.reply || 'Analysis complete.';
+      
+      // Inject quick action buttons if reply suggests investigation
+      if (text.toLowerCase().includes('report') || replyHtml.toLowerCase().includes('report')) {
+        replyHtml += `<div style="margin-top:10px;"><a href="reports.html" class="btn btn-secondary btn-sm"><i class="fas fa-file-pdf"></i> View Reports</a></div>`;
+      } else if (text.toLowerCase().includes('scan') || text.toLowerCase().includes('investigate')) {
+        replyHtml += `<div style="margin-top:10px;"><a href="scanner.html" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Open Security Scanner</a></div>`;
+      }
+
+      typingMsg.innerHTML = replyHtml;
     } catch(err) {
-      typingMsg.innerHTML = `<span style="color:var(--red);">⚠️ ${err.message}. Make sure you are connected.</span>`;
+      typingMsg.innerHTML = `<span style="color:var(--red);">⚠️ ${err.message}. Please check your connection.</span>`;
     }
 
     renderSuggestions();

@@ -6,7 +6,7 @@
   <title>Security Operations Center — CyberShield AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=5.0">
+  <link rel="stylesheet" href="/css/style.css?v=6.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -21,19 +21,25 @@
       <li class="nav-section-label">MONITORING</li>
       <li class="active"><a href="dashboard.html"><i class="fas fa-gauge-high"></i> <span>Dashboard</span></a></li>
       <li><a href="monitor.html"><i class="fas fa-radar"></i> <span>Auto Monitoring</span></a></li>
-      <li class="nav-section-label">SECURITY TOOLS</li>
+      
+      <li class="nav-section-label">SECURITY</li>
       <li><a href="scanner.html"><i class="fas fa-shield-virus"></i> <span>Security Scanners</span></a></li>
       <li><a href="attack-surface.html"><i class="fas fa-project-diagram"></i> <span>Attack Surface Map</span></a></li>
       <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i> <span>Threat Intelligence</span></a></li>
       <li><a href="vulnerabilities.html"><i class="fas fa-bug"></i> <span>Vulnerabilities</span></a></li>
       <li><a href="password.html"><i class="fas fa-key"></i> <span>Password Analyzer</span></a></li>
+      
       <li class="nav-section-label">REPORTS</li>
       <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i> <span>Scan History</span></a></li>
       <li><a href="reports.html"><i class="fas fa-file-lines"></i> <span>Audit Reports</span></a></li>
+      
       <li class="nav-section-label">ACCOUNT</li>
       <li><a href="notifications.html"><i class="fas fa-bell"></i> <span>Notifications</span></a></li>
       <li><a href="profile.html"><i class="fas fa-user-cog"></i> <span>Profile & Settings</span></a></li>
-      <li><a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
+      
+      <li class="admin-only" id="admin-nav-item" style="display: none;">
+        <a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a>
+      </li>
     </ul>
     <div class="sidebar-footer">
       <div class="sidebar-user">
@@ -53,23 +59,23 @@
       <div class="topbar-left">
         <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
-          <h1>Security Operations Center</h1>
-          <div class="system-status-pill" id="sse-status"><span class="pulse-dot"></span> Live Feed Active</div>
+          <h1>Enterprise SOC Command Center</h1>
+          <div class="system-status-pill" id="sse-status"><span class="pulse-dot"></span> Live SOC Feed</div>
         </div>
       </div>
       <div class="topbar-actions">
         <div class="search-box">
           <i class="fas fa-search"></i>
-          <input type="text" id="global-search" placeholder="Search threats (Ctrl+K)...">
+          <input type="text" id="global-search" placeholder="Search targets, IPs, threats (Ctrl+K)...">
         </div>
         <a href="scanner.html" class="btn btn-primary"><i class="fas fa-plus"></i> New Scan</a>
       </div>
     </header>
 
     <main class="content-body">
-      <!-- Live Command Bar -->
-      <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:12px 20px; border-radius:var(--radius-lg); border:1px solid var(--border-subtle);">
-        <div style="display:flex; gap:16px;">
+      <!-- Live Command Ticker -->
+      <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:10px 18px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
           <div class="status-indicator online"><i class="fas fa-satellite-dish"></i> AI Engine Online</div>
           <div class="status-indicator online"><i class="fas fa-network-wired"></i> Threat Intel Connected</div>
         </div>
@@ -78,75 +84,142 @@
         </div>
       </div>
 
-      <!-- Stat Cards -->
-      <div class="grid-stats">
-        <a href="history.html" class="stat-card glass-card">
-          <div class="stat-icon cyan"><i class="fas fa-search"></i></div>
-          <div class="stat-info">
-            <h3 id="stat-total-scans"><span class="skeleton-text">0</span></h3>
-            <p>Total Scans</p>
+      <!-- 1. Security Posture Card -->
+      <section class="soc-posture-card">
+        <div class="soc-ring-wrapper">
+          <div class="soc-score-ring" id="soc-score-ring" style="--score-pct: 68%;">
+            <div class="soc-score-ring-inner">
+              <div class="soc-score-value" id="posture-score">68</div>
+              <div class="soc-score-label">Posture Score</div>
+            </div>
           </div>
-        </a>
-        <a href="history.html?filter=threats" class="stat-card glass-card">
-          <div class="stat-icon red"><i class="fas fa-triangle-exclamation"></i></div>
-          <div class="stat-info">
-            <h3 id="stat-threats"><span class="skeleton-text">0</span></h3>
-            <p>Active Threats</p>
+          <div style="margin-top:12px; display:flex; align-items:center; gap:8px;">
+            <span class="severity-pill medium" id="posture-risk-badge">Medium Risk</span>
+            <span style="font-size:11px; color:var(--text-muted);" id="posture-delta"><i class="fas fa-arrow-down" style="color:var(--amber);"></i> 4 pts this period</span>
           </div>
-        </a>
-        <a href="monitor.html" class="stat-card glass-card">
-          <div class="stat-icon purple"><i class="fas fa-globe"></i></div>
-          <div class="stat-info">
-            <h3 id="stat-monitored"><span class="skeleton-text">0</span></h3>
-            <p>Monitored Domains</p>
+        </div>
+
+        <div class="soc-posture-stats">
+          <div class="soc-stat-pill">
+            <div class="val" id="posture-threats">0</div>
+            <div class="lbl"><i class="fas fa-triangle-exclamation" style="color:var(--red);"></i> Active Threats</div>
           </div>
-        </a>
-        <a href="vulnerabilities.html" class="stat-card glass-card">
-          <div class="stat-icon amber"><i class="fas fa-bug"></i></div>
-          <div class="stat-info">
-            <h3 id="stat-vulns"><span class="skeleton-text">0</span></h3>
-            <p>Vulnerabilities</p>
+          <div class="soc-stat-pill">
+            <div class="val" id="posture-vulns">0</div>
+            <div class="lbl"><i class="fas fa-bug" style="color:var(--amber);"></i> Vulnerabilities</div>
           </div>
-        </a>
-        <a href="history.html?filter=safe" class="stat-card glass-card">
-          <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
-          <div class="stat-info">
-            <h3 id="stat-safe"><span class="skeleton-text">0</span></h3>
-            <p>Safe Assets</p>
+          <div class="soc-stat-pill">
+            <div class="val" id="posture-monitored">0</div>
+            <div class="lbl"><i class="fas fa-globe" style="color:var(--purple);"></i> Monitored Assets</div>
           </div>
-        </a>
-        <a href="reports.html" class="stat-card glass-card">
-          <div class="stat-icon cyan"><i class="fas fa-chart-bar"></i></div>
-          <div class="stat-info">
-            <h3 id="stat-score"><span class="skeleton-text">0</span></h3>
-            <p>Avg Security Score</p>
+          <div class="soc-stat-pill">
+            <div class="val" id="posture-safe">0</div>
+            <div class="lbl"><i class="fas fa-circle-check" style="color:var(--green);"></i> Safe Assets</div>
           </div>
-        </a>
+        </div>
+      </section>
+
+      <!-- 2. Main Grid: Priorities, Health, Live Activity -->
+      <div class="charts-grid" style="grid-template-columns: 1.6fr 1fr;">
+        <!-- Left Sub-Grid: Top Priorities & Security Health -->
+        <div style="display:flex; flex-direction:column; gap:20px;">
+          <!-- Top Priorities Panel -->
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 style="font-size:14px; font-weight:700; color:var(--text-primary); text-transform:uppercase; letter-spacing:0.5px;">
+                <i class="fas fa-shield-cat" style="color:var(--red); margin-right:8px;"></i> Top Security Priorities
+              </h3>
+              <span style="font-size:11px; color:var(--text-muted);">Requires Action</span>
+            </div>
+            <div id="top-priorities-list" style="display:flex; flex-direction:column; gap:10px;">
+              <div class="empty-state" style="padding:20px 0;"><p>Analyzing priorities...</p></div>
+            </div>
+          </div>
+
+          <!-- Security Health Breakdown -->
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 style="font-size:14px; font-weight:700; color:var(--text-primary); text-transform:uppercase; letter-spacing:0.5px;">
+                <i class="fas fa-heart-pulse" style="color:var(--cyan); margin-right:8px;"></i> Security Health
+              </h3>
+              <span style="font-size:11px; color:var(--text-muted);">Click vector to inspect</span>
+            </div>
+            <div id="health-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
+              <!-- Dynamic Health Items -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Sub-Grid: Live Activity Feed & Security Changes -->
+        <div style="display:flex; flex-direction:column; gap:20px;">
+          <!-- Live Activity Feed -->
+          <div class="glass-card" style="display:flex; flex-direction:column; overflow:hidden; min-height: 280px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+              <h3 style="font-size:14px; font-weight:700; color:var(--text-primary); text-transform:uppercase; letter-spacing:0.5px;">
+                <i class="fas fa-satellite-dish pulse-dot" style="margin-right:8px; color:var(--cyan);"></i> SOC Activity Feed
+              </h3>
+              <span class="severity-pill safe" style="font-size:9px;"><i class="fas fa-circle" style="font-size:6px;"></i> LIVE</span>
+            </div>
+            <div id="live-feed" style="flex:1; overflow-y:auto; padding-right:4px; font-size:12px; display:flex; flex-direction:column; gap:8px;">
+              <div class="empty-state" style="padding:30px 0;"><i class="fas fa-radar"></i><p>Waiting for real-time events...</p></div>
+            </div>
+          </div>
+
+          <!-- Security Changes Log -->
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+              <h3 style="font-size:14px; font-weight:700; color:var(--text-primary); text-transform:uppercase; letter-spacing:0.5px;">
+                <i class="fas fa-clock-rotate-left" style="color:var(--purple); margin-right:8px;"></i> Security Changes
+              </h3>
+            </div>
+            <div id="security-changes-list" style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+              <div class="empty-state" style="padding:15px 0;"><p>No recent changes recorded.</p></div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Charts & Live Feed -->
-      <div class="charts-grid" style="grid-template-columns: 2fr 1fr;">
+      <!-- 3. Analytics Charts Grid -->
+      <div class="charts-grid">
+        <!-- Scan Activity Chart -->
         <div class="chart-card glass-card">
-          <h3>Scan Volume (Last 7 Days)</h3>
-          <div style="position: relative; height: 250px; width: 100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size:14px; font-weight:700;"><i class="fas fa-chart-column" style="color:var(--cyan); margin-right:8px;"></i> Scan Activity</h3>
+            <div class="period-switcher" id="activity-period-switcher">
+              <button class="period-btn active" data-period="7d">7 Days</button>
+              <button class="period-btn" data-period="30d">30 Days</button>
+              <button class="period-btn" data-period="90d">90 Days</button>
+            </div>
+          </div>
+          <div style="position: relative; height: 240px; width: 100%;">
             <canvas id="scansBarChart"></canvas>
           </div>
         </div>
-        <div class="glass-card" style="display:flex; flex-direction:column; overflow:hidden;">
-          <h3 style="font-size:14px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:16px; flex-shrink:0;">
-            <i class="fas fa-satellite-dish pulse-dot" style="margin-right:8px; color:var(--cyan);"></i> Live Activity Feed
-          </h3>
-          <div id="live-feed" style="flex:1; overflow-y:auto; padding-right:8px; font-size:13px;">
-            <div class="empty-state" style="padding:20px 0;"><p>Waiting for events...</p></div>
+
+        <!-- Security Score Trend Chart -->
+        <div class="chart-card glass-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size:14px; font-weight:700;"><i class="fas fa-chart-line" style="color:var(--green); margin-right:8px;"></i> Security Score Trend</h3>
+            <div class="period-switcher" id="trend-period-switcher">
+              <button class="period-btn active" data-period="7d">7D</button>
+              <button class="period-btn" data-period="30d">30D</button>
+              <button class="period-btn" data-period="90d">90D</button>
+            </div>
+          </div>
+          <div style="position: relative; height: 240px; width: 100%;">
+            <canvas id="riskLineChart"></canvas>
           </div>
         </div>
       </div>
 
-      <!-- Recent Scans Table -->
+      <!-- 4. Interactive Recent Operations Table -->
       <div class="glass-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <h3 style="font-size:16px; font-weight:700;"><i class="fas fa-history" style="color:var(--cyan); margin-right:10px;"></i>Recent Operations</h3>
-          <a href="history.html" class="btn btn-secondary btn-sm">View All History</a>
+          <div>
+            <h3 style="font-size:16px; font-weight:700; margin:0;"><i class="fas fa-list-check" style="color:var(--cyan); margin-right:10px;"></i>Recent Operations</h3>
+            <span style="font-size:11px; color:var(--text-muted);">Click any row to open the complete Security Inspection Drawer</span>
+          </div>
+          <a href="history.html" class="btn btn-secondary btn-sm">View Full History</a>
         </div>
         <div class="table-responsive">
           <table class="cyber-table">
@@ -158,7 +231,7 @@
                 <th>Risk Score</th>
                 <th>Status</th>
                 <th>Timestamp</th>
-                <th>Actions</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="recent-scans-body">
@@ -175,9 +248,28 @@
   </div>
 </div>
 
+<!-- Operation Detail Drawer -->
+<div class="drawer-backdrop" id="drawer-backdrop"></div>
+<div class="detail-drawer" id="detail-drawer">
+  <div class="drawer-header">
+    <div>
+      <h3 id="drawer-target">Target Domain</h3>
+      <span style="font-size:11px; color:var(--text-muted);" id="drawer-timestamp">Timestamp</span>
+    </div>
+    <button class="drawer-close" id="drawer-close"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="drawer-body" id="drawer-body">
+    <!-- Dynamic Drawer Content -->
+  </div>
+  <div class="drawer-footer" id="drawer-footer">
+    <a href="#" id="drawer-btn-investigate" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Investigate</a>
+    <button id="drawer-btn-rescan" class="btn btn-secondary btn-sm"><i class="fas fa-rotate"></i> Rescan</button>
+    <a href="reports.html" id="drawer-btn-report" class="btn btn-secondary btn-sm"><i class="fas fa-file-pdf"></i> Report</a>
+  </div>
+</div>
+
 <script src="/js/app.js"></script>
 <script src="/js/charts.js"></script>
 <script src="/js/dashboard.js"></script>
-<script src="/js/cursor.js"></script>
 </body>
 </html>
