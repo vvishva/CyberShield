@@ -3,31 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto Monitoring — CyberShield AI</title>
+  <title>Automated Security Monitoring — CyberShield AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css?v=5.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <div class="app-container">
+  <!-- Sidebar -->
   <aside class="sidebar" id="main-sidebar">
     <div class="sidebar-logo"><i class="fas fa-shield-halved"></i><h2>CyberShield AI</h2></div>
     <ul class="sidebar-nav">
       <li class="nav-section-label">MONITORING</li>
       <li><a href="dashboard.html"><i class="fas fa-gauge-high"></i><span>Dashboard</span></a></li>
       <li class="active"><a href="monitor.html"><i class="fas fa-radar"></i><span>Auto Monitoring</span></a></li>
+      
       <li class="nav-section-label">SECURITY TOOLS</li>
       <li><a href="scanner.html"><i class="fas fa-shield-virus"></i><span>Security Scanners</span></a></li>
-      <li><a href="attack-surface.html"><i class="fas fa-project-diagram"></i><span>Attack Surface Map</span></a></li>`n      <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i><span>Threat Intelligence</span></a></li>
+      <li><a href="attack-surface.html"><i class="fas fa-project-diagram"></i><span>Attack Surface Map</span></a></li>
+      <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i><span>Threat Intelligence</span></a></li>
       <li><a href="vulnerabilities.html"><i class="fas fa-bug"></i><span>Vulnerabilities</span></a></li>
       <li><a href="password.html"><i class="fas fa-key"></i><span>Password Analyzer</span></a></li>
+      
       <li class="nav-section-label">REPORTS</li>
       <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i><span>Scan History</span></a></li>
       <li><a href="reports.html"><i class="fas fa-file-lines"></i><span>Audit Reports</span></a></li>
+      
       <li class="nav-section-label">ACCOUNT</li>
       <li><a href="notifications.html"><i class="fas fa-bell"></i><span>Notifications</span></a></li>
       <li><a href="profile.html"><i class="fas fa-user-cog"></i><span>Profile & Settings</span></a></li>
-      <li><a href="admin.html"><i class="fas fa-user-shield"></i><span>Admin Panel</span></a></li>
+      <li class="admin-only" id="admin-nav-item" style="display: none;">
+        <a href="admin.html"><i class="fas fa-user-shield"></i><span>Admin Panel</span></a>
+      </li>
     </ul>
     <div class="sidebar-footer">
       <div class="sidebar-user">
@@ -43,8 +51,10 @@
       <div class="topbar-left">
         <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
-          <h1>Automated Monitoring</h1>
-          <div class="system-status-pill"><span class="pulse-dot"></span> Monitoring Active</div>
+          <h1>Automated Security Monitoring</h1>
+          <div class="system-status-pill" style="color:var(--green); border-color:rgba(0,200,150,0.3); background:rgba(0,200,150,0.08);">
+            <span class="pulse-dot"></span> 🟢 Monitoring System Operational
+          </div>
         </div>
       </div>
       <div class="topbar-actions">
@@ -53,89 +63,166 @@
     </header>
 
     <main class="content-body">
-      <!-- Add domain card -->
+      <!-- Subtitle Banner -->
+      <div style="margin-bottom: 8px;">
+        <p style="color:var(--text-secondary); font-size:14px; margin:0;">Continuously monitor authorized assets for security changes, vulnerabilities and threats.</p>
+      </div>
+
+      <!-- Add Asset Card -->
       <div class="glass-card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;">
-          <div>
-            <h3 style="font-size:16px;font-weight:700;margin-bottom:6px;"><i class="fas fa-plus-circle" style="color:var(--cyan);margin-right:8px;"></i>Add Domain to Monitor</h3>
-            <p style="color:var(--text-muted);font-size:13px;">Only add domains you own or are authorized to monitor. CyberShield will scan them automatically.</p>
-          </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+          <h3 style="font-size:16px; font-weight:700; margin:0;"><i class="fas fa-plus-circle" style="color:var(--cyan); margin-right:8px;"></i> Add Asset to Continuous Monitoring</h3>
+          <span style="font-size:12px; color:var(--text-muted);"><i class="fas fa-shield-halved" style="color:var(--cyan);"></i> Automated Telemetry Engine</span>
         </div>
-        <form id="add-monitor-form" style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
-          <input type="text" id="monitor-domain" class="form-control" placeholder="example.com or mywebsite.com" style="flex:1;min-width:200px;">
-          <select id="monitor-interval" class="form-control" style="width:160px;">
-            <option value="10">Every 10 min</option>
-            <option value="30" selected>Every 30 min</option>
-            <option value="60">Every hour</option>
-            <option value="360">Every 6 hours</option>
-            <option value="720">Every 12 hours</option>
-            <option value="1440">Daily</option>
-          </select>
-          <button type="submit" class="btn btn-primary"><i class="fas fa-radar"></i> Start Monitoring</button>
+        
+        <form id="add-monitor-form" style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <input type="text" id="monitor-domain" class="form-control" placeholder="https://example.com or domain.com" style="flex:2; min-width:240px; padding:12px 16px;">
+            <select id="monitor-interval" class="form-control" style="flex:1; min-width:160px; padding:12px 16px;">
+              <option value="15">15 min interval</option>
+              <option value="30" selected>30 min interval</option>
+              <option value="60">1 hour interval</option>
+              <option value="360">6 hours interval</option>
+              <option value="720">12 hours interval</option>
+              <option value="1440">24 hours interval</option>
+            </select>
+            <button type="submit" class="btn btn-primary" id="btn-add-monitor" style="padding:0 24px;"><i class="fas fa-plus"></i> + Start Monitoring</button>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+            🔒 Only monitor websites/assets that you own or are authorized to assess.
+          </div>
         </form>
       </div>
 
-      <!-- Stats row -->
-      <div class="grid-stats" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+      <!-- Monitoring Overview (4 Cards) -->
+      <div class="grid-stats" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
         <div class="stat-card glass-card">
           <div class="stat-icon cyan"><i class="fas fa-globe"></i></div>
-          <div class="stat-info"><h3 id="mon-total">0</h3><p>Sites Monitored</p></div>
+          <div class="stat-info">
+            <h3 id="mon-stat-total">0</h3>
+            <p>MONITORED ASSETS</p>
+          </div>
         </div>
         <div class="stat-card glass-card">
-          <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
-          <div class="stat-info"><h3 id="mon-active">0</h3><p>Active</p></div>
+          <div class="stat-icon green"><i class="fas fa-radar"></i></div>
+          <div class="stat-info">
+            <h3 id="mon-stat-active">0</h3>
+            <p>ACTIVE MONITORS</p>
+          </div>
         </div>
         <div class="stat-card glass-card">
           <div class="stat-icon red"><i class="fas fa-triangle-exclamation"></i></div>
-          <div class="stat-info"><h3 id="mon-issues">0</h3><p>Issues Found</p></div>
+          <div class="stat-info">
+            <h3 id="mon-stat-issues">0</h3>
+            <p>ISSUES DETECTED</p>
+          </div>
         </div>
         <div class="stat-card glass-card">
-          <div class="stat-icon amber"><i class="fas fa-clock"></i></div>
-          <div class="stat-info"><h3 id="mon-next">—</h3><p>Next Scan</p></div>
+          <div class="stat-icon amber"><i class="fas fa-hourglass-half"></i></div>
+          <div class="stat-info">
+            <h3 id="mon-stat-next">30 min</h3>
+            <p>NEXT SCAN</p>
+          </div>
         </div>
       </div>
 
-      <!-- Monitored sites table -->
+      <!-- Monitored Websites Table -->
       <div class="glass-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;"><i class="fas fa-list" style="color:var(--cyan);margin-right:10px;"></i>Monitored Websites</h3>
-          <button class="btn btn-secondary btn-sm" onclick="loadMonitoredSites()"><i class="fas fa-sync"></i> Refresh</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+          <h3 style="margin:0; font-size:16px; font-weight:700;"><i class="fas fa-list-check" style="color:var(--cyan); margin-right:8px;"></i> Monitored Assets</h3>
+          <button class="btn btn-secondary btn-sm" id="btn-refresh-mon"><i class="fas fa-sync"></i> Refresh Data</button>
         </div>
+
         <div class="table-responsive">
           <table class="cyber-table">
             <thead>
               <tr>
-                <th>Domain</th>
+                <th>Asset</th>
                 <th>Status</th>
                 <th>Security Score</th>
-                <th>Last Scanned</th>
+                <th>Last Scan</th>
                 <th>Next Scan</th>
+                <th>Change</th>
                 <th>Interval</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="monitor-table-body">
-              <tr><td colspan="7" class="empty-state"><i class="fas fa-radar"></i><p>No sites monitored yet. Add your first domain above.</p></td></tr>
+            <tbody id="monitored-table-body">
+              <!-- Empty state initially -->
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Info card -->
-      <div class="glass-card" style="background:rgba(0,212,255,.03);border-color:var(--border-glass);">
-        <h3 style="font-size:14px;margin-bottom:12px;color:var(--cyan);"><i class="fas fa-info-circle"></i> About Automated Monitoring</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;font-size:13px;color:var(--text-muted);">
-          <div><i class="fas fa-shield-halved" style="color:var(--green);margin-right:6px;"></i> Checks SSL & security headers automatically</div>
-          <div><i class="fas fa-bell" style="color:var(--amber);margin-right:6px;"></i> Alerts when your security score drops</div>
-          <div><i class="fas fa-lock" style="color:var(--cyan);margin-right:6px;"></i> Only scans domains you authorize</div>
-          <div><i class="fas fa-chart-line" style="color:var(--purple);margin-right:6px;"></i> Tracks security score history over time</div>
+      <!-- Security Score History Chart & Details Grid -->
+      <div class="charts-grid" style="grid-template-columns: 2fr 1fr;">
+        <div class="chart-card glass-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h3 style="margin:0;">Security Score History</h3>
+              <span style="font-size:12px; color:var(--text-muted);" id="trend-asset-label">Asset: All Monitored Assets</span>
+            </div>
+            <div class="period-switcher" id="mon-trend-switcher">
+              <button class="period-btn active" data-period="7d">7D</button>
+              <button class="period-btn" data-period="30d">30D</button>
+              <button class="period-btn" data-period="90d">90D</button>
+            </div>
+          </div>
+          <div style="height:220px; position:relative;">
+            <canvas id="monScoreTrendChart"></canvas>
+          </div>
+          <div id="trend-reason-box" style="margin-top:12px; font-size:12px; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:10px;">
+            <i class="fas fa-circle-info" style="color:var(--cyan); margin-right:6px;"></i> <span id="trend-reason-text">Security posture baseline stable across monitored interval.</span>
+          </div>
+        </div>
+
+        <!-- Monitoring Timeline -->
+        <div class="glass-card" style="padding:20px;">
+          <h3 style="font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); margin-bottom:16px;"><i class="fas fa-clock-rotate-left" style="color:var(--cyan); margin-right:8px;"></i> Monitoring Timeline</h3>
+          <div id="mon-timeline-feed" style="display:flex; flex-direction:column; gap:12px;">
+            <div class="empty-state" style="padding:30px 0;"><i class="fas fa-clock"></i><p>No timeline events recorded yet.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change Detection & Alerts Grid -->
+      <div class="charts-grid">
+        <div class="glass-card">
+          <h3 style="font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); margin-bottom:16px;"><i class="fas fa-bolt" style="color:var(--amber); margin-right:8px;"></i> Recent Security Changes</h3>
+          <div id="mon-changes-feed" style="display:flex; flex-direction:column; gap:10px;">
+            <div class="empty-state" style="padding:30px 0;"><i class="fas fa-shield-check"></i><p>No security changes detected in recent scans.</p></div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 style="font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); margin-bottom:16px;"><i class="fas fa-bell" style="color:var(--red); margin-right:8px;"></i> Monitoring Alerts</h3>
+          <div id="mon-alerts-feed" style="display:flex; flex-direction:column; gap:10px;">
+            <div class="empty-state" style="padding:30px 0;"><i class="fas fa-bell-slash"></i><p>No active security alerts.</p></div>
+          </div>
         </div>
       </div>
     </main>
   </div>
 </div>
 
+<!-- Modal Confirmation Dialog -->
+<div id="remove-modal-backdrop" class="drawer-backdrop"></div>
+<div id="remove-modal" class="detail-drawer" style="height:auto; top:50%; left:50%; right:auto; transform:translate(-50%, -50%); border-radius:var(--radius-lg); padding:24px; display:none; max-width:440px;">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+    <div style="width:40px; height:40px; border-radius:50%; background:var(--red-dim); color:var(--red); display:flex; align-items:center; justify-content:center; font-size:18px;"><i class="fas fa-triangle-exclamation"></i></div>
+    <div>
+      <h3 style="font-size:16px; font-weight:700; margin:0;">Remove Monitored Asset</h3>
+      <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0;">Confirm continuous monitoring removal</p>
+    </div>
+  </div>
+  <p style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:20px;">Are you sure you want to stop monitoring <strong id="modal-remove-domain" style="color:var(--text-primary);">example.com</strong>? CyberShield will cease automated security scans and score tracking for this asset.</p>
+  <div style="display:flex; justify-content:flex-end; gap:10px;">
+    <button class="btn btn-secondary btn-sm" id="btn-cancel-remove">Cancel</button>
+    <button class="btn btn-danger btn-sm" id="btn-confirm-remove"><i class="fas fa-trash"></i> Remove Asset</button>
+  </div>
+</div>
+
 <script src="/js/app.js"></script>
 <script src="/js/monitor.js"></script>
-<script src="/js/cursor.js"></script>`n</body>
+</body>
 </html>

@@ -102,8 +102,10 @@ input, select, textarea { font-family: var(--font-sans); }
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   z-index: 50;
   transition: transform 0.3s var(--ease);
+  box-sizing: border-box;
 }
 
 .sidebar-logo {
@@ -112,12 +114,15 @@ input, select, textarea { font-family: var(--font-sans); }
   gap: 10px;
   padding: 20px 20px 16px;
   border-bottom: 1px solid var(--border-subtle);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .sidebar-logo i {
   font-size: 22px;
   color: var(--cyan);
   filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
+  flex-shrink: 0;
 }
 
 .sidebar-logo h2 {
@@ -127,12 +132,22 @@ input, select, textarea { font-family: var(--font-sans); }
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-nav {
   list-style: none;
   padding: 12px 0;
   flex: 1;
+  overflow-x: hidden;
+  margin: 0;
+}
+
+.sidebar-nav li {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .sidebar-nav .nav-section-label {
@@ -142,6 +157,9 @@ input, select, textarea { font-family: var(--font-sans); }
   text-transform: uppercase;
   color: var(--text-muted);
   padding: 12px 20px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-nav li a {
@@ -155,6 +173,18 @@ input, select, textarea { font-family: var(--font-sans); }
   border-radius: 0;
   transition: var(--transition);
   border-left: 2px solid transparent;
+  width: 100%;
+  box-sizing: border-box;
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.sidebar-nav li a span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .sidebar-nav li a i {
@@ -162,6 +192,8 @@ input, select, textarea { font-family: var(--font-sans); }
   font-size: 14px;
   opacity: 0.7;
   transition: var(--transition);
+  flex-shrink: 0;
+  text-align: center;
 }
 
 .sidebar-nav li a:hover {
