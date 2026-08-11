@@ -238,7 +238,7 @@ exports.registerPhone = async (req, res, next) => {
       });
 
       // Send OTP via SMS
-      const smsBody = `CyberShield verification code: ${otp}\nThis code expires soon.\nDo not share this code with anyone.`;
+      const smsBody = `CyberShield verification code: ${otp}. Valid for 10 minutes. Do not share.`;
       try {
         const smsResult = await sendSMS(phoneNumber, smsBody);
         user.smsBatchId = smsResult.smsBatchId || null;
@@ -363,7 +363,7 @@ exports.resendPhoneOTP = async (req, res, next) => {
     user.otpLastSentAt = new Date();
     await user.save();
 
-    const smsBody = `CyberShield verification code: ${otp}\nThis code expires soon.\nDo not share this code with anyone.`;
+    const smsBody = `CyberShield verification code: ${otp}. Valid for 10 minutes. Do not share.`;
     try {
       const smsResult = await sendSMS(phoneNumber, smsBody);
       user.smsBatchId = smsResult.smsBatchId || null;
