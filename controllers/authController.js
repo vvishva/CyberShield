@@ -238,7 +238,7 @@ exports.registerPhone = async (req, res, next) => {
       });
 
       // Send OTP via SMS
-      const smsBody = `Your CyberShield verification code is: ${otp}. Valid for 10 minutes. Do not share it.`;
+      const smsBody = `CyberShield verification code: ${otp}\nThis code expires soon.\nDo not share this code with anyone.`;
       try {
         await sendSMS(phoneNumber, smsBody);
       } catch (smsErr) {
@@ -247,10 +247,10 @@ exports.registerPhone = async (req, res, next) => {
         if (smsErr.message === 'SMS_NOT_CONFIGURED') {
           return res.status(503).json({
             success: false,
-            error: 'SMS service is not configured. Please contact the administrator or use email registration.'
+            error: 'SMS service is not configured. Please contact the administrator or use Email verification.'
           });
         }
-        return res.status(500).json({ success: false, error: smsErr.message || 'Unable to send verification SMS. Please try again.' });
+        return res.status(500).json({ success: false, error: smsErr.message || 'Unable to send OTP right now. Please try again or use Email verification.' });
       }
 
     } catch (dbErr) {
@@ -360,17 +360,17 @@ exports.resendPhoneOTP = async (req, res, next) => {
     user.otpLastSentAt = new Date();
     await user.save();
 
-    const smsBody = `Your new CyberShield verification code is: ${otp}. Valid for 10 minutes. Do not share it.`;
+    const smsBody = `CyberShield verification code: ${otp}\nThis code expires soon.\nDo not share this code with anyone.`;
     try {
       await sendSMS(phoneNumber, smsBody);
     } catch (smsErr) {
       if (smsErr.message === 'SMS_NOT_CONFIGURED') {
         return res.status(503).json({
           success: false,
-          error: 'SMS service is not configured. Please contact the administrator.'
+          error: 'SMS service is not configured. Please contact the administrator or use Email verification.'
         });
       }
-      return res.status(500).json({ success: false, error: smsErr.message || 'Unable to send verification SMS. Please try again.' });
+      return res.status(500).json({ success: false, error: smsErr.message || 'Unable to send OTP right now. Please try again or use Email verification.' });
     }
 
     res.status(200).json({ success: true, message: 'Verification code sent successfully to your mobile number.' });
