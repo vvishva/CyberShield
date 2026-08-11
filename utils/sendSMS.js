@@ -57,18 +57,11 @@ const sendSMS = async (to, message) => {
     console.log(`[SMS] Sending to canonical number: ${maskedPhone}`);
     console.log(`[SMS] Target Endpoint: ${endpoint}`);
 
-    // Build payload matching TextBee Dashboard format
+    // Build payload matching exact official TextBee API specification
     const payload = {
       recipients: [formattedPhone],
-      recipient: formattedPhone,
-      phoneNumber: formattedPhone,
       message: message
     };
-
-    // Add deviceId to body as well for dual compatibility
-    if (textbeeDeviceId && textbeeDeviceId.trim()) {
-      payload.deviceId = textbeeDeviceId.trim();
-    }
 
     // Add simSubscriptionId for dual-SIM phones if configured
     if (process.env.TEXTBEE_SIM_SUBSCRIPTION_ID !== undefined &&
