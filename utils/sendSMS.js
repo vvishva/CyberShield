@@ -2,7 +2,7 @@
  * CyberShield — SMS Sender Utility (TextBee Gateway)
  *
  * Integrates with TextBee Android SMS Gateway API.
- * Uses libphonenumber-js to format recipient into canonical E.164 (+91XXXXXXXXXX).
+ * Formats database recipient into local carrier-compatible number for Android SmsManager dispatch.
  *
  * Endpoint Routing:
  *   If TEXTBEE_DEVICE_ID is set:
@@ -44,9 +44,12 @@ const sendSMS = async (to, message) => {
   if (textbeeApiKey) {
     const cleanBaseUrl = textbeeBaseUrl.replace(/\/+$/, '');
 
-    // Canonicalize phone number using libphonenumber-js
+    // Canonicalize phone number into E.164 (+91XXXXXXXXXX)
     const formattedPhone = normalizePhoneNumber(to, 'IN');
     const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
+
+    // Pass exact E.164 formatted number (+91XXXXXXXXXX) to TextBee API payload
+    const recipientNumber = formattedPhone;
 
     // Use device-scoped URL if device ID is set (matches TextBee Dashboard internal dispatch)
     let endpoint = `${cleanBaseUrl}/gateway/send-sms`;
@@ -54,12 +57,12 @@ const sendSMS = async (to, message) => {
       endpoint = `${cleanBaseUrl}/gateway/devices/${textbeeDeviceId.trim()}/send-sms`;
     }
 
-    console.log(`[SMS] Sending to canonical number: ${maskedPhone}`);
+    console.log(`[SMS] Dispatching to recipient number: ${recipientNumber.replace(/\d(?=\d{4})/g, '*')} (Canonical: ${maskedPhone})`);
     console.log(`[SMS] Target Endpoint: ${endpoint}`);
 
-    // Build payload matching exact official TextBee API specification
+    // Build payload matching exact TextBee Dashboard manual send format
     const payload = {
-      recipients: [formattedPhone],
+      recipients: [recipientNumber],
       message: message
     };
 
