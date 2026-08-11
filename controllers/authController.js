@@ -41,6 +41,11 @@ exports.register = async (req, res, next) => {
 
     let user;
     try {
+      const existingUserByUsername = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
+      if (existingUserByUsername && (existingUserByUsername.isVerified || existingUserByUsername.phoneVerified)) {
+        return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
+      }
+
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         if (existingUser.isVerified) {
@@ -49,6 +54,13 @@ exports.register = async (req, res, next) => {
         // Stale unverified account — delete it so user can register cleanly
         await User.deleteOne({ _id: existingUser._id });
       }
+
+      // Clean up any unverified stale account with same username
+      await User.deleteMany({
+        username: { $regex: new RegExp(`^${username}$`, 'i') },
+        isVerified: false,
+        phoneVerified: false
+      });
 
       const otp = generateOTP();
       const salt = await bcrypt.genSalt(10);
@@ -81,6 +93,16 @@ exports.register = async (req, res, next) => {
       }
 
     } catch (dbErr) {
+      if (dbErr.code === 11000) {
+        const field = Object.keys(dbErr.keyPattern || dbErr.keyValue || {})[0];
+        if (field === 'username') {
+          return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
+        }
+        if (field === 'email') {
+          return res.status(400).json({ success: false, error: 'User with this email already exists.' });
+        }
+        return res.status(400).json({ success: false, error: 'Account with these details already exists.' });
+      }
       return res.status(503).json({ success: false, error: 'Database unavailable. Please try again later.' });
     }
 
@@ -216,17 +238,27 @@ exports.registerPhone = async (req, res, next) => {
 
     let user;
     try {
-      // Check for existing verified account with this phone number
-      const existingVerified = await User.findOne({ phoneNumber, phoneVerified: true });
-      if (existingVerified) {
+      // 1. Check if username is already taken by a verified user
+      const existingUserByUsername = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
+      if (existingUserByUsername && (existingUserByUsername.isVerified || existingUserByUsername.phoneVerified)) {
+        return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
+      }
+
+      // 2. Check for existing verified account with this phone number
+      const existingVerifiedPhone = await User.findOne({ phoneNumber, phoneVerified: true });
+      if (existingVerifiedPhone) {
         return res.status(400).json({ success: false, error: 'This phone number is already registered.' });
       }
 
-      // Delete any stale unverified account with same phone
-      const existingUnverified = await User.findOne({ phoneNumber, phoneVerified: false });
-      if (existingUnverified) {
-        await User.deleteOne({ _id: existingUnverified._id });
-      }
+      // 3. Clean up any unverified stale account with same phone or username
+      await User.deleteMany({
+        $or: [
+          { phoneNumber },
+          { username: { $regex: new RegExp(`^${username}$`, 'i') } }
+        ],
+        phoneVerified: false,
+        isVerified: false
+      });
 
       const otp = generateOTP();
       const salt = await bcrypt.genSalt(10);
@@ -266,9 +298,17 @@ exports.registerPhone = async (req, res, next) => {
 
     } catch (dbErr) {
       if (dbErr.code === 11000) {
-        return res.status(400).json({ success: false, error: 'This phone number is already registered.' });
+        const field = Object.keys(dbErr.keyPattern || dbErr.keyValue || {})[0];
+        if (field === 'username') {
+          return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
+        }
+        if (field === 'phoneNumber') {
+          return res.status(400).json({ success: false, error: 'This phone number is already registered.' });
+        }
+        return res.status(400).json({ success: false, error: 'Account with these details already exists.' });
       }
-      return res.status(503).json({ success: false, error: 'Database unavailable. Please try again later.' });
+      console.error('[DB Error in registerPhone]:', dbErr);
+      return res.status(503).json({ success: false, error: 'Database error. Please try again later.' });
     }
 
     // Audit Log
