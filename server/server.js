@@ -20,15 +20,24 @@ connectDB().then(() => {
 
 // Security Middlewares
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Safe origin parsing for Python AI service
+let pythonOrigin = 'http://localhost:5001';
+try {
+  if (process.env.PYTHON_AI_URL) {
+    pythonOrigin = new URL(process.env.PYTHON_AI_URL).origin;
+  }
+} catch (_) {}
+
 app.use(helmet({
   contentSecurityPolicy: isProduction ? {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com', 'https://unpkg.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
       imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'", process.env.PYTHON_AI_URL ? new URL(process.env.PYTHON_AI_URL).origin : 'http://localhost:5001'],
+      connectSrc: ["'self'", 'https:', pythonOrigin],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]
