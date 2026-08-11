@@ -18,6 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch(e) {}
   }
+
+  const exportBtn = document.getElementById('btn-export-admin-pdf');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      downloadReportPDF({ type: 'admin_audit' }, 'CyberShield_Admin_Audit_Report.pdf');
+    });
+  }
 });
 
 function logAudit(msg) {

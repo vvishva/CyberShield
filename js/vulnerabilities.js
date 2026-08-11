@@ -11,6 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('filter-severity').addEventListener('change', renderVulnerabilities);
   document.getElementById('filter-status').addEventListener('change', renderVulnerabilities);
   document.getElementById('vuln-search').addEventListener('input', renderVulnerabilities);
+
+  const exportBtn = document.getElementById('btn-export-vuln-pdf');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      downloadReportPDF({ type: 'vulnerabilities' }, 'CyberShield_Vulnerabilities_Report.pdf');
+    });
+  }
 });
 
 async function loadVulnerabilities() {

@@ -192,6 +192,9 @@ async function downloadReportPDF(params = {}, defaultFilename = 'CyberShield_Sec
   }
 }
 
+// Make globally accessible across all window contexts & inline scripts
+window.downloadReportPDF = downloadReportPDF;
+
 // Initialize Sidebar Active Links & User Info
 document.addEventListener('DOMContentLoaded', () => {
   const currentUser = getUser();

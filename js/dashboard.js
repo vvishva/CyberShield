@@ -293,12 +293,15 @@ function renderRecentOperations(scans) {
   });
 }
 
+let activeDrawerScanId = null;
+
 // ── Operation Detail Drawer ─────────────────────────────────────────────────
 function openDetailDrawer(scanId) {
   if (!dashboardSummaryData || !dashboardSummaryData.recentOperations) return;
   const scan = dashboardSummaryData.recentOperations.find(s => s._id === scanId);
   if (!scan) return;
 
+  activeDrawerScanId = scanId;
   const backdrop = document.getElementById('drawer-backdrop');
   const drawer = document.getElementById('detail-drawer');
   const targetEl = document.getElementById('drawer-target');
@@ -476,6 +479,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeBtn = document.getElementById('drawer-close');
   if (backdrop) backdrop.addEventListener('click', closeDetailDrawer);
   if (closeBtn) closeBtn.addEventListener('click', closeDetailDrawer);
+
+  const drawerReportBtn = document.getElementById('drawer-btn-report');
+  if (drawerReportBtn) {
+    drawerReportBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (activeDrawerScanId) {
+        downloadReportPDF({ scanId: activeDrawerScanId }, 'CyberShield_Security_Report.pdf');
+      } else {
+        downloadReportPDF({}, 'CyberShield_Security_Report.pdf');
+      }
+    });
+  }
 
   await fetchDashboardData();
 });

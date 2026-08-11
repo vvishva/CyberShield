@@ -35,6 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   drawDemoMap('cybershield.io');
+
+  const exportBtn = document.getElementById('btn-export-map-pdf');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      downloadReportPDF({ type: 'attack_surface' }, 'CyberShield_Attack_Surface_Report.pdf');
+    });
+  }
 });
 
 function drawMap(domain, scanData) {

@@ -18,7 +18,29 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     document.getElementById('rpt-empty').style.display = 'block';
   }
+
+  const pdfBtn = document.getElementById('btn-generate-pdf');
+  if (pdfBtn) {
+    pdfBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      downloadPDF();
+    });
+  }
 });
+
+function downloadPDF() {
+  const scanStr = localStorage.getItem('lastScanData');
+  let params = {};
+  if (scanStr) {
+    try {
+      const scan = JSON.parse(scanStr);
+      params = { scanId: scan._id || scan.scanId, target: scan.target || scan.url, scanType: scan.scanType };
+    } catch(e) {}
+  }
+  downloadReportPDF(params, 'CyberShield_Audit_Report.pdf');
+}
+
+window.downloadPDF = downloadPDF;
 
 function renderReport(data) {
   document.getElementById('rpt-empty').style.display = 'none';

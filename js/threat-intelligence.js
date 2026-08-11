@@ -18,6 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 1000);
     });
   }
+
+  const exportBtn = document.getElementById('btn-export-ti-pdf');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      downloadReportPDF({ type: 'threat_intel' }, 'CyberShield_Threat_Intel_Report.pdf');
+    });
+  }
 });
 
 async function loadThreatData() {

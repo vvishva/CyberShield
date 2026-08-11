@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <td>
             <div style="display:flex; gap:6px;">
               <button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="viewReport('${item._id}')"><i class="fas fa-eye"></i> View</button>
-              <button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="downloadReportPDF('${item._id}')"><i class="fas fa-file-pdf"></i> PDF</button>
+              <button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="downloadHistoryPdf('${item._id}')"><i class="fas fa-file-pdf"></i> PDF</button>
               ${isThreat ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px; box-shadow:0 0 8px rgba(239,68,68,0.4);" onclick="investigateReport('${item._id}')"><i class="fas fa-crosshairs"></i> Investigate</button>` : ''}
             </div>
           </td>
@@ -58,6 +58,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }).join('');
   }
+
+  window.downloadHistoryPdf = (id) => {
+    downloadReportPDF({ scanId: id }, 'CyberShield_Scan_Report.pdf');
+  };
 
   function filterData() {
     const search = (searchInput?.value || '').toLowerCase();
