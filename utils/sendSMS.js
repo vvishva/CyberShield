@@ -1,12 +1,39 @@
 /**
  * CyberShield — SMS Sender Utility (TextBee Gateway)
  *
- * Supports sending via TextBee Android Gateway with exact Dashboard endpoint routing:
+ * Integrates with TextBee Android SMS Gateway API.
+ * Uses libphonenumber-js to format recipient into canonical E.164 (+91XXXXXXXXXX).
+ *
+ * Endpoint Routing:
  *   If TEXTBEE_DEVICE_ID is set:
  *     POST https://api.textbee.dev/api/v1/gateway/devices/{deviceId}/send-sms
  *   Else:
  *     POST https://api.textbee.dev/api/v1/gateway/send-sms
  */
+
+const { normalizePhoneNumber } = require('./phoneNormalizer');
+
+/**
+ * Check TextBee status via GET /gateway/devices/{deviceId}/sms-batch/{smsBatchId}
+ */
+const checkTextBeeBatchStatus = async (baseUrl, deviceId, apiKey, batchId) => {
+  const endpoint = deviceId
+    ? `${baseUrl}/gateway/devices/${deviceId}/sms-batch/${batchId}`
+    : `${baseUrl}/gateway/sms-batch/${batchId}`;
+  try {
+    const res = await fetch(endpoint, {
+      method: 'GET',
+      headers: { 'x-api-key': apiKey.trim() }
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const batchData = json.data || json;
+    const status = batchData.status || batchData.state || (batchData.success ? 'SENT' : null);
+    return status ? String(status).toUpperCase() : null;
+  } catch (_) {
+    return null;
+  }
+};
 
 const sendSMS = async (to, message) => {
   const textbeeApiKey   = process.env.TEXTBEE_API_KEY;
@@ -17,12 +44,8 @@ const sendSMS = async (to, message) => {
   if (textbeeApiKey) {
     const cleanBaseUrl = textbeeBaseUrl.replace(/\/+$/, '');
 
-    // Normalize phone number into clean E.164 format (e.g. +919876543210)
-    let formattedPhone = to.trim().replace(/[\s\-\(\)]/g, '');
-    if (!formattedPhone.startsWith('+')) {
-      formattedPhone = '+' + formattedPhone;
-    }
-
+    // Canonicalize phone number using libphonenumber-js
+    const formattedPhone = normalizePhoneNumber(to, 'IN');
     const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
 
     // Use device-scoped URL if device ID is set (matches TextBee Dashboard internal dispatch)
@@ -31,7 +54,7 @@ const sendSMS = async (to, message) => {
       endpoint = `${cleanBaseUrl}/gateway/devices/${textbeeDeviceId.trim()}/send-sms`;
     }
 
-    console.log(`[SMS] Sending to: ${maskedPhone}`);
+    console.log(`[SMS] Sending to canonical number: ${maskedPhone}`);
     console.log(`[SMS] Target Endpoint: ${endpoint}`);
 
     // Build payload matching TextBee Dashboard format
@@ -103,9 +126,28 @@ const sendSMS = async (to, message) => {
 
       console.log(`[SMS] TextBee accepted request. Batch ID: ${smsBatchId || 'N/A'}`);
 
+      // Check status to detect immediate failure reported by TextBee gateway
+      let actualStatus = 'QUEUED';
+      if (smsBatchId) {
+        for (let i = 0; i < 2; i++) {
+          await new Promise(r => setTimeout(r, 1500));
+          const checked = await checkTextBeeBatchStatus(cleanBaseUrl, textbeeDeviceId, textbeeApiKey, smsBatchId);
+          if (checked) {
+            console.log(`[SMS] TextBee status check #${i+1}: ${checked}`);
+            if (['FAILED', 'ERROR', 'REJECTED'].includes(checked)) {
+              throw new Error('Unable to send verification code. Please try again.');
+            }
+            if (['SENT', 'DELIVERED', 'SUCCESS'].includes(checked)) {
+              actualStatus = checked;
+              break;
+            }
+          }
+        }
+      }
+
       return {
         provider: 'TextBee',
-        status: 'QUEUED',
+        status: actualStatus,
         smsBatchId: smsBatchId || 'accepted'
       };
 
@@ -119,7 +161,8 @@ const sendSMS = async (to, message) => {
 
       if (err.message.includes('SMS gateway') ||
           err.message.includes('SMS rate') ||
-          err.message.includes('Unable to send')) {
+          err.message.includes('Unable to send') ||
+          err.message.includes('verification code')) {
         throw err;
       }
 
@@ -134,8 +177,7 @@ const sendSMS = async (to, message) => {
   const twilioFrom  = process.env.TWILIO_PHONE_NUMBER;
 
   if (twilioSid && twilioToken && twilioFrom) {
-    let formattedPhone = to.trim().replace(/[\s\-\(\)]/g, '');
-    if (!formattedPhone.startsWith('+')) formattedPhone = '+' + formattedPhone;
+    const formattedPhone = normalizePhoneNumber(to, 'IN');
 
     const url = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
     const body = new URLSearchParams();

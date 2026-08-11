@@ -629,9 +629,15 @@
 
       // Build full E.164 phone number from country code + local number
       const buildE164 = () => {
-        const cc = document.getElementById('country-code').value; // e.g. "+91"
-        const num = document.getElementById('phone-number').value.trim().replace(/\D/g, '');
-        return cc + num;
+        const cc = document.getElementById('country-code').value.trim(); // e.g. "+91"
+        let raw = document.getElementById('phone-number').value.trim();
+        if (raw.startsWith('+')) return raw;
+        const ccDigits = cc.replace('+', '');
+        const cleanDigits = raw.replace(/\D/g, '');
+        if (cleanDigits.startsWith(ccDigits) && cleanDigits.length >= ccDigits.length + 10) {
+          return '+' + cleanDigits;
+        }
+        return cc + cleanDigits;
       };
 
       document.getElementById('register-phone-form').addEventListener('submit', async (e) => {

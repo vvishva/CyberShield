@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Log = require('../models/Log');
 const sendEmail = require('../utils/sendEmail');
 const sendSMS = require('../utils/sendSMS');
+const { normalizePhoneNumber } = require('../utils/phoneNormalizer');
 
 const generateToken = (user) => {
   const secret = process.env.JWT_SECRET;
@@ -200,10 +201,17 @@ exports.resendOTP = async (req, res, next) => {
 // @route   POST /api/auth/register-phone
 exports.registerPhone = async (req, res, next) => {
   try {
-    const { username, phoneNumber, password } = req.body;
+    const { username, password } = req.body;
+    let { phoneNumber } = req.body;
 
     if (!username || !phoneNumber || !password) {
       return res.status(400).json({ success: false, error: 'Please provide username, phone number, and password.' });
+    }
+
+    try {
+      phoneNumber = normalizePhoneNumber(phoneNumber, 'IN');
+    } catch (normErr) {
+      return res.status(400).json({ success: false, error: normErr.message });
     }
 
     let user;
@@ -268,14 +276,19 @@ exports.registerPhone = async (req, res, next) => {
       await Log.create({
         username: user.username,
         action: 'USER_REGISTER',
-        details: `New account registered (unverified) via phone`,
+        details: `New account registered (unverified) via phone (${phoneNumber})`,
         status: 'SUCCESS'
       });
     } catch (e) {}
 
+    const successMsg = user.smsStatus === 'QUEUED' || user.smsStatus === 'PENDING'
+      ? 'OTP request accepted. Waiting for SMS delivery...'
+      : 'Verification code sent successfully.';
+
     res.status(201).json({
       success: true,
-      message: 'Verification code sent successfully to your mobile number.'
+      message: successMsg,
+      phoneNumber
     });
   } catch (err) {
     next(err);
@@ -286,10 +299,15 @@ exports.registerPhone = async (req, res, next) => {
 // @route   POST /api/auth/verify-phone-otp
 exports.verifyPhoneOTP = async (req, res, next) => {
   try {
-    const { phoneNumber, otp } = req.body;
+    let { phoneNumber } = req.body;
+    const { otp } = req.body;
     if (!phoneNumber || !otp) {
       return res.status(400).json({ success: false, error: 'Please provide phone number and OTP.' });
     }
+
+    try {
+      phoneNumber = normalizePhoneNumber(phoneNumber, 'IN');
+    } catch (e) {}
 
     const user = await User.findOne({ phoneNumber }).select('+verificationOTP +verificationOTPExpire');
     if (!user) return res.status(400).json({ success: false, error: 'Invalid phone number.' });
@@ -340,8 +358,12 @@ exports.verifyPhoneOTP = async (req, res, next) => {
 // @route   POST /api/auth/resend-phone-otp
 exports.resendPhoneOTP = async (req, res, next) => {
   try {
-    const { phoneNumber } = req.body;
+    let { phoneNumber } = req.body;
     if (!phoneNumber) return res.status(400).json({ success: false, error: 'Please provide your phone number.' });
+
+    try {
+      phoneNumber = normalizePhoneNumber(phoneNumber, 'IN');
+    } catch (e) {}
 
     const user = await User.findOne({ phoneNumber });
     if (!user) return res.status(400).json({ success: false, error: 'Phone number not found.' });
@@ -405,7 +427,11 @@ exports.login = async (req, res, next) => {
       if (email) {
         user = await User.findOne({ email }).select('+password');
       } else {
-        user = await User.findOne({ phoneNumber }).select('+password');
+        let canonicalPhone = phoneNumber;
+        try {
+          canonicalPhone = normalizePhoneNumber(phoneNumber, 'IN');
+        } catch (e) {}
+        user = await User.findOne({ phoneNumber: canonicalPhone }).select('+password');
       }
     } catch (dbErr) {
       return res.status(503).json({ success: false, error: 'Database unavailable. Please try again later.' });
@@ -578,9 +604,15 @@ exports.testEmail = async (req, res, next) => {
 // @route   POST /api/auth/test-sms
 exports.testSMS = async (req, res, next) => {
   try {
-    const { targetPhone, message } = req.body;
+    let { targetPhone, message } = req.body;
     if (!targetPhone) {
-      return res.status(400).json({ success: false, error: 'Please provide targetPhone in E.164 format (+919876543210)' });
+      return res.status(400).json({ success: false, error: 'Please provide targetPhone' });
+    }
+
+    try {
+      targetPhone = normalizePhoneNumber(targetPhone, 'IN');
+    } catch (normErr) {
+      return res.status(400).json({ success: false, error: normErr.message });
     }
 
     const testMsg = message || 'CyberShield test SMS';
@@ -595,6 +627,7 @@ exports.testSMS = async (req, res, next) => {
       message: `Diagnostic SMS successfully sent to ${maskedPhone}`,
       diagnostic: {
         recipientMasked: maskedPhone,
+        canonicalPhone: targetPhone,
         provider: result.provider || 'TextBee',
         status: result.status || 'SENT',
         smsBatchId: result.smsBatchId || null

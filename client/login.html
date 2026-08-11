@@ -454,10 +454,16 @@
       // ── Phone Login Form ──────────────────────────────────────────────
       document.getElementById('login-phone-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('login-phone-btn');
-        const cc = document.getElementById('login-country-code').value;
-        const num = document.getElementById('login-phone-number').value.trim().replace(/\D/g, '');
-        const phoneNumber = cc + num;
+        const cc = document.getElementById('login-country-code').value.trim();
+        let raw = document.getElementById('login-phone-number').value.trim();
+        const ccDigits = cc.replace('+', '');
+        const cleanDigits = raw.replace(/\D/g, '');
+        let phoneNumber = cc + cleanDigits;
+        if (raw.startsWith('+')) {
+          phoneNumber = raw;
+        } else if (cleanDigits.startsWith(ccDigits) && cleanDigits.length >= ccDigits.length + 10) {
+          phoneNumber = '+' + cleanDigits;
+        }
         const password = document.getElementById('login-phone-password').value;
         const remember = document.getElementById('login-phone-remember').checked;
 

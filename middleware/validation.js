@@ -1,4 +1,5 @@
 const { body, param, query, validationResult } = require('express-validator');
+const { normalizePhoneNumber } = require('../utils/phoneNormalizer');
 
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -20,13 +21,19 @@ const passwordRules = body('password')
   .matches(/[0-9]/).withMessage('Password must contain a number')
   .matches(/[^A-Za-z0-9]/).withMessage('Password must contain a special character');
 
-// E.164 phone number validator helper
-const isValidE164 = (value) => {
-  const e164Regex = /^\+[1-9]\d{7,14}$/;
-  if (!e164Regex.test(value)) {
-    throw new Error('Invalid phone number. Use international format (e.g. +919876543210)');
+// Phone number validator & canonical normalizer helper
+const normalizeAndValidatePhone = (value, { req, location, path }) => {
+  if (!value || typeof value !== 'string' || value.trim() === '') {
+    throw new Error('Please enter a valid mobile number.');
   }
-  return true;
+  try {
+    const canonical = normalizePhoneNumber(value, 'IN');
+    // Automatically replace request body field with canonical E.164 (+91XXXXXXXXXX)
+    req.body[path] = canonical;
+    return true;
+  } catch (err) {
+    throw new Error('Invalid mobile phone number format. Please enter a valid number (e.g. 9876543210 or +919876543210)');
+  }
 };
 
 const validators = {
@@ -41,7 +48,7 @@ const validators = {
   // ── Phone Registration (new) ───────────────────────────────────────────────
   registerPhone: [
     body('username').trim().isLength({ min: 3, max: 30 }).withMessage('Username must be 3-30 characters'),
-    body('phoneNumber').trim().custom(isValidE164),
+    body('phoneNumber').trim().custom(normalizeAndValidatePhone),
     passwordRules,
     handleValidationErrors
   ],
@@ -57,10 +64,16 @@ const validators = {
       if (hasEmail && hasPhone) {
         throw new Error('Please provide either email or phone number, not both');
       }
+      if (hasPhone) {
+        try {
+          req.body.phoneNumber = normalizePhoneNumber(req.body.phoneNumber, 'IN');
+        } catch (e) {
+          throw new Error('Invalid mobile phone number format');
+        }
+      }
       return true;
     }),
     body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('phoneNumber').optional({ checkFalsy: true }).custom(isValidE164),
     body('password').notEmpty().withMessage('Password is required'),
     handleValidationErrors
   ],
@@ -74,7 +87,7 @@ const validators = {
 
   // ── Phone OTP verification (new) ───────────────────────────────────────────
   verifyPhoneOTP: [
-    body('phoneNumber').trim().custom(isValidE164),
+    body('phoneNumber').trim().custom(normalizeAndValidatePhone),
     body('otp').isString().isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
     handleValidationErrors
   ],
@@ -87,7 +100,7 @@ const validators = {
 
   // ── Resend Phone OTP (new) ─────────────────────────────────────────────────
   resendPhoneOTP: [
-    body('phoneNumber').trim().custom(isValidE164),
+    body('phoneNumber').trim().custom(normalizeAndValidatePhone),
     handleValidationErrors
   ],
 
