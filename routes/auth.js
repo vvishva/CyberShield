@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   register, login, logout, getMe, forgotPassword, resetPassword,
-  verifyOTP, resendOTP, testEmail,
+  verifyOTP, resendOTP, testEmail, testSMS,
   // Phone registration (new)
   registerPhone, verifyPhoneOTP, resendPhoneOTP
 } = require('../controllers/authController');
@@ -35,5 +35,6 @@ router.get('/me', protect, getMe);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 router.post('/test-email', testEmail);
+router.post('/test-sms', testSMS);
 
 module.exports = router;

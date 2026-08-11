@@ -573,3 +573,38 @@ exports.testEmail = async (req, res, next) => {
     });
   }
 };
+
+// @desc    Production SMS Diagnostic Endpoint
+// @route   POST /api/auth/test-sms
+exports.testSMS = async (req, res, next) => {
+  try {
+    const { targetPhone, message } = req.body;
+    if (!targetPhone) {
+      return res.status(400).json({ success: false, error: 'Please provide targetPhone in E.164 format (+919876543210)' });
+    }
+
+    const testMsg = message || 'CyberShield test SMS';
+    const maskedPhone = targetPhone.replace(/\d(?=\d{4})/g, '*');
+
+    console.log(`[SMS TEST DIAGNOSTIC] Initiating test SMS dispatch to ${maskedPhone}`);
+
+    const result = await sendSMS(targetPhone, testMsg);
+
+    res.status(200).json({
+      success: true,
+      message: `Diagnostic SMS successfully sent to ${maskedPhone}`,
+      diagnostic: {
+        recipientMasked: maskedPhone,
+        provider: result.provider || 'TextBee',
+        status: result.status || 'SENT',
+        smsBatchId: result.smsBatchId || null
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: 'SMS diagnostic failed',
+      providerErrorMessage: err.message
+    });
+  }
+};

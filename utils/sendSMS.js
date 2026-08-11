@@ -7,9 +7,10 @@
  * The OTP value is NEVER logged or returned to the caller.
  *
  * TextBee Env Vars (set in Render dashboard):
- *   TEXTBEE_API_KEY      — API key generated from https://textbee.dev dashboard
- *   TEXTBEE_DEVICE_ID    — Unique device ID registered in TextBee app
- *   TEXTBEE_API_BASE_URL — (Optional) Base API URL, defaults to https://api.textbee.dev/api/v1
+ *   TEXTBEE_API_KEY              — API key generated from https://textbee.dev dashboard
+ *   TEXTBEE_DEVICE_ID            — Unique device ID registered in TextBee app
+ *   TEXTBEE_API_BASE_URL         — (Optional) Base API URL, defaults to https://api.textbee.dev/api/v1
+ *   TEXTBEE_SIM_SUBSCRIPTION_ID  — (Optional) SIM slot index for dual-SIM phones (0 or 1)
  */
 
 /**
@@ -80,9 +81,31 @@ const sendSMS = async (to, message) => {
   // ── Strategy 1: TextBee Android SMS Gateway ──────────────────────────────
   if (textbeeApiKey && textbeeDeviceId) {
     const cleanBaseUrl = textbeeBaseUrl.replace(/\/+$/, '');
-    const endpoint = `${cleanBaseUrl}/gateway/devices/${textbeeDeviceId}/send-sms`;
+    
+    // Official non-deprecated endpoint: POST /gateway/send-sms with deviceId in body
+    const endpoint = `${cleanBaseUrl}/gateway/send-sms`;
 
-    console.log(`[SMS DIAGNOSTIC] TextBee requesting SMS send to: ${to.replace(/\d(?=\d{4})/g, '*')}`);
+    // Normalize phone number into clean E.164 format (e.g. +919876543210)
+    let formattedPhone = to.trim().replace(/[^\d+]/g, '');
+    if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+' + formattedPhone;
+    }
+
+    const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
+    const maskedDeviceId = textbeeDeviceId.length > 8 ? textbeeDeviceId.substring(0, 4) + '...' + textbeeDeviceId.slice(-4) : '****';
+
+    console.log(`[SMS DIAGNOSTIC] TextBee sending request -> Device: ${maskedDeviceId}, Recipient: ${maskedPhone}`);
+
+    const payload = {
+      recipients: [formattedPhone],
+      message: message,
+      deviceId: textbeeDeviceId.trim()
+    };
+
+    // If dual SIM index is specified in env
+    if (process.env.TEXTBEE_SIM_SUBSCRIPTION_ID !== undefined && process.env.TEXTBEE_SIM_SUBSCRIPTION_ID !== '') {
+      payload.simSubscriptionId = parseInt(process.env.TEXTBEE_SIM_SUBSCRIPTION_ID, 10);
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s API timeout
@@ -97,10 +120,7 @@ const sendSMS = async (to, message) => {
           'Content-Type': 'application/json',
           'x-api-key': textbeeApiKey.trim()
         },
-        body: JSON.stringify({
-          recipients: [to],
-          message: message
-        }),
+        body: JSON.stringify(payload),
         signal: controller.signal
       });
 
@@ -113,7 +133,7 @@ const sendSMS = async (to, message) => {
       console.log(`[SMS DIAGNOSTIC] TextBee API HTTP Status: ${response.status}`);
 
       if (!response.ok) {
-        console.error(`[SMS DIAGNOSTIC] TextBee Error ${response.status}:`, resData);
+        console.error(`[SMS DIAGNOSTIC] TextBee API HTTP ${response.status} Error:`, JSON.stringify(resData));
 
         if (response.status === 401 || response.status === 403) {
           throw new Error('SMS gateway authentication failed. Please check TextBee API key or use Email verification.');
@@ -131,14 +151,14 @@ const sendSMS = async (to, message) => {
       const isAccepted = resData.success === true || (resData.data && resData.data.success === true) || response.status === 200 || response.status === 201;
 
       if (!isAccepted) {
-        console.error('[SMS DIAGNOSTIC] TextBee API returned failure payload:', resData);
+        console.error('[SMS DIAGNOSTIC] TextBee API returned failure payload:', JSON.stringify(resData));
         throw new Error('Unable to send OTP right now. TextBee API rejected the SMS request.');
       }
 
       // 1. Capture returned SMS / batch ID safely
       const smsBatchId = resData.data?.smsBatchId || resData.smsBatchId || resData.data?._id || resData._id || resData.data?.id || resData.id;
 
-      console.log(`[SMS DIAGNOSTIC] TextBee API queued request. Batch ID: ${smsBatchId || 'N/A'}`);
+      console.log(`[SMS DIAGNOSTIC] TextBee API accepted request. Batch ID: ${smsBatchId || 'N/A'}`);
 
       // 2. Track actual SMS delivery status on the Android gateway device
       let actualStatus = 'PENDING';
@@ -151,7 +171,7 @@ const sendSMS = async (to, message) => {
           let checkResult = await checkTextBeeBatchStatus(cleanBaseUrl, textbeeDeviceId, textbeeApiKey, smsBatchId);
           if (!checkResult || !checkResult.status) {
             // Try message log fallback
-            const msgStatus = await checkTextBeeMessagesStatus(cleanBaseUrl, textbeeDeviceId, textbeeApiKey, to);
+            const msgStatus = await checkTextBeeMessagesStatus(cleanBaseUrl, textbeeDeviceId, textbeeApiKey, formattedPhone);
             if (msgStatus) checkResult = { status: msgStatus };
           }
 
@@ -208,13 +228,16 @@ const sendSMS = async (to, message) => {
   const twilioFrom  = process.env.TWILIO_PHONE_NUMBER;
 
   if (twilioSid && twilioToken && twilioFrom) {
+    let formattedPhone = to.trim().replace(/[^\d+]/g, '');
+    if (!formattedPhone.startsWith('+')) formattedPhone = '+' + formattedPhone;
+
     const url = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
     const body = new URLSearchParams();
-    body.append('To', to);
+    body.append('To', formattedPhone);
     body.append('From', twilioFrom);
     body.append('Body', message);
 
-    console.log(`[SMS DIAGNOSTIC] Twilio sending SMS to: ${to.replace(/\d(?=\d{4})/g, '*')}`);
+    console.log(`[SMS DIAGNOSTIC] Twilio sending SMS to: ${formattedPhone.replace(/\d(?=\d{4})/g, '*')}`);
 
     let response;
     try {
@@ -237,7 +260,7 @@ const sendSMS = async (to, message) => {
     } catch (_) {}
 
     if (!response.ok) {
-      console.error(`[SMS DIAGNOSTIC] Twilio Error ${response.status}:`, resData);
+      console.error(`[SMS DIAGNOSTIC] Twilio Error ${response.status}:`, JSON.stringify(resData));
       throw new Error('Unable to send OTP right now. Please try again or use Email verification.');
     }
 
