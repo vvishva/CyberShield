@@ -2,13 +2,7 @@
  * CyberShield — SMS Sender Utility (TextBee Gateway)
  *
  * Integrates with TextBee Android SMS Gateway API.
- * Formats database recipient into local carrier-compatible number for Android SmsManager dispatch.
- *
- * Endpoint Routing:
- *   If TEXTBEE_DEVICE_ID is set:
- *     POST https://api.textbee.dev/api/v1/gateway/devices/{deviceId}/send-sms
- *   Else:
- *     POST https://api.textbee.dev/api/v1/gateway/send-sms
+ * Uses standard primary endpoint: POST https://api.textbee.dev/api/v1/gateway/send-sms
  */
 
 const { normalizePhoneNumber } = require('./phoneNormalizer');
@@ -48,23 +42,22 @@ const sendSMS = async (to, message) => {
     const formattedPhone = normalizePhoneNumber(to, 'IN');
     const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
 
-    // Pass exact E.164 formatted number (+91XXXXXXXXXX) to TextBee API payload
-    const recipientNumber = formattedPhone;
+    // Official TextBee primary endpoint: POST /gateway/send-sms
+    const endpoint = `${cleanBaseUrl}/gateway/send-sms`;
 
-    // Use device-scoped URL if device ID is set (matches TextBee Dashboard internal dispatch)
-    let endpoint = `${cleanBaseUrl}/gateway/send-sms`;
-    if (textbeeDeviceId && textbeeDeviceId.trim()) {
-      endpoint = `${cleanBaseUrl}/gateway/devices/${textbeeDeviceId.trim()}/send-sms`;
-    }
-
-    console.log(`[SMS] Dispatching to recipient number: ${recipientNumber.replace(/\d(?=\d{4})/g, '*')} (Canonical: ${maskedPhone})`);
+    console.log(`[SMS] Dispatching to recipient number: ${maskedPhone}`);
     console.log(`[SMS] Target Endpoint: ${endpoint}`);
 
-    // Build payload matching exact TextBee Dashboard manual send format
+    // Build payload matching exact official TextBee API specification
     const payload = {
-      recipients: [recipientNumber],
+      recipients: [formattedPhone],
       message: message
     };
+
+    // Pass deviceId in JSON body if set
+    if (textbeeDeviceId && textbeeDeviceId.trim()) {
+      payload.deviceId = textbeeDeviceId.trim();
+    }
 
     // Add simSubscriptionId for dual-SIM phones if configured
     if (process.env.TEXTBEE_SIM_SUBSCRIPTION_ID !== undefined &&
