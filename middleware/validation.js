@@ -12,37 +12,86 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
+// Password strength rules (shared)
+const passwordRules = body('password')
+  .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+  .matches(/[A-Z]/).withMessage('Password must contain an uppercase letter')
+  .matches(/[a-z]/).withMessage('Password must contain a lowercase letter')
+  .matches(/[0-9]/).withMessage('Password must contain a number')
+  .matches(/[^A-Za-z0-9]/).withMessage('Password must contain a special character');
+
+// E.164 phone number validator helper
+const isValidE164 = (value) => {
+  const e164Regex = /^\+[1-9]\d{7,14}$/;
+  if (!e164Regex.test(value)) {
+    throw new Error('Invalid phone number. Use international format (e.g. +919876543210)');
+  }
+  return true;
+};
+
 const validators = {
-  // Auth validators
+  // ── Email Registration (existing — unchanged) ──────────────────────────────
   register: [
     body('username').trim().isLength({ min: 3, max: 30 }).withMessage('Username must be 3-30 characters'),
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-      .matches(/[A-Z]/).withMessage('Password must contain uppercase letter')
-      .matches(/[a-z]/).withMessage('Password must contain lowercase letter')
-      .matches(/[0-9]/).withMessage('Password must contain number')
-      .matches(/[^A-Za-z0-9]/).withMessage('Password must contain special character'),
+    passwordRules,
     handleValidationErrors
   ],
 
+  // ── Phone Registration (new) ───────────────────────────────────────────────
+  registerPhone: [
+    body('username').trim().isLength({ min: 3, max: 30 }).withMessage('Username must be 3-30 characters'),
+    body('phoneNumber').trim().custom(isValidE164),
+    passwordRules,
+    handleValidationErrors
+  ],
+
+  // ── Login (updated — accepts email OR phoneNumber) ─────────────────────────
   login: [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body().custom((_, { req }) => {
+      const hasEmail = req.body.email && req.body.email.trim() !== '';
+      const hasPhone = req.body.phoneNumber && req.body.phoneNumber.trim() !== '';
+      if (!hasEmail && !hasPhone) {
+        throw new Error('Please provide your email address or phone number');
+      }
+      if (hasEmail && hasPhone) {
+        throw new Error('Please provide either email or phone number, not both');
+      }
+      return true;
+    }),
+    body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('phoneNumber').optional({ checkFalsy: true }).custom(isValidE164),
     body('password').notEmpty().withMessage('Password is required'),
     handleValidationErrors
   ],
 
+  // ── Email OTP verification (existing — unchanged) ──────────────────────────
   verifyOTP: [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('otp').isString().isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 characters'),
+    body('otp').isString().isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
     handleValidationErrors
   ],
 
+  // ── Phone OTP verification (new) ───────────────────────────────────────────
+  verifyPhoneOTP: [
+    body('phoneNumber').trim().custom(isValidE164),
+    body('otp').isString().isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
+    handleValidationErrors
+  ],
+
+  // ── Resend Email OTP (existing — unchanged) ────────────────────────────────
   resendOTP: [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
     handleValidationErrors
   ],
 
-  // Scan validators
+  // ── Resend Phone OTP (new) ─────────────────────────────────────────────────
+  resendPhoneOTP: [
+    body('phoneNumber').trim().custom(isValidE164),
+    handleValidationErrors
+  ],
+
+  // ── Scan validators (unchanged) ────────────────────────────────────────────
   scanUrl: [
     body('url').trim().notEmpty().withMessage('URL is required')
       .isURL({ require_protocol: false }).withMessage('Invalid URL format'),
@@ -81,7 +130,7 @@ const validators = {
     handleValidationErrors
   ],
 
-  // User validators
+  // ── User validators (unchanged) ────────────────────────────────────────────
   updateProfile: [
     body('username').optional().trim().isLength({ min: 3, max: 30 }).withMessage('Username must be 3-30 characters'),
     body('avatar').optional().isString(),
@@ -90,7 +139,7 @@ const validators = {
     handleValidationErrors
   ],
 
-  // Admin validators
+  // ── Admin validators (unchanged) ───────────────────────────────────────────
   createTip: [
     body('title').trim().isLength({ min: 5, max: 100 }).withMessage('Title must be 5-100 characters'),
     body('category').optional().isIn(['Password Safety', 'Phishing Awareness', 'Email Hygiene', 'Safe Browsing', 'Network Security', 'General Cyber']),
@@ -99,7 +148,7 @@ const validators = {
     handleValidationErrors
   ],
 
-  // Report validators
+  // ── Report validators (unchanged) ──────────────────────────────────────────
   generateReport: [
     body('title').trim().isLength({ min: 5, max: 200 }).withMessage('Title must be 5-200 characters'),
     body('target').trim().notEmpty().withMessage('Target is required'),
@@ -110,7 +159,7 @@ const validators = {
     handleValidationErrors
   ],
 
-  // Param validators
+  // ── Param validators (unchanged) ───────────────────────────────────────────
   mongoId: [
     param('id').isMongoId().withMessage('Invalid ID format'),
     handleValidationErrors

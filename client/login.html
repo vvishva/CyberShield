@@ -17,6 +17,7 @@
       min-height: 100vh;
       margin: 0;
       padding: 20px;
+      box-sizing: border-box;
     }
     .auth-card {
       background: var(--bg-glass);
@@ -40,7 +41,7 @@
     }
     .auth-brand {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
     }
     .auth-brand i {
       font-size: 42px;
@@ -58,26 +59,63 @@
       font-size: 14px;
       margin-top: 8px;
     }
-    .form-group {
-      margin-bottom: 20px;
+
+    /* ── Method Tabs ── */
+    .method-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 4px;
     }
-    .form-group label {
-      display: block;
+    .method-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 8px;
+      border-radius: calc(var(--radius-md) - 2px);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
       font-size: 13px;
       font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .method-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+    .method-tab.active {
+      background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.08));
+      color: var(--cyan);
+      border: 1px solid rgba(0,212,255,0.25);
+    }
+    .method-tab i { font-size: 14px; }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
       color: var(--text-secondary);
-      margin-bottom: 8px;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .input-group {
-      position: relative;
-    }
+    .input-group { position: relative; }
     .input-group .input-icon {
       position: absolute;
       left: 14px;
       top: 50%;
       transform: translateY(-50%);
       color: var(--text-muted);
-      font-size: 14px;
+      font-size: 13px;
+      pointer-events: none;
     }
     .form-control {
       width: 100%;
@@ -87,8 +125,9 @@
       padding: 12px 14px 12px 40px;
       color: var(--text-primary);
       font-size: 14px;
-      transition: all 0.2s var(--ease);
+      transition: all 0.2s ease;
       font-family: 'Inter', sans-serif;
+      box-sizing: border-box;
     }
     .form-control:focus {
       outline: none;
@@ -104,8 +143,26 @@
       color: var(--text-muted);
       cursor: pointer;
       padding: 5px;
+      font-size: 13px;
     }
     .eye-icon:hover { color: var(--cyan); }
+
+    /* ── Phone row ── */
+    .phone-row { display: flex; gap: 8px; }
+    .country-select-wrap { position: relative; flex: 0 0 110px; }
+    .country-select-wrap .input-icon { left: 10px; font-size: 12px; }
+    .form-control.country-select {
+      padding-left: 30px;
+      padding-right: 8px;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .phone-number-wrap { flex: 1; position: relative; }
+    .phone-number-wrap .form-control { padding-left: 14px; }
+
+    /* ── Extras row ── */
     .auth-extras {
       display: flex;
       justify-content: space-between;
@@ -120,11 +177,10 @@
       color: var(--text-secondary);
       cursor: pointer;
     }
-    .forgot-link {
-      color: var(--cyan);
-      text-decoration: none;
-    }
+    .forgot-link { color: var(--cyan); text-decoration: none; }
     .forgot-link:hover { text-decoration: underline; }
+
+    /* ── Buttons ── */
     .auth-btn {
       width: 100%;
       padding: 14px;
@@ -137,65 +193,27 @@
       align-items: center;
       gap: 8px;
     }
-    .guest-btn {
-      width: 100%;
-      padding: 12px;
-      font-size: 14px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-    }
-    .divider {
-      text-align: center;
-      margin: 20px 0;
-      position: relative;
-      color: var(--text-muted);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .divider::before, .divider::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      width: 40%;
-      height: 1px;
-      background: var(--border-subtle);
-    }
-    .divider::before { left: 0; }
-    .divider::after { right: 0; }
+
+    /* ── Footer ── */
     .auth-footer {
       text-align: center;
-      margin-top: 24px;
+      margin-top: 20px;
       font-size: 14px;
       color: var(--text-secondary);
     }
-    .auth-footer a {
-      color: var(--cyan);
-      text-decoration: none;
-      font-weight: 500;
-    }
+    .auth-footer a { color: var(--cyan); text-decoration: none; font-weight: 500; }
     .auth-footer a:hover { text-decoration: underline; }
-    
+
     @media (max-width: 480px) {
-      .auth-card {
-        padding: 30px 20px;
-        border: none;
-        box-shadow: none;
-        background: transparent;
-      }
-      body {
-        padding: 0;
-        align-items: flex-start;
-        padding-top: 40px;
-      }
+      body { padding: 0; align-items: flex-start; padding-top: 40px; }
+      .auth-card { padding: 30px 20px; border: none; box-shadow: none; background: transparent; }
+      .method-tab { font-size: 12px; padding: 9px 6px; }
+      .country-select-wrap { flex: 0 0 95px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
   <div class="auth-card">
@@ -205,36 +223,128 @@
       <p>Enter your credentials to access the SOC</p>
     </div>
 
-    <form id="login-form">
-      <div class="form-group">
-        <label>Email Address</label>
-        <div class="input-group">
-          <i class="fas fa-envelope input-icon"></i>
-          <input type="email" id="login-email" class="form-control" placeholder="analyst@example.com" required>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Password</label>
-        <div class="input-group">
-          <i class="fas fa-lock input-icon"></i>
-          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
-          <i class="fas fa-eye eye-icon" id="toggle-pwd"></i>
-        </div>
-      </div>
-
-      <div class="auth-extras">
-        <label class="remember-label">
-          <input type="checkbox" id="login-remember"> Remember me
-        </label>
-        <a href="#" class="forgot-link" onclick="showToast('Password reset email sent!','info'); return false;">Forgot password?</a>
-      </div>
-
-      <button type="submit" class="btn btn-primary auth-btn" id="login-btn">
-        <i class="fas fa-sign-in-alt"></i> Authenticate & Enter
+    <!-- ── Method Selector Tabs ── -->
+    <div class="method-tabs">
+      <button class="method-tab active" id="login-tab-email" onclick="switchLoginMethod('email')">
+        <i class="fas fa-envelope"></i> Email Login
       </button>
+      <button class="method-tab" id="login-tab-phone" onclick="switchLoginMethod('phone')">
+        <i class="fas fa-mobile-screen-button"></i> Mobile Login
+      </button>
+    </div>
 
-    </form>
+    <!-- ── Email Login ── -->
+    <div id="login-email-section">
+      <form id="login-form">
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-group">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" id="login-email" class="form-control" placeholder="analyst@example.com" autocomplete="email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-group">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" autocomplete="current-password">
+            <i class="fas fa-eye eye-icon" id="toggle-pwd"></i>
+          </div>
+        </div>
+        <div class="auth-extras">
+          <label class="remember-label">
+            <input type="checkbox" id="login-remember"> Remember me
+          </label>
+          <a href="#" class="forgot-link" onclick="showToast('Password reset email sent!','info'); return false;">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary auth-btn" id="login-btn">
+          <i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter
+        </button>
+      </form>
+    </div>
+
+    <!-- ── Phone Login (new) ── -->
+    <div id="login-phone-section" style="display: none;">
+      <form id="login-phone-form">
+        <div class="form-group">
+          <label>Mobile Number</label>
+          <div class="phone-row">
+            <div class="country-select-wrap">
+              <i class="fas fa-flag input-icon"></i>
+              <select id="login-country-code" class="form-control country-select" aria-label="Country code">
+                <option value="+91">🇮🇳 +91</option>
+                <option value="+1">🇺🇸 +1</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+61">🇦🇺 +61</option>
+                <option value="+81">🇯🇵 +81</option>
+                <option value="+86">🇨🇳 +86</option>
+                <option value="+49">🇩🇪 +49</option>
+                <option value="+33">🇫🇷 +33</option>
+                <option value="+39">🇮🇹 +39</option>
+                <option value="+34">🇪🇸 +34</option>
+                <option value="+7">🇷🇺 +7</option>
+                <option value="+55">🇧🇷 +55</option>
+                <option value="+52">🇲🇽 +52</option>
+                <option value="+82">🇰🇷 +82</option>
+                <option value="+65">🇸🇬 +65</option>
+                <option value="+971">🇦🇪 +971</option>
+                <option value="+966">🇸🇦 +966</option>
+                <option value="+92">🇵🇰 +92</option>
+                <option value="+880">🇧🇩 +880</option>
+                <option value="+94">🇱🇰 +94</option>
+                <option value="+60">🇲🇾 +60</option>
+                <option value="+62">🇮🇩 +62</option>
+                <option value="+63">🇵🇭 +63</option>
+                <option value="+66">🇹🇭 +66</option>
+                <option value="+84">🇻🇳 +84</option>
+                <option value="+234">🇳🇬 +234</option>
+                <option value="+27">🇿🇦 +27</option>
+                <option value="+20">🇪🇬 +20</option>
+                <option value="+254">🇰🇪 +254</option>
+                <option value="+212">🇲🇦 +212</option>
+                <option value="+41">🇨🇭 +41</option>
+                <option value="+31">🇳🇱 +31</option>
+                <option value="+46">🇸🇪 +46</option>
+                <option value="+47">🇳🇴 +47</option>
+                <option value="+45">🇩🇰 +45</option>
+                <option value="+358">🇫🇮 +358</option>
+                <option value="+48">🇵🇱 +48</option>
+                <option value="+380">🇺🇦 +380</option>
+                <option value="+30">🇬🇷 +30</option>
+                <option value="+90">🇹🇷 +90</option>
+                <option value="+972">🇮🇱 +972</option>
+                <option value="+98">🇮🇷 +98</option>
+                <option value="+64">🇳🇿 +64</option>
+                <option value="+54">🇦🇷 +54</option>
+                <option value="+56">🇨🇱 +56</option>
+                <option value="+57">🇨🇴 +57</option>
+                <option value="+51">🇵🇪 +51</option>
+                <option value="+58">🇻🇪 +58</option>
+              </select>
+            </div>
+            <div class="phone-number-wrap">
+              <input type="tel" id="login-phone-number" class="form-control" placeholder="9876543210" inputmode="numeric" autocomplete="tel-national">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-group">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" id="login-phone-password" class="form-control" placeholder="••••••••" autocomplete="current-password">
+            <i class="fas fa-eye eye-icon" id="toggle-phone-pwd"></i>
+          </div>
+        </div>
+        <div class="auth-extras">
+          <label class="remember-label">
+            <input type="checkbox" id="login-phone-remember"> Remember me
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary auth-btn" id="login-phone-btn">
+          <i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter
+        </button>
+      </form>
+    </div>
 
     <div class="auth-footer">
       Don't have an account? <a href="register.html">Create Account</a>
@@ -244,24 +354,49 @@
   <script src="../js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // If already logged in
-      if(getToken() && getUser()) {
+      // Redirect if already logged in
+      if (getToken() && getUser()) {
         window.location.href = 'dashboard.html';
       }
 
-      // Toggle Password Visibility
-      document.getElementById('toggle-pwd').addEventListener('click', function() {
-        const input = document.getElementById('login-password');
-        if (input.type === 'password') {
-          input.type = 'text';
-          this.classList.replace('fa-eye', 'fa-eye-slash');
+      // ── Method Tab Switching ─────────────────────────────────────────
+      window.switchLoginMethod = (method) => {
+        const emailSection = document.getElementById('login-email-section');
+        const phoneSection = document.getElementById('login-phone-section');
+        const tabEmail = document.getElementById('login-tab-email');
+        const tabPhone = document.getElementById('login-tab-phone');
+        if (method === 'email') {
+          emailSection.style.display = 'block';
+          phoneSection.style.display = 'none';
+          tabEmail.classList.add('active');
+          tabPhone.classList.remove('active');
         } else {
-          input.type = 'password';
-          this.classList.replace('fa-eye-slash', 'fa-eye');
+          emailSection.style.display = 'none';
+          phoneSection.style.display = 'block';
+          tabEmail.classList.remove('active');
+          tabPhone.classList.add('active');
         }
-      });
+      };
 
-      // Login Form Submit
+      // ── Password Toggles ─────────────────────────────────────────────
+      const setupToggle = (toggleId, inputId) => {
+        const el = document.getElementById(toggleId);
+        if (!el) return;
+        el.addEventListener('click', function () {
+          const input = document.getElementById(inputId);
+          if (input.type === 'password') {
+            input.type = 'text';
+            this.classList.replace('fa-eye', 'fa-eye-slash');
+          } else {
+            input.type = 'password';
+            this.classList.replace('fa-eye-slash', 'fa-eye');
+          }
+        });
+      };
+      setupToggle('toggle-pwd', 'login-password');
+      setupToggle('toggle-phone-pwd', 'login-phone-password');
+
+      // ── Email Login Form (existing — unchanged) ──────────────────────
       document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('login-btn');
@@ -290,10 +425,61 @@
         } catch (err) {
           btn.classList.remove('btn-loading');
           btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Authenticate & Enter';
+          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter';
           document.querySelector('.auth-card').classList.add('shake');
           setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          showToast(err.message || 'Login failed', 'danger');
+          // Provide helpful redirect hint for unverified accounts
+          if (err.unverified) {
+            showToast('Account not verified. Please complete registration first.', 'warning');
+          } else {
+            showToast(err.message || 'Login failed', 'danger');
+          }
+        }
+      });
+
+      // ── Phone Login Form (new) ───────────────────────────────────────
+      document.getElementById('login-phone-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('login-phone-btn');
+        const cc = document.getElementById('login-country-code').value;
+        const num = document.getElementById('login-phone-number').value.trim().replace(/\D/g, '');
+        const phoneNumber = cc + num;
+        const password = document.getElementById('login-phone-password').value;
+        const remember = document.getElementById('login-phone-remember').checked;
+
+        if (!num || !password) {
+          showToast('Please enter your phone number and password', 'warning');
+          return;
+        }
+        if (phoneNumber.replace('+', '').length < 8) {
+          showToast('Invalid phone number', 'warning');
+          return;
+        }
+
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+
+        try {
+          const data = await apiRequest('/auth/login', 'POST', { phoneNumber, password });
+          if (data.success && data.token) {
+            setToken(data.token, remember);
+            if (data.user) setUser(data.user, remember);
+            btn.innerHTML = '<i class="fas fa-check"></i> Authenticated!';
+            btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
+            showToast('Welcome back! Redirecting...', 'success');
+            setTimeout(() => window.location.href = 'dashboard.html', 800);
+          }
+        } catch (err) {
+          btn.classList.remove('btn-loading');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter';
+          document.querySelector('.auth-card').classList.add('shake');
+          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
+          if (err.unverified) {
+            showToast('Mobile number not verified. Please complete registration first.', 'warning');
+          } else {
+            showToast(err.message || 'Login failed', 'danger');
+          }
         }
       });
     });

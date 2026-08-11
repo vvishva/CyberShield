@@ -9,12 +9,23 @@ const UserSchema = new mongoose.Schema({
     minlength: 3,
     maxlength: 30
   },
+  // Email is optional — only required for email-registration method
   email: {
     type: String,
-    required: [true, 'Please provide an email address'],
+    required: false,
+    default: null,
     unique: true,
+    sparse: true,
     lowercase: true,
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
+  },
+  // Phone number in E.164 format (e.g. +919876543210) — optional for email registrations
+  phoneNumber: {
+    type: String,
+    required: false,
+    default: null,
+    unique: true,
+    sparse: true
   },
   password: {
     type: String,
@@ -39,13 +50,23 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-  passwordChangedAt: Date,
+  // Registration method: 'email' or 'phone'
+  registrationMethod: {
+    type: String,
+    enum: ['email', 'phone'],
+    default: 'email'
+  },
+  // Email verification (existing flow — unchanged)
   isVerified: {
     type: Boolean,
     default: false
   },
+  // Phone verification
+  phoneVerified: {
+    type: Boolean,
+    default: false
+  },
+  // Shared OTP fields (used by both email and phone OTP flows)
   verificationOTP: {
     type: String,
     select: false
@@ -55,6 +76,15 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // Timestamp of last OTP send — used for 60-second resend cooldown
+  otpLastSentAt: {
+    type: Date,
+    default: null
+  },
+  // Password reset
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
+  passwordChangedAt: Date,
   createdAt: {
     type: Date,
     default: Date.now
