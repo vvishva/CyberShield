@@ -81,6 +81,16 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // SMS Gateway Batch Tracking
+  smsBatchId: {
+    type: String,
+    default: null
+  },
+  smsStatus: {
+    type: String,
+    enum: ['PENDING', 'QUEUED', 'SENT', 'DELIVERED', 'FAILED', null],
+    default: null
+  },
   // Password reset
   resetPasswordToken: String,
   resetPasswordExpire: Date,

@@ -1,5 +1,5 @@
 /**
- * CyberShield — SMS Sender Utility
+ * CyberShield — SMS Sender Utility & Delivery Status Tracker
  *
  * Supports TextBee SMS Gateway (Android App Gateway) as primary provider,
  * with optional Twilio fallback.
@@ -10,24 +10,70 @@
  *   TEXTBEE_API_KEY      — API key generated from https://textbee.dev dashboard
  *   TEXTBEE_DEVICE_ID    — Unique device ID registered in TextBee app
  *   TEXTBEE_API_BASE_URL — (Optional) Base API URL, defaults to https://api.textbee.dev/api/v1
- *
- * Twilio Env Vars (Fallback if TextBee not set):
- *   TWILIO_ACCOUNT_SID   — ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
- *   TWILIO_AUTH_TOKEN    — xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
- *   TWILIO_PHONE_NUMBER  — +15005550006
  */
+
+/**
+ * Check TextBee batch status via GET /gateway/devices/{deviceId}/sms-batch/{smsBatchId}
+ */
+const checkTextBeeBatchStatus = async (baseUrl, deviceId, apiKey, batchId) => {
+  const endpoint = `${baseUrl}/gateway/devices/${deviceId}/sms-batch/${batchId}`;
+  try {
+    const res = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey.trim()
+      }
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const batchData = json.data || json;
+    const status = batchData.status || batchData.state || (batchData.success ? 'SENT' : null);
+    return {
+      status: status ? String(status).toUpperCase() : null,
+      raw: batchData
+    };
+  } catch (err) {
+    console.warn('[SMS DIAGNOSTIC] TextBee status check failed:', err.message);
+    return null;
+  }
+};
+
+/**
+ * Fallback: Check message log via GET /gateway/devices/{deviceId}/messages
+ */
+const checkTextBeeMessagesStatus = async (baseUrl, deviceId, apiKey, recipientPhone) => {
+  const endpoint = `${baseUrl}/gateway/devices/${deviceId}/messages?limit=10`;
+  try {
+    const res = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey.trim()
+      }
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const messages = (json.data && Array.isArray(json.data)) ? json.data : (Array.isArray(json) ? json : []);
+    const match = messages.find(m => (m.recipients && m.recipients.includes(recipientPhone)) || m.recipient === recipientPhone);
+    if (match) {
+      return match.status ? String(match.status).toUpperCase() : 'SENT';
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+};
 
 /**
  * Send an SMS via TextBee (or Twilio fallback).
  *
  * @param {string} to      - Recipient phone in E.164 format (e.g. +919876543210)
  * @param {string} message - SMS body text
- * @returns {Promise<{ provider: string, status: string, sid?: string }>}
+ * @returns {Promise<{ provider: string, status: string, smsBatchId?: string }>}
  * @throws  Error('SMS_NOT_CONFIGURED') if env vars are missing
  * @throws  Error with user-facing message on delivery failure
  */
 const sendSMS = async (to, message) => {
-  const textbeeApiKey  = process.env.TEXTBEE_API_KEY;
+  const textbeeApiKey   = process.env.TEXTBEE_API_KEY;
   const textbeeDeviceId = process.env.TEXTBEE_DEVICE_ID;
   const textbeeBaseUrl  = process.env.TEXTBEE_API_BASE_URL || 'https://api.textbee.dev/api/v1';
 
@@ -36,13 +82,16 @@ const sendSMS = async (to, message) => {
     const cleanBaseUrl = textbeeBaseUrl.replace(/\/+$/, '');
     const endpoint = `${cleanBaseUrl}/gateway/devices/${textbeeDeviceId}/send-sms`;
 
-    console.log(`[SMS DIAGNOSTIC] TextBee sending SMS to: ${to.replace(/\d(?=\d{4})/g, '*')}`);
+    console.log(`[SMS DIAGNOSTIC] TextBee requesting SMS send to: ${to.replace(/\d(?=\d{4})/g, '*')}`);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s API timeout
+
+    let response;
+    let resData = {};
 
     try {
-      const response = await fetch(endpoint, {
+      response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,21 +106,20 @@ const sendSMS = async (to, message) => {
 
       clearTimeout(timeoutId);
 
-      let resData = {};
       try {
         resData = await response.json();
       } catch (_) {}
 
-      console.log(`[SMS DIAGNOSTIC] TextBee HTTP Status: ${response.status}`);
+      console.log(`[SMS DIAGNOSTIC] TextBee API HTTP Status: ${response.status}`);
 
       if (!response.ok) {
         console.error(`[SMS DIAGNOSTIC] TextBee Error ${response.status}:`, resData);
 
         if (response.status === 401 || response.status === 403) {
-          throw new Error('SMS service authentication failed. Please try again or use Email verification.');
+          throw new Error('SMS gateway authentication failed. Please check TextBee API key or use Email verification.');
         }
         if (response.status === 404) {
-          throw new Error('SMS gateway device unavailable. Please try again or use Email verification.');
+          throw new Error('SMS gateway device not found. Please check TextBee Device ID or use Email verification.');
         }
         if (response.status === 429) {
           throw new Error('SMS rate limit exceeded. Please wait a moment or use Email verification.');
@@ -79,26 +127,74 @@ const sendSMS = async (to, message) => {
         throw new Error('Unable to send OTP right now. Please try again or use Email verification.');
       }
 
-      // Check payload for specific TextBee failure states (e.g., success: false, device offline)
-      if (resData.success === false || resData.error || (resData.data && resData.data.status === 'FAILED')) {
-        console.error('[SMS DIAGNOSTIC] TextBee Payload Error:', resData);
-        throw new Error('Unable to send OTP right now. Please try again or use Email verification.');
+      // Check top-level or nested success field
+      const isAccepted = resData.success === true || (resData.data && resData.data.success === true) || response.status === 200 || response.status === 201;
+
+      if (!isAccepted) {
+        console.error('[SMS DIAGNOSTIC] TextBee API returned failure payload:', resData);
+        throw new Error('Unable to send OTP right now. TextBee API rejected the SMS request.');
       }
 
-      console.log('[SMS DIAGNOSTIC] TextBee SMS request successfully accepted by gateway.');
+      // 1. Capture returned SMS / batch ID safely
+      const smsBatchId = resData.data?.smsBatchId || resData.smsBatchId || resData.data?._id || resData._id || resData.data?.id || resData.id;
+
+      console.log(`[SMS DIAGNOSTIC] TextBee API queued request. Batch ID: ${smsBatchId || 'N/A'}`);
+
+      // 2. Track actual SMS delivery status on the Android gateway device
+      let actualStatus = 'PENDING';
+
+      if (smsBatchId) {
+        // Poll status up to 3 times (with 2s intervals) to verify handoff to Android SIM card
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          let checkResult = await checkTextBeeBatchStatus(cleanBaseUrl, textbeeDeviceId, textbeeApiKey, smsBatchId);
+          if (!checkResult || !checkResult.status) {
+            // Try message log fallback
+            const msgStatus = await checkTextBeeMessagesStatus(cleanBaseUrl, textbeeDeviceId, textbeeApiKey, to);
+            if (msgStatus) checkResult = { status: msgStatus };
+          }
+
+          if (checkResult && checkResult.status) {
+            actualStatus = checkResult.status;
+            console.log(`[SMS DIAGNOSTIC] TextBee status check #${attempt} for batch ${smsBatchId}: ${actualStatus}`);
+
+            if (['SENT', 'DELIVERED', 'SUCCESS'].includes(actualStatus)) {
+              return {
+                provider: 'TextBee',
+                status: actualStatus,
+                smsBatchId
+              };
+            }
+
+            if (['FAILED', 'ERROR', 'REJECTED'].includes(actualStatus)) {
+              console.error(`[SMS DIAGNOSTIC] TextBee reports FAILED for batch ${smsBatchId}`);
+              throw new Error('SMS delivery failed on gateway device. Please ensure Android phone is active, online, and has SMS permissions.');
+            }
+          }
+        }
+      }
+
+      // 3. Handle PENDING / QUEUED state after polling timeout
+      // If still pending after 6+ seconds, the Android phone running TextBee is offline / not processing jobs
+      if (['PENDING', 'QUEUED'].includes(actualStatus)) {
+        console.error(`[SMS DIAGNOSTIC] TextBee batch ${smsBatchId || 'N/A'} still PENDING. Android phone appears offline or disconnected.`);
+        throw new Error('Unable to send OTP right now. Android SMS gateway device appears offline. Please try again or use Email verification.');
+      }
+
       return {
         provider: 'TextBee',
-        status: 'SUCCESS',
-        data: resData
+        status: actualStatus,
+        smsBatchId
       };
 
     } catch (err) {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
-        console.error('[SMS DIAGNOSTIC] TextBee Request Timed Out (10s limit)');
-        throw new Error('Unable to send OTP right now. Please try again or use Email verification.');
+        console.error('[SMS DIAGNOSTIC] TextBee API request timed out (10s limit)');
+        throw new Error('Unable to send OTP right now. TextBee API timed out. Please try again or use Email verification.');
       }
-      if (err.message.includes('Unable to send OTP') || err.message.includes('SMS gateway') || err.message.includes('SMS service') || err.message.includes('rate limit')) {
+      if (err.message.includes('Unable to send') || err.message.includes('SMS delivery failed') || err.message.includes('SMS gateway') || err.message.includes('rate limit')) {
         throw err;
       }
       console.error('[SMS DIAGNOSTIC] TextBee Exception:', err.message);
@@ -145,11 +241,11 @@ const sendSMS = async (to, message) => {
       throw new Error('Unable to send OTP right now. Please try again or use Email verification.');
     }
 
-    console.log(`[SMS DIAGNOSTIC] Twilio SMS status: SUCCESS SID=${resData.sid}`);
+    console.log(`[SMS DIAGNOSTIC] Twilio SMS status: SENT SID=${resData.sid}`);
     return {
       provider: 'Twilio',
-      status: 'SUCCESS',
-      sid: resData.sid || 'unknown'
+      status: 'SENT',
+      smsBatchId: resData.sid || 'unknown'
     };
   }
 

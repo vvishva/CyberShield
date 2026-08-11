@@ -240,7 +240,10 @@ exports.registerPhone = async (req, res, next) => {
       // Send OTP via SMS
       const smsBody = `CyberShield verification code: ${otp}\nThis code expires soon.\nDo not share this code with anyone.`;
       try {
-        await sendSMS(phoneNumber, smsBody);
+        const smsResult = await sendSMS(phoneNumber, smsBody);
+        user.smsBatchId = smsResult.smsBatchId || null;
+        user.smsStatus = smsResult.status || 'SENT';
+        await user.save();
       } catch (smsErr) {
         await User.findByIdAndDelete(user._id);
 
@@ -362,7 +365,10 @@ exports.resendPhoneOTP = async (req, res, next) => {
 
     const smsBody = `CyberShield verification code: ${otp}\nThis code expires soon.\nDo not share this code with anyone.`;
     try {
-      await sendSMS(phoneNumber, smsBody);
+      const smsResult = await sendSMS(phoneNumber, smsBody);
+      user.smsBatchId = smsResult.smsBatchId || null;
+      user.smsStatus = smsResult.status || 'SENT';
+      await user.save();
     } catch (smsErr) {
       if (smsErr.message === 'SMS_NOT_CONFIGURED') {
         return res.status(503).json({
