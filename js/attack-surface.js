@@ -3,11 +3,26 @@
  * Uses vis-network to visualize assets
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+// Helper to get the vis-network library
+const getVisLib = () => (typeof vis !== 'undefined' ? vis : (typeof window !== 'undefined' ? window.vis : null));
+
+document.addEventListener('DOMContentLoaded', async () => {
   requireAuth();
   
   const generateBtn = document.getElementById('btn-map-generate');
   const targetInput = document.getElementById('map-target-input');
+
+  // Helper to wait until vis library is available
+  const ensureVisLib = () => new Promise(resolve => {
+    const check = () => {
+      if (getVisLib()) {
+        resolve();
+      } else {
+        setTimeout(check, 100);
+      }
+    };
+    check();
+  });
 
   generateBtn.addEventListener('click', async () => {
     const target = targetInput.value.trim();
@@ -20,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await apiRequest('/scan/website', 'POST', { url: target });
       
       if (res.success && res.data) {
+        await ensureVisLib();
         drawMap(target, res.data);
         showToast('Attack surface mapped successfully', 'success');
       } else {
@@ -27,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch(err) {
       showToast('Using demo map: ' + err.message, 'warning');
+      await ensureVisLib();
       drawDemoMap(target);
     } finally {
       generateBtn.innerHTML = '<i class="fas fa-project-diagram"></i> Generate Map';
@@ -34,6 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Initial demo map after ensuring library is loaded
+  await ensureVisLib();
   drawDemoMap('cybershield.io');
 
   const exportBtn = document.getElementById('btn-export-map-pdf');
@@ -49,11 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function drawMap(domain, scanData) {
   const container = document.getElementById('network-map');
+  const VisLib = getVisLib();
+  if (!VisLib) { showToast('vis-network library not loaded', 'error'); return; }
   
-  const nodes = new vis.DataSet([
+  const nodes = new VisLib.DataSet([
     { id: 1, label: domain, shape: 'box', color: { background: '#0d1b2a', border: '#00d4ff' }, font: { color: '#fff', size: 16, face: 'Inter', bold: true }, borderWidth: 3 }
   ]);
-  const edges = new vis.DataSet([]);
+  const edges = new VisLib.DataSet([]);
   let nodeId = 2;
 
   // SSL Node
@@ -108,7 +129,10 @@ function drawMap(domain, scanData) {
 
 function drawDemoMap(domain) {
   const container = document.getElementById('network-map');
-  const nodes = new vis.DataSet([
+  const VisLib = getVisLib();
+  if (!VisLib) { showToast('vis-network library not loaded', 'error'); return; }
+
+  const nodes = new VisLib.DataSet([
     { id: 1, label: domain, shape: 'box', color: { background: '#0d1b2a', border: '#00d4ff' }, font: { color: '#fff', size: 16, bold: true }, borderWidth: 3 },
     { id: 2, label: '🔒 SSL: Valid', shape: 'box', color: { background: '#0d1b2a', border: '#00c896' }, font: { color: '#fff' }, borderWidth: 2 },
     { id: 3, label: '⚠️ Headers: Weak', shape: 'box', color: { background: '#0d1b2a', border: '#f59e0b' }, font: { color: '#fff' }, borderWidth: 2 },
@@ -119,7 +143,7 @@ function drawDemoMap(domain) {
     { id: 8, label: '⚠ Exposed Admin', shape: 'box', color: { background: 'rgba(239,68,68,0.08)', border: '#ef4444' }, font: { color: '#fff', size: 11 } },
   ]);
 
-  const edges = new vis.DataSet([
+  const edges = new VisLib.DataSet([
     { from: 1, to: 2, color: { color: '#00c896' }, width: 2 },
     { from: 1, to: 3, color: { color: '#f59e0b' }, width: 2 },
     { from: 1, to: 5, color: { color: '#8b5cf6' }, width: 2 },
@@ -133,7 +157,7 @@ function drawDemoMap(domain) {
 }
 
 function renderVisNetwork(container, nodes, edges) {
-  const VisLib = (typeof vis !== 'undefined' ? vis : (typeof window !== 'undefined' ? window.vis : null));
+  const VisLib = getVisLib();
   if (!VisLib || !VisLib.Network) {
     console.error('[vis.js Error] vis-network library is not available');
     if (typeof showToast === 'function') showToast('Network visualizer initializing...', 'info');
