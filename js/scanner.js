@@ -20,8 +20,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-pdf').addEventListener('click', () => {
-    // Basic PDF redirect with auto-download trigger
-    window.location.href = 'reports.html?download=true';
+    const scanStr = localStorage.getItem('lastScanData');
+    let params = {};
+    if (scanStr) {
+      try {
+        const scan = JSON.parse(scanStr);
+        params = { scanId: scan._id || scan.scanId, target: scan.target || scan.url, scanType: scan.scanType };
+      } catch(e) {}
+    }
+    downloadReportPDF(params, 'CyberShield_Scan_Report.pdf');
   });
 
   document.getElementById('btn-investigate').addEventListener('click', () => {

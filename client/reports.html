@@ -162,36 +162,15 @@
 <script src="/js/reports.js"></script>
 <script>
   function downloadPDF() {
-    const btn = document.getElementById('btn-generate-pdf');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
-    btn.disabled = true;
-
-    try {
-      const element = document.getElementById('report-page-container');
-      const opt = {
-        margin:       0.5,
-        filename:     'CyberShield_Audit_Report.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-
-      html2pdf().set(opt).from(element).save().then(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-        showToast('PDF downloaded successfully!', 'success');
-      }).catch(err => {
-        console.error('PDF Error:', err);
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-        showToast('Error generating PDF. Check console.', 'danger');
-      });
-    } catch (error) {
-      console.error(error);
-      btn.innerHTML = originalText;
-      btn.disabled = false;
+    const scanStr = localStorage.getItem('lastScanData');
+    let params = {};
+    if (scanStr) {
+      try {
+        const scan = JSON.parse(scanStr);
+        params = { scanId: scan._id || scan.scanId, target: scan.target || scan.url, scanType: scan.scanType };
+      } catch(e) {}
     }
+    downloadReportPDF(params, 'CyberShield_Audit_Report.pdf');
   }
 </script>
 <script src="/js/cursor.js"></script>

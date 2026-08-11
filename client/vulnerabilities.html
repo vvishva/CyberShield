@@ -67,9 +67,12 @@
             <option value="Resolved">Resolved</option>
           </select>
         </div>
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" id="vuln-search" placeholder="Search vulnerabilities...">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="vuln-search" placeholder="Search vulnerabilities...">
+          </div>
+          <button class="btn btn-secondary" onclick="downloadReportPDF({ type: 'vulnerabilities' }, 'CyberShield_Vulnerabilities_Report.pdf')"><i class="fas fa-file-pdf"></i> Export PDF Report</button>
         </div>
       </div>
 

@@ -130,6 +130,68 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
   }
 }
 
+// Centralized Reusable PDF Report Download Helper
+async function downloadReportPDF(params = {}, defaultFilename = 'CyberShield_Security_Report.pdf') {
+  try {
+    showToast('Generating PDF report...', 'info');
+
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const payload = typeof params === 'string' ? { scanId: params } : (params || {});
+
+    const res = await fetch(`${API_BASE}/reports/download-pdf`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errorJson = await res.json().catch(() => ({}));
+      throw new Error(errorJson.error || `Server error: ${res.status}`);
+    }
+
+    const contentType = res.headers.get('Content-Type') || '';
+    if (!contentType.includes('application/pdf')) {
+      throw new Error('Response is not a PDF binary stream.');
+    }
+
+    const blob = await res.blob();
+    if (!blob || blob.size === 0) {
+      throw new Error('Generated PDF report buffer was empty.');
+    }
+
+    // Determine filename from Content-Disposition header if available
+    let filename = defaultFilename;
+    const disposition = res.headers.get('Content-Disposition');
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename=["']?([^"';]+)["']?/);
+      if (match && match[1]) filename = match[1];
+    }
+
+    // Trigger Browser Download
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    }, 1000);
+
+    showToast('PDF Report downloaded successfully!', 'success');
+  } catch (err) {
+    console.error('[PDF Download Failure]', err);
+    showToast(err.message || 'Unable to generate PDF. Please try again.', 'danger');
+  }
+}
+
 // Initialize Sidebar Active Links & User Info
 document.addEventListener('DOMContentLoaded', () => {
   const currentUser = getUser();
