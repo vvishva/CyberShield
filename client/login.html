@@ -65,10 +65,12 @@
       display: flex;
       gap: 8px;
       margin-bottom: 24px;
-      background: rgba(0,0,0,0.25);
+      background: rgba(0,0,0,0.35);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 4px;
+      position: relative;
+      z-index: 10;
     }
     .method-tab {
       flex: 1;
@@ -76,23 +78,26 @@
       align-items: center;
       justify-content: center;
       gap: 7px;
-      padding: 10px 8px;
+      padding: 11px 10px;
       border-radius: calc(var(--radius-md) - 2px);
-      border: none;
+      border: 1px solid transparent;
       background: transparent;
       color: var(--text-secondary);
       font-family: 'Inter', sans-serif;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
       white-space: nowrap;
+      user-select: none;
+      -webkit-user-select: none;
     }
-    .method-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+    .method-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.08); }
     .method-tab.active {
-      background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.08));
-      color: var(--cyan);
-      border: 1px solid rgba(0,212,255,0.25);
+      background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1));
+      color: #00d4ff;
+      border: 1px solid rgba(0,212,255,0.35);
+      box-shadow: 0 2px 8px rgba(0, 212, 255, 0.15);
     }
     .method-tab i { font-size: 14px; }
 
@@ -207,7 +212,7 @@
     @media (max-width: 480px) {
       body { padding: 0; align-items: flex-start; padding-top: 40px; }
       .auth-card { padding: 30px 20px; border: none; box-shadow: none; background: transparent; }
-      .method-tab { font-size: 12px; padding: 9px 6px; }
+      .method-tab { font-size: 12px; padding: 10px 6px; }
       .country-select-wrap { flex: 0 0 95px; }
     }
   </style>
@@ -220,15 +225,15 @@
     <div class="auth-brand">
       <i class="fas fa-shield-halved"></i>
       <h2>CyberShield Gateway</h2>
-      <p>Enter your credentials to access the SOC</p>
+      <p id="login-brand-subtitle">Enter your credentials to access the SOC</p>
     </div>
 
     <!-- ── Method Selector Tabs ── -->
     <div class="method-tabs">
-      <button class="method-tab active" id="login-tab-email" onclick="switchLoginMethod('email')">
+      <button type="button" class="method-tab active" id="login-tab-email">
         <i class="fas fa-envelope"></i> Email Login
       </button>
-      <button class="method-tab" id="login-tab-phone" onclick="switchLoginMethod('phone')">
+      <button type="button" class="method-tab" id="login-tab-phone">
         <i class="fas fa-mobile-screen-button"></i> Mobile Login
       </button>
     </div>
@@ -281,7 +286,7 @@
                 <option value="+49">🇩🇪 +49</option>
                 <option value="+33">🇫🇷 +33</option>
                 <option value="+39">🇮🇹 +39</option>
-                <option value="+34">🇪🇸 +34</option>
+                <option value="+34">🇪捎 +34</option>
                 <option value="+7">🇷🇺 +7</option>
                 <option value="+55">🇧🇷 +55</option>
                 <option value="+52">🇲🇽 +52</option>
@@ -353,30 +358,40 @@
 
   <script src="../js/app.js"></script>
   <script>
+    // Global tab switching function
+    function switchLoginMethod(method) {
+      const emailSection = document.getElementById('login-email-section');
+      const phoneSection = document.getElementById('login-phone-section');
+      const tabEmail = document.getElementById('login-tab-email');
+      const tabPhone = document.getElementById('login-tab-phone');
+      const subtitle = document.getElementById('login-brand-subtitle');
+
+      if (method === 'email') {
+        if (emailSection) emailSection.style.display = 'block';
+        if (phoneSection) phoneSection.style.display = 'none';
+        if (tabEmail) tabEmail.classList.add('active');
+        if (tabPhone) tabPhone.classList.remove('active');
+        if (subtitle) subtitle.textContent = 'Enter your email credentials to access the SOC';
+      } else {
+        if (emailSection) emailSection.style.display = 'none';
+        if (phoneSection) phoneSection.style.display = 'block';
+        if (tabEmail) tabEmail.classList.remove('active');
+        if (tabPhone) tabPhone.classList.add('active');
+        if (subtitle) subtitle.textContent = 'Enter your registered mobile number & password';
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // Redirect if already logged in
       if (getToken() && getUser()) {
         window.location.href = 'dashboard.html';
       }
 
-      // ── Method Tab Switching ─────────────────────────────────────────
-      window.switchLoginMethod = (method) => {
-        const emailSection = document.getElementById('login-email-section');
-        const phoneSection = document.getElementById('login-phone-section');
-        const tabEmail = document.getElementById('login-tab-email');
-        const tabPhone = document.getElementById('login-tab-phone');
-        if (method === 'email') {
-          emailSection.style.display = 'block';
-          phoneSection.style.display = 'none';
-          tabEmail.classList.add('active');
-          tabPhone.classList.remove('active');
-        } else {
-          emailSection.style.display = 'none';
-          phoneSection.style.display = 'block';
-          tabEmail.classList.remove('active');
-          tabPhone.classList.add('active');
-        }
-      };
+      // Bind direct click listeners to tabs
+      const tabEmail = document.getElementById('login-tab-email');
+      const tabPhone = document.getElementById('login-tab-phone');
+      if (tabEmail) tabEmail.addEventListener('click', () => switchLoginMethod('email'));
+      if (tabPhone) tabPhone.addEventListener('click', () => switchLoginMethod('phone'));
 
       // ── Password Toggles ─────────────────────────────────────────────
       const setupToggle = (toggleId, inputId) => {
@@ -396,7 +411,7 @@
       setupToggle('toggle-pwd', 'login-password');
       setupToggle('toggle-phone-pwd', 'login-phone-password');
 
-      // ── Email Login Form (existing — unchanged) ──────────────────────
+      // ── Email Login Form ──────────────────────────────────────────────
       document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('login-btn');
@@ -428,7 +443,6 @@
           btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter';
           document.querySelector('.auth-card').classList.add('shake');
           setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          // Provide helpful redirect hint for unverified accounts
           if (err.unverified) {
             showToast('Account not verified. Please complete registration first.', 'warning');
           } else {
@@ -437,7 +451,7 @@
         }
       });
 
-      // ── Phone Login Form (new) ───────────────────────────────────────
+      // ── Phone Login Form ──────────────────────────────────────────────
       document.getElementById('login-phone-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('login-phone-btn');

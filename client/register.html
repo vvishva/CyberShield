@@ -65,10 +65,12 @@
       display: flex;
       gap: 8px;
       margin-bottom: 24px;
-      background: rgba(0,0,0,0.25);
+      background: rgba(0,0,0,0.35);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 4px;
+      position: relative;
+      z-index: 10;
     }
     .method-tab {
       flex: 1;
@@ -76,26 +78,29 @@
       align-items: center;
       justify-content: center;
       gap: 7px;
-      padding: 10px 8px;
+      padding: 11px 10px;
       border-radius: calc(var(--radius-md) - 2px);
-      border: none;
+      border: 1px solid transparent;
       background: transparent;
       color: var(--text-secondary);
       font-family: 'Inter', sans-serif;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
       white-space: nowrap;
+      user-select: none;
+      -webkit-user-select: none;
     }
     .method-tab:hover {
       color: var(--text-primary);
-      background: rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.08);
     }
     .method-tab.active {
-      background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.08));
-      color: var(--cyan);
-      border: 1px solid rgba(0,212,255,0.25);
+      background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1));
+      color: #00d4ff;
+      border: 1px solid rgba(0,212,255,0.35);
+      box-shadow: 0 2px 8px rgba(0, 212, 255, 0.15);
     }
     .method-tab i { font-size: 14px; }
 
@@ -248,10 +253,10 @@
 
     <!-- ── Method Selector Tabs ── -->
     <div class="method-tabs" id="method-tabs">
-      <button class="method-tab active" id="tab-email" onclick="switchMethod('email')">
+      <button type="button" class="method-tab active" id="tab-email">
         <i class="fas fa-envelope"></i> Email Registration
       </button>
-      <button class="method-tab" id="tab-phone" onclick="switchMethod('phone')">
+      <button type="button" class="method-tab" id="tab-phone">
         <i class="fas fa-mobile-screen-button"></i> Mobile Registration
       </button>
     </div>
@@ -448,11 +453,39 @@
 
   <script src="../js/app.js"></script>
   <script>
+    function switchMethod(method) {
+      const emailSection = document.getElementById('email-section');
+      const phoneSection = document.getElementById('phone-section');
+      const tabEmail = document.getElementById('tab-email');
+      const tabPhone = document.getElementById('tab-phone');
+      const subtitle = document.getElementById('brand-subtitle');
+
+      if (method === 'email') {
+        if (emailSection) emailSection.style.display = 'block';
+        if (phoneSection) phoneSection.style.display = 'none';
+        if (tabEmail) tabEmail.classList.add('active');
+        if (tabPhone) tabPhone.classList.remove('active');
+        if (subtitle) subtitle.textContent = 'Register as a new CyberShield Security Analyst';
+      } else {
+        if (emailSection) emailSection.style.display = 'none';
+        if (phoneSection) phoneSection.style.display = 'block';
+        if (tabEmail) tabEmail.classList.remove('active');
+        if (tabPhone) tabPhone.classList.add('active');
+        if (subtitle) subtitle.textContent = 'Register with your mobile number';
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // Redirect if already logged in
       if (getToken() && getUser()) {
         window.location.href = 'dashboard.html';
       }
+
+      // Bind direct click listeners to tabs
+      const tabEmail = document.getElementById('tab-email');
+      const tabPhone = document.getElementById('tab-phone');
+      if (tabEmail) tabEmail.addEventListener('click', () => switchMethod('email'));
+      if (tabPhone) tabPhone.addEventListener('click', () => switchMethod('phone'));
 
       // ── Password Toggle Helper ────────────────────────────────────
       const setupToggle = (toggleId, inputId) => {
@@ -473,29 +506,6 @@
       setupToggle('toggle-pwd2', 'reg-confirm');
       setupToggle('toggle-phone-pwd1', 'phone-password');
       setupToggle('toggle-phone-pwd2', 'phone-confirm');
-
-      // ── Method Tab Switching ──────────────────────────────────────
-      window.switchMethod = (method) => {
-        const emailSection = document.getElementById('email-section');
-        const phoneSection = document.getElementById('phone-section');
-        const tabEmail = document.getElementById('tab-email');
-        const tabPhone = document.getElementById('tab-phone');
-        const subtitle = document.getElementById('brand-subtitle');
-
-        if (method === 'email') {
-          emailSection.style.display = 'block';
-          phoneSection.style.display = 'none';
-          tabEmail.classList.add('active');
-          tabPhone.classList.remove('active');
-          subtitle.textContent = 'Register as a new CyberShield Security Analyst';
-        } else {
-          emailSection.style.display = 'none';
-          phoneSection.style.display = 'block';
-          tabEmail.classList.remove('active');
-          tabPhone.classList.add('active');
-          subtitle.textContent = 'Register with your mobile number';
-        }
-      };
 
       // ── Countdown Timer Helper ────────────────────────────────────
       const startCountdown = (btnId, timerId, seconds = 60) => {
