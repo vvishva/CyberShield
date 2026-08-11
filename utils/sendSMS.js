@@ -60,6 +60,8 @@ const sendSMS = async (to, message) => {
     // Build payload matching TextBee Dashboard format
     const payload = {
       recipients: [formattedPhone],
+      recipient: formattedPhone,
+      phoneNumber: formattedPhone,
       message: message
     };
 
