@@ -2,19 +2,48 @@
  * CyberShield AI — Audit Reports Logic
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   requireAuth();
-  
-  const scanStr = localStorage.getItem('lastScanData');
-  
-  if (scanStr) {
+
+  // Bind Back Button
+  const backBtn = document.getElementById('btn-back-reports');
+  if (backBtn) {
+    backBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = 'dashboard.html';
+      }
+    });
+  }
+
+  // Resolve scan data from URL query params or localStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  const scanId = urlParams.get('id') || urlParams.get('scanId');
+
+  let scan = null;
+
+  if (scanId) {
     try {
-      const scan = JSON.parse(scanStr);
-      renderReport(scan);
-    } catch(e) {
-      console.error(e);
-      document.getElementById('rpt-empty').style.display = 'block';
+      const res = await apiRequest('/scan/history');
+      if (res.success && res.data) {
+        scan = res.data.find(s => s._id === scanId || s.id === scanId);
+      }
+    } catch(e) {}
+  }
+
+  if (!scan) {
+    const scanStr = localStorage.getItem('lastScanData');
+    if (scanStr) {
+      try {
+        scan = JSON.parse(scanStr);
+      } catch(e) {}
     }
+  }
+  
+  if (scan) {
+    renderReport(scan);
   } else {
     document.getElementById('rpt-empty').style.display = 'block';
   }

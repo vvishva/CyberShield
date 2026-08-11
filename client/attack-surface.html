@@ -7,8 +7,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css?v=5.0">
-  <!-- Load vis-network via CDN -->
+  <!-- Load vis-network via CDN with fallback -->
   <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.js"></script>
 </head>
 <body>
 <div class="app-container">
@@ -64,7 +65,7 @@
           <input type="text" id="map-target-input" placeholder="Enter target domain..." value="github.com">
         </div>
         <button id="btn-map-generate" class="btn btn-primary"><i class="fas fa-project-diagram"></i> Generate Map</button>
-        <button class="btn btn-secondary btn-sm" onclick="downloadReportPDF({ type: 'attack_surface' }, 'CyberShield_Attack_Surface_Report.pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn btn-secondary btn-sm" id="btn-export-map-pdf"><i class="fas fa-file-pdf"></i> PDF</button>
       </div>
     </header>
 

@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const { optionalAuth } = require('../middleware/authMiddleware');
 
 let clients = [];
 
 // SSE endpoint for live activity feed
-router.get('/feed', protect, (req, res) => {
+router.get('/feed', optionalAuth, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -19,7 +19,7 @@ router.get('/feed', protect, (req, res) => {
   const newClient = {
     id: clientId,
     response: res,
-    userId: req.user._id
+    userId: req.user ? req.user._id : 'anonymous'
   };
   clients.push(newClient);
 

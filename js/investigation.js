@@ -2,24 +2,69 @@
  * CyberShield - Security Investigation Mode Logic
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+let currentInvestigationData = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
   requireAuth();
 
-  const scanStr = localStorage.getItem('lastScanData');
-  if (!scanStr) {
-    showToast('No investigation data found. Redirecting...', 'warning');
+  // Bind Back Button
+  const backBtn = document.getElementById('btn-back-inv');
+  if (backBtn) {
+    backBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = 'history.html';
+      }
+    });
+  }
+
+  // Bind PDF Download Button
+  const pdfBtn = document.getElementById('btn-generate-pdf');
+  if (pdfBtn) {
+    pdfBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const params = currentInvestigationData ? {
+        scanId: currentInvestigationData._id || currentInvestigationData.id,
+        target: currentInvestigationData.target || currentInvestigationData.url,
+        scanType: currentInvestigationData.scanType || 'website_security'
+      } : {};
+      downloadReportPDF(params, 'CyberShield_Investigation_Report.pdf');
+    });
+  }
+
+  // Resolve scan data from URL query params or localStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  const scanId = urlParams.get('scanId') || urlParams.get('id');
+
+  let scanData = null;
+
+  if (scanId) {
+    try {
+      const res = await apiRequest('/scan/history');
+      if (res.success && res.data) {
+        scanData = res.data.find(s => s._id === scanId || s.id === scanId);
+      }
+    } catch (e) {}
+  }
+
+  if (!scanData) {
+    const scanStr = localStorage.getItem('lastScanData');
+    if (scanStr) {
+      try {
+        scanData = JSON.parse(scanStr);
+      } catch (e) {}
+    }
+  }
+
+  if (!scanData) {
+    showToast('No investigation data found. Redirecting to Scanner...', 'warning');
     setTimeout(() => { window.location.href = 'scanner.html'; }, 2000);
     return;
   }
 
-  let scanData;
-  try {
-    scanData = JSON.parse(scanStr);
-  } catch (e) {
-    showToast('Invalid data format', 'danger');
-    return;
-  }
-
+  currentInvestigationData = scanData;
   renderInvestigation(scanData);
 });
 

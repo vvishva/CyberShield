@@ -408,8 +408,37 @@ async function scanWebsiteSecurity(targetUrl) {
   };
 }
 
+/**
+ * Helper to check if a URL or domain points to a private/SSRF target.
+ * @param {string} inputUrl
+ * @returns {boolean}
+ */
+function isSSRFUrl(inputUrl) {
+  try {
+    let target = (inputUrl || '').trim();
+    if (!target.startsWith('http://') && !target.startsWith('https://')) {
+      target = 'https://' + target;
+    }
+    const parsed = new URL(target);
+    const host = parsed.hostname.toLowerCase();
+    
+    // Check blocklist
+    if (BLOCKED_HOSTNAMES.includes(host)) return true;
+    for (const suffix of BLOCKED_DOMAIN_SUFFIXES) {
+      if (host.endsWith(suffix)) return true;
+    }
+    // Check private IP
+    if (isPrivateIp(host)) return true;
+    
+    return false;
+  } catch (e) {
+    return true; // Unparseable format - treat as unsafe
+  }
+}
+
 module.exports = {
   scanWebsiteSecurity,
   checkSsrfHostname,
-  isPrivateIp
+  isPrivateIp,
+  isSSRFUrl
 };

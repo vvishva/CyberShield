@@ -380,7 +380,9 @@ function connectLiveFeed() {
   const statusPill = document.getElementById('sse-status');
   if (!feed) return;
 
-  const es = new EventSource('/api/events/feed');
+  const token = typeof getToken === 'function' ? getToken() : null;
+  const feedUrl = token ? `/api/events/feed?token=${encodeURIComponent(token)}` : '/api/events/feed';
+  const es = new EventSource(feedUrl);
 
   es.onopen = () => {
     if (statusPill) {
@@ -391,8 +393,8 @@ function connectLiveFeed() {
 
   es.onerror = () => {
     if (statusPill) {
-      statusPill.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Reconnecting...';
-      statusPill.style.color = 'var(--amber)';
+      statusPill.innerHTML = '<i class="fas fa-signal"></i> Live Feed Offline';
+      statusPill.style.color = 'var(--text-muted)';
     }
   };
 

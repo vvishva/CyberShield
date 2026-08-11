@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div style="display:flex; gap:6px;">
               <button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="viewReport('${item._id}')"><i class="fas fa-eye"></i> View</button>
               <button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="downloadHistoryPdf('${item._id}')"><i class="fas fa-file-pdf"></i> PDF</button>
-              ${isThreat ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px; box-shadow:0 0 8px rgba(239,68,68,0.4);" onclick="investigateReport('${item._id}')"><i class="fas fa-crosshairs"></i> Investigate</button>` : ''}
+              <button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="investigateReport('${item._id}')"><i class="fas fa-crosshairs"></i> Investigate</button>
             </div>
           </td>
         </tr>
@@ -60,7 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   window.downloadHistoryPdf = (id) => {
-    downloadReportPDF({ scanId: id }, 'CyberShield_Scan_Report.pdf');
+    const item = (allData || []).find(d => d._id === id || d.id === id);
+    const params = item ? { scanId: item._id || item.id, target: item.target, scanType: item.scanType } : { scanId: id };
+    downloadReportPDF(params, 'CyberShield_Scan_Report.pdf');
   };
 
   function filterData() {
@@ -81,22 +83,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // View report — store data and redirect
   window.viewReport = (id) => {
-    const item = allData.find(d => d._id === id);
+    const item = (allData || []).find(d => d._id === id || d.id === id);
     if (item) {
       localStorage.setItem('lastScanData', JSON.stringify(item));
-      window.location.href = 'reports.html';
+      window.location.href = `reports.html?id=${encodeURIComponent(id)}`;
     } else {
-      showToast('Scan data not found', 'warning');
+      window.location.href = `reports.html?id=${encodeURIComponent(id)}`;
     }
   };
 
   window.investigateReport = (id) => {
-    const item = allData.find(d => d._id === id);
+    const item = (allData || []).find(d => d._id === id || d.id === id);
     if (item) {
       localStorage.setItem('lastScanData', JSON.stringify(item));
-      window.location.href = 'investigation.html';
+      window.location.href = `investigation.html?scanId=${encodeURIComponent(id)}`;
     } else {
-      showToast('Scan data not found', 'warning');
+      window.location.href = `investigation.html?scanId=${encodeURIComponent(id)}`;
     }
   };
 

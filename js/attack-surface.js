@@ -40,7 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (exportBtn) {
     exportBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      downloadReportPDF({ type: 'attack_surface' }, 'CyberShield_Attack_Surface_Report.pdf');
+      const targetInput = document.getElementById('map-target-input');
+      const target = (targetInput && targetInput.value.trim()) || 'cybershield.io';
+      downloadReportPDF({ type: 'attack_surface', target, scanType: 'website_security' }, 'CyberShield_Attack_Surface_Report.pdf');
     });
   }
 });
@@ -131,6 +133,12 @@ function drawDemoMap(domain) {
 }
 
 function renderVisNetwork(container, nodes, edges) {
+  const VisLib = (typeof vis !== 'undefined' ? vis : (typeof window !== 'undefined' ? window.vis : null));
+  if (!VisLib || !VisLib.Network) {
+    console.error('[vis.js Error] vis-network library is not available');
+    if (typeof showToast === 'function') showToast('Network visualizer initializing...', 'info');
+    return;
+  }
   const data = { nodes, edges };
   const options = {
     nodes: { font: { face: 'Inter', size: 13 }, margin: 10 },
@@ -140,5 +148,5 @@ function renderVisNetwork(container, nodes, edges) {
     },
     interaction: { hover: true, tooltipDelay: 200 }
   };
-  new vis.Network(container, data, options);
+  new VisLib.Network(container, data, options);
 }
