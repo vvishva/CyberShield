@@ -50,8 +50,9 @@
                     queryParams.get('code');
 
       if (token) {
-        // Option A: Send credential back to opener window if open
         let openerNotified = false;
+
+        // Try notifying opener window first
         if (window.opener && !window.opener.closed) {
           try {
             window.opener.postMessage({
@@ -59,42 +60,52 @@
               credential: token
             }, '*');
             openerNotified = true;
-            setTimeout(() => { window.close(); }, 400);
           } catch (e) {
             openerNotified = false;
           }
         }
 
-        // Option B: Self-service Backend Verification inside callback window if opener missing/blocked
-        if (!openerNotified) {
-          try {
-            statusMsg.textContent = 'Authenticating with CyberShield...';
-            const response = await fetch('/api/auth/google', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ credential: token, token: token })
-            });
+        // Complete Backend Verification inside callback window
+        try {
+          statusMsg.textContent = 'Authenticating with CyberShield...';
+          const response = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: token, token: token })
+          });
 
-            const data = await response.json();
+          const data = await response.json();
 
-            if (data.success && data.token) {
-              localStorage.setItem('cybershield_token', data.token);
-              localStorage.setItem('cybershield_user', JSON.stringify(data.user));
-              if (spinner) spinner.style.borderColor = '#00c896';
-              statusMsg.innerHTML = '<span style="color:#00c896;">✓ Authentication successful! Redirecting to Dashboard...</span>';
-              setTimeout(() => {
-                window.location.href = 'dashboard.html';
-              }, 800);
-            } else {
-              if (spinner) spinner.style.display = 'none';
-              statusMsg.innerHTML = '<span style="color:#ef4444;">❌ ' + (data.error || 'Google authentication failed.') + '</span>';
-              setTimeout(() => { window.close(); }, 3000);
-            }
-          } catch (err) {
+          if (data.success && data.token) {
+            localStorage.setItem('cybershield_token', data.token);
+            localStorage.setItem('cybershield_user', JSON.stringify(data.user));
+
+            if (spinner) spinner.style.borderColor = '#00c896';
+            statusMsg.innerHTML = '<span style="color:#00c896;">✓ Authentication successful! Opening Dashboard...</span>';
+
+            setTimeout(() => {
+              // Redirect main full-screen window and close this small popup window
+              if (window.opener && !window.opener.closed) {
+                try {
+                  window.opener.location.href = 'dashboard.html';
+                } catch (e) {
+                  window.open('dashboard.html', '_blank');
+                }
+                window.close();
+              } else {
+                window.open('dashboard.html', '_blank');
+                window.close();
+              }
+            }, 600);
+          } else {
             if (spinner) spinner.style.display = 'none';
-            statusMsg.innerHTML = '<span style="color:#ef4444;">❌ Unable to complete authentication.</span>';
+            statusMsg.innerHTML = '<span style="color:#ef4444;">❌ ' + (data.error || 'Google authentication failed.') + '</span>';
             setTimeout(() => { window.close(); }, 3000);
           }
+        } catch (err) {
+          if (spinner) spinner.style.display = 'none';
+          statusMsg.innerHTML = '<span style="color:#ef4444;">❌ Unable to complete authentication.</span>';
+          setTimeout(() => { window.close(); }, 3000);
         }
       } else {
         // No token present
