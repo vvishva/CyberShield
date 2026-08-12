@@ -52,47 +52,66 @@ const sendSMS = async (to, message) => {
     const endpoint = 'https://www.fast2sms.com/dev/bulkV2';
     console.log(`[Fast2SMS] Dispatching to recipient: ${maskedPhone} via ${endpoint}`);
 
-    const payload = {
-      route: 'q',
-      message: message,
-      language: 'english',
-      flash: 0,
-      numbers: local10Digits
-    };
+    // Extract digits for OTP route if present, or fallback to quick route
+    const digitsOnly = message.replace(/\D/g, '');
+    const otpValue = digitsOnly.length >= 4 ? digitsOnly.substring(0, 6) : '123456';
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'authorization': fast2smsApiKey.trim(),
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const responseText = await response.text();
-      console.log(`[Fast2SMS] HTTP Status: ${response.status}`);
-      console.log(`[Fast2SMS] Response snippet: ${responseText.substring(0, 300)}`);
-
-      let resData = {};
-      try { resData = JSON.parse(responseText); } catch (_) {}
-
-      if (!response.ok || resData.return === false) {
-        const errMsg = resData.message || (resData.error ? JSON.stringify(resData.error) : responseText);
-        throw new Error(`Fast2SMS error: ${errMsg}`);
+    const payloads = [
+      {
+        route: 'otp',
+        variables_values: otpValue,
+        numbers: local10Digits
+      },
+      {
+        route: 'q',
+        message: message,
+        language: 'english',
+        flash: 0,
+        numbers: local10Digits
       }
+    ];
 
-      return {
-        provider: 'Fast2SMS',
-        status: 'SENT',
-        smsBatchId: resData.request_id || 'fast2sms_sent',
-        endpointUsed: endpoint,
-        recipientMasked: maskedPhone
-      };
-    } catch (err) {
-      console.error('[Fast2SMS Error]:', err.message);
-      throw err;
+    let lastFast2SMSErr = null;
+
+    for (const payload of payloads) {
+      try {
+        console.log(`[Fast2SMS] Trying route: ${payload.route}`);
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'authorization': fast2smsApiKey.trim(),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const responseText = await response.text();
+        console.log(`[Fast2SMS] HTTP Status: ${response.status}`);
+        console.log(`[Fast2SMS] Response snippet: ${responseText.substring(0, 300)}`);
+
+        let resData = {};
+        try { resData = JSON.parse(responseText); } catch (_) {}
+
+        if (response.ok && resData.return !== false) {
+          return {
+            provider: 'Fast2SMS',
+            status: 'SENT',
+            smsBatchId: resData.request_id || 'fast2sms_sent',
+            endpointUsed: endpoint,
+            recipientMasked: maskedPhone
+          };
+        }
+
+        const errMsg = resData.message || (resData.error ? JSON.stringify(resData.error) : responseText);
+        lastFast2SMSErr = new Error(`Fast2SMS error (${payload.route}): ${errMsg}`);
+
+      } catch (err) {
+        lastFast2SMSErr = err;
+      }
     }
+
+    console.warn('[Fast2SMS] Both OTP & Quick routes returned error:', lastFast2SMSErr?.message);
+    throw lastFast2SMSErr || new Error('Fast2SMS delivery failed');
   }
 
   // ── Strategy 2: SMSGate (Official Android SMS Gateway https://sms-gate.app)
