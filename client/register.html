@@ -110,12 +110,40 @@
     }
     .eye-icon:hover { color: var(--cyan); }
 
+    /* ── 6-Digit OTP Box Grid ── */
+    .otp-box-container {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 18px 0 10px 0;
+    }
+    .otp-digit-box {
+      width: 44px;
+      height: 52px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #00d4ff;
+      background: rgba(15, 22, 40, 0.8);
+      border: 1.5px solid var(--border-subtle, rgba(0, 212, 255, 0.2));
+      border-radius: var(--radius-md);
+      box-sizing: border-box;
+      font-family: 'Inter', monospace;
+      transition: all 0.2s ease;
+    }
+    .otp-digit-box:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+      background: rgba(15, 22, 40, 0.95);
+    }
+
     .auth-btn {
       width: 100%;
       padding: 13px;
       font-size: 15px;
       font-weight: 600;
-      margin-top: 20px;
+      margin-top: 16px;
       border-radius: var(--radius-md);
       display: flex;
       justify-content: center;
@@ -125,7 +153,7 @@
     .otp-actions {
       display: flex;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     .otp-actions button {
       flex: 1;
@@ -138,8 +166,21 @@
       color: var(--text-muted);
       font-size: 12px;
       display: block;
-      margin-top: 7px;
+      margin-top: 6px;
       line-height: 1.5;
+      text-align: center;
+    }
+
+    .success-alert-banner {
+      background: rgba(0, 200, 150, 0.15);
+      border: 1px solid rgba(0, 200, 150, 0.35);
+      color: #00c896;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      font-size: 13px;
+      text-align: center;
+      margin-bottom: 16px;
+      display: none;
     }
 
     .auth-footer {
@@ -158,6 +199,7 @@
     @media (max-width: 480px) {
       body { padding: 12px; align-items: flex-start; padding-top: 20px; }
       .auth-card { padding: 28px 20px; border: none; box-shadow: none; background: transparent; }
+      .otp-digit-box { width: 38px; height: 46px; font-size: 18px; }
     }
   </style>
 </head>
@@ -179,7 +221,7 @@
       <!-- Step 1: Email Registration -->
       <form id="register-form">
         <div class="form-group">
-          <label>Username</label>
+          <label>Username / Name</label>
           <div class="input-group">
             <i class="fas fa-user input-icon"></i>
             <input type="text" id="reg-username" class="form-control" placeholder="SecurityAnalyst" required minlength="3" autocomplete="username">
@@ -209,22 +251,32 @@
           </div>
         </div>
         <button type="submit" class="btn btn-primary auth-btn" id="reg-btn">
-          <i class="fas fa-paper-plane"></i> Send Email OTP
+          <i class="fas fa-paper-plane"></i> Generate OTP
         </button>
       </form>
 
       <!-- Step 2: Email OTP Verification -->
       <form id="otp-form" style="display: none;">
+        <div class="success-alert-banner" id="verified-banner">
+          <i class="fas fa-circle-check"></i> ✓ Email verified successfully
+        </div>
         <div class="form-group">
-          <label>Security OTP</label>
-          <div class="input-group">
-            <i class="fas fa-key input-icon"></i>
-            <input type="text" id="reg-otp" class="form-control" placeholder="123456" required maxlength="6" pattern="\d{6}" inputmode="numeric" autocomplete="one-time-code">
+          <label style="text-align:center; display:block;">Enter Security OTP Code</label>
+          
+          <!-- 6-digit OTP input grid: [ _ ][ _ ][ _ ][ _ ][ _ ][ _ ] -->
+          <div class="otp-box-container" id="otp-grid">
+            <input type="text" maxlength="1" class="otp-digit-box" data-index="0" inputmode="numeric" pattern="\d" autocomplete="one-time-code">
+            <input type="text" maxlength="1" class="otp-digit-box" data-index="1" inputmode="numeric" pattern="\d">
+            <input type="text" maxlength="1" class="otp-digit-box" data-index="2" inputmode="numeric" pattern="\d">
+            <input type="text" maxlength="1" class="otp-digit-box" data-index="3" inputmode="numeric" pattern="\d">
+            <input type="text" maxlength="1" class="otp-digit-box" data-index="4" inputmode="numeric" pattern="\d">
+            <input type="text" maxlength="1" class="otp-digit-box" data-index="5" inputmode="numeric" pattern="\d">
           </div>
-          <small class="otp-notice" id="otp-sent-notice">A 6-digit verification code has been sent to your email.</small>
+          
+          <small class="otp-notice" id="otp-sent-notice">Verification code sent to your email.</small>
         </div>
         <button type="submit" class="btn btn-primary auth-btn" id="otp-btn">
-          <i class="fas fa-unlock-keyhole"></i> Verify Account
+          <i class="fas fa-unlock-keyhole"></i> Verify &amp; Complete Registration
         </button>
         <div class="otp-actions">
           <button type="button" class="btn btn-secondary" id="resend-otp-btn">
@@ -245,12 +297,10 @@
   <script src="../js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Redirect if already logged in
       if (getToken() && getUser()) {
         window.location.href = 'dashboard.html';
       }
 
-      // Password Toggle Helper
       const setupToggle = (toggleId, inputId) => {
         const el = document.getElementById(toggleId);
         if (!el) return;
@@ -269,7 +319,6 @@
       setupToggle('toggle-pwd1', 'reg-password');
       setupToggle('toggle-pwd2', 'reg-confirm');
 
-      // State tracking
       let pendingEmail = '';
       let cooldownInterval = null;
 
@@ -295,7 +344,55 @@
         }, 1000);
       }
 
-      // Step 1: Send OTP
+      // ── 6-Digit OTP Box Grid Auto-Advance Logic ──
+      const otpBoxes = Array.from(document.querySelectorAll('.otp-digit-box'));
+      
+      function getCombinedOTP() {
+        return otpBoxes.map(b => b.value.trim()).join('');
+      }
+
+      function clearOTPBoxes() {
+        otpBoxes.forEach(b => { b.value = ''; });
+        if (otpBoxes[0]) otpBoxes[0].focus();
+      }
+
+      otpBoxes.forEach((box, idx) => {
+        box.addEventListener('input', (e) => {
+          const val = e.target.value.replace(/\D/g, '');
+          e.target.value = val ? val.slice(-1) : '';
+          
+          if (val && idx < otpBoxes.length - 1) {
+            otpBoxes[idx + 1].focus();
+          }
+
+          // Auto-submit when all 6 digits entered
+          if (getCombinedOTP().length === 6) {
+            document.getElementById('otp-form').dispatchEvent(new Event('submit'));
+          }
+        });
+
+        box.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+            otpBoxes[idx - 1].focus();
+          }
+        });
+
+        box.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+          pasted.split('').forEach((ch, i) => {
+            if (otpBoxes[i]) otpBoxes[i].value = ch;
+          });
+          if (pasted.length === 6) {
+            otpBoxes[5].focus();
+            document.getElementById('otp-form').dispatchEvent(new Event('submit'));
+          } else if (otpBoxes[pasted.length]) {
+            otpBoxes[pasted.length].focus();
+          }
+        });
+      });
+
+      // Step 1: Generate OTP
       const registerForm = document.getElementById('register-form');
       if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
@@ -312,25 +409,26 @@
 
           const btn = document.getElementById('reg-btn');
           btn.disabled = true;
-          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending OTP...';
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating OTP...';
 
           try {
             const data = await apiRequest('/auth/register', 'POST', { username, email, password });
             if (data.success) {
               pendingEmail = email;
-              showToast(data.message || 'OTP sent to your email!', 'success');
+              showToast('Verification code sent to your email.', 'success');
               document.getElementById('register-form').style.display = 'none';
               document.getElementById('otp-form').style.display = 'block';
-              document.getElementById('otp-sent-notice').textContent = `A 6-digit verification code has been sent to ${email}.`;
+              document.getElementById('otp-sent-notice').textContent = `Verification code sent to ${email}.`;
+              clearOTPBoxes();
               startCooldownTimer(60);
             } else {
-              showToast(data.error || 'Failed to send OTP', 'danger');
+              showToast(data.error || 'Unable to send verification code. Please try again.', 'danger');
             }
           } catch (err) {
-            showToast(err.message || 'Registration failed', 'danger');
+            showToast(err.message || 'Unable to send verification code. Please try again.', 'danger');
           } finally {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Email OTP';
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Generate OTP';
           }
         });
       }
@@ -340,29 +438,34 @@
       if (otpForm) {
         otpForm.addEventListener('submit', async (e) => {
           e.preventDefault();
-          const otp = document.getElementById('reg-otp').value.trim();
+          const otp = getCombinedOTP();
           if (!otp || otp.length !== 6) {
-            showToast('Please enter a valid 6-digit OTP', 'warning');
+            showToast('Please enter a 6-digit OTP code', 'warning');
             return;
           }
 
           const btn = document.getElementById('otp-btn');
+          if (btn.disabled) return; // Prevent double submit
           btn.disabled = true;
           btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
 
           try {
             const data = await apiRequest('/auth/verify-otp', 'POST', { email: pendingEmail, otp });
             if (data.success) {
-              showToast('Account verified successfully! Redirecting to login...', 'success');
+              const banner = document.getElementById('verified-banner');
+              if (banner) banner.style.display = 'block';
+              showToast('✓ Email verified successfully', 'success');
               setTimeout(() => { window.location.href = 'login.html'; }, 1500);
             } else {
-              showToast(data.error || 'OTP verification failed', 'danger');
+              showToast(data.error || 'Invalid verification code.', 'danger');
+              clearOTPBoxes();
             }
           } catch (err) {
-            showToast(err.message || 'Verification failed', 'danger');
+            showToast(err.message || 'Invalid verification code.', 'danger');
+            clearOTPBoxes();
           } finally {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-unlock-keyhole"></i> Verify Account';
+            btn.innerHTML = '<i class="fas fa-unlock-keyhole"></i> Verify &amp; Complete Registration';
           }
         });
       }
@@ -376,14 +479,15 @@
           try {
             const data = await apiRequest('/auth/resend-otp', 'POST', { email: pendingEmail });
             if (data.success) {
-              showToast('New verification code sent to your email!', 'success');
+              showToast('Verification code sent to your email.', 'success');
+              clearOTPBoxes();
               startCooldownTimer(60);
             } else {
-              showToast(data.error || 'Failed to resend OTP', 'danger');
+              showToast(data.error || 'Unable to send verification code. Please try again.', 'danger');
               resendBtn.disabled = false;
             }
           } catch (err) {
-            showToast(err.message || 'Failed to resend OTP', 'danger');
+            showToast(err.message || 'Unable to send verification code. Please try again.', 'danger');
             resendBtn.disabled = false;
           }
         });
