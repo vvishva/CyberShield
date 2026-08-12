@@ -4,8 +4,8 @@
  */
 
 (function () {
-  // Google Client ID (configurable via window.GOOGLE_CLIENT_ID or environment)
-  const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID || '829471928471-cybershield.apps.googleusercontent.com';
+  // Google Client ID
+  const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID || '216593256191-jc2kvjrfjt4ounthofpph92q65pct9n4.apps.googleusercontent.com';
 
   function initGoogleSSO() {
     const googleBtn = document.getElementById('btn-google-sso');
