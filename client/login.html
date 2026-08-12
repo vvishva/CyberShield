@@ -260,7 +260,7 @@
           <label class="remember-label">
             <input type="checkbox" id="login-remember"> Remember me
           </label>
-          <a href="#" class="forgot-link" onclick="showToast('Password reset email sent!','info'); return false;">Forgot password?</a>
+          <a href="#" class="forgot-link" id="open-forgot-modal">Forgot password?</a>
         </div>
         <button type="submit" class="btn btn-primary auth-btn" id="login-btn">
           <i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter
@@ -344,6 +344,7 @@
           <label class="remember-label">
             <input type="checkbox" id="login-phone-remember"> Remember me
           </label>
+          <a href="#" class="forgot-link" id="open-forgot-modal-phone">Forgot password?</a>
         </div>
         <button type="submit" class="btn btn-primary auth-btn" id="login-phone-btn">
           <i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter
@@ -502,7 +503,145 @@
           }
         }
       });
+
+      // ── Password Reset Modal Logic ────────────────────────────────────
+      const modal = document.getElementById('forgot-modal');
+      const openBtn1 = document.getElementById('open-forgot-modal');
+      const openBtn2 = document.getElementById('open-forgot-modal-phone');
+      const closeBtn = document.getElementById('close-forgot-modal');
+      let resetIdentifier = '';
+
+      const showForgotModal = (e) => {
+        if (e) e.preventDefault();
+        document.getElementById('forgot-step-1').style.display = 'block';
+        document.getElementById('forgot-step-2').style.display = 'none';
+        document.getElementById('forgot-identifier').value = '';
+        modal.style.display = 'flex';
+      };
+
+      if (openBtn1) openBtn1.addEventListener('click', showForgotModal);
+      if (openBtn2) openBtn2.addEventListener('click', showForgotModal);
+      if (closeBtn) closeBtn.addEventListener('click', () => modal.style.display = 'none');
+
+      document.getElementById('forgot-req-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('forgot-req-btn');
+        resetIdentifier = document.getElementById('forgot-identifier').value.trim();
+        if (!resetIdentifier) {
+          showToast('Please enter your email or mobile number', 'warning');
+          return;
+        }
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+
+        try {
+          const data = await apiRequest('/auth/forgot-password', 'POST', { identifier: resetIdentifier });
+          btn.classList.remove('btn-loading');
+          btn.disabled = false;
+          showToast(data.message || 'Verification code sent.', 'info');
+          document.getElementById('forgot-step-1').style.display = 'none';
+          document.getElementById('forgot-step-2').style.display = 'block';
+          document.getElementById('forgot-step-2-notice').textContent = `Enter the 6-digit code sent to ${resetIdentifier}`;
+        } catch (err) {
+          btn.classList.remove('btn-loading');
+          btn.disabled = false;
+          showToast(err.message || 'Unable to request password reset.', 'danger');
+        }
+      });
+
+      document.getElementById('forgot-reset-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('forgot-reset-btn');
+        const otp = document.getElementById('forgot-otp').value.trim();
+        const newPassword = document.getElementById('forgot-new-password').value;
+        const confirm = document.getElementById('forgot-confirm-password').value;
+
+        if (newPassword !== confirm) {
+          showToast('Passwords do not match', 'warning');
+          return;
+        }
+        if (newPassword.length < 8) {
+          showToast('Password must be at least 8 characters', 'warning');
+          return;
+        }
+
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+
+        try {
+          const data = await apiRequest('/auth/reset-password', 'POST', {
+            identifier: resetIdentifier,
+            otp,
+            newPassword
+          });
+          btn.classList.remove('btn-loading');
+          btn.disabled = false;
+          showToast(data.message || 'Password reset successful! Please log in.', 'success');
+          modal.style.display = 'none';
+        } catch (err) {
+          btn.classList.remove('btn-loading');
+          btn.disabled = false;
+          showToast(err.message || 'Password reset failed.', 'danger');
+        }
+      });
     });
   </script>
+
+  <!-- ── Password Reset Modal Component ── -->
+  <div id="forgot-modal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(11, 15, 26, 0.85); backdrop-filter: blur(8px); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="glass-card modal-card" style="max-width: 440px; width: 90%; padding: 32px; position: relative; border-radius: 12px; background: rgba(15, 22, 40, 0.95); border: 1px solid rgba(0, 212, 255, 0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+      <button type="button" id="close-forgot-modal" style="position: absolute; top: 16px; right: 20px; background: none; border: none; color: #9ca3af; font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
+
+      <!-- Step 1: Request Reset Code -->
+      <div id="forgot-step-1">
+        <h3 style="color: var(--cyan, #00d4ff); margin-bottom: 8px; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i class="fas fa-key"></i> Account Recovery</h3>
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 24px; line-height: 1.5;">Enter your registered Email or Mobile Number to receive a 6-digit password reset code.</p>
+        <form id="forgot-req-form">
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 13px; margin-bottom: 6px; color: #d1d5db;">Email or Mobile Number</label>
+            <div class="input-group">
+              <i class="fas fa-user-shield input-icon"></i>
+              <input type="text" id="forgot-identifier" class="form-control" placeholder="analyst@example.com or 9876543210" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary auth-btn" id="forgot-req-btn">
+            <i class="fas fa-paper-plane"></i> Send Reset Code
+          </button>
+        </form>
+      </div>
+
+      <!-- Step 2: Enter Reset OTP & New Password -->
+      <div id="forgot-step-2" style="display: none;">
+        <h3 style="color: var(--cyan, #00d4ff); margin-bottom: 8px; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i class="fas fa-lock-open"></i> Set New Password</h3>
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 24px; line-height: 1.5;" id="forgot-step-2-notice">Enter the 6-digit verification code and choose your new password.</p>
+        <form id="forgot-reset-form">
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 13px; margin-bottom: 6px; color: #d1d5db;">6-Digit Reset Code</label>
+            <div class="input-group">
+              <i class="fas fa-shield-cat input-icon"></i>
+              <input type="text" id="forgot-otp" class="form-control" placeholder="123456" maxlength="6" inputmode="numeric" required>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 13px; margin-bottom: 6px; color: #d1d5db;">New Password</label>
+            <div class="input-group">
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="forgot-new-password" class="form-control" placeholder="At least 8 characters" required>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 13px; margin-bottom: 6px; color: #d1d5db;">Confirm New Password</label>
+            <div class="input-group">
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="forgot-confirm-password" class="form-control" placeholder="Repeat new password" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary auth-btn" id="forgot-reset-btn">
+            <i class="fas fa-check-circle"></i> Update Password &amp; Login
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

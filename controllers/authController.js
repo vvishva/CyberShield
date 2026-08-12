@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const User = require('../models/User');
+const PendingRegistration = require('../models/PendingRegistration');
 const Log = require('../models/Log');
 const sendEmail = require('../utils/sendEmail');
 const sendSMS = require('../utils/sendSMS');
@@ -21,15 +22,14 @@ const generateToken = (user) => {
 
 // Helper: Generate cryptographically secure 6-digit OTP
 const generateOTP = () => {
-  // crypto.randomInt gives a uniformly distributed cryptographic integer
   return String(crypto.randomInt(100000, 999999));
 };
 
 // ============================================================
-// EMAIL REGISTRATION (EXISTING — UNCHANGED)
+// EMAIL REGISTRATION (TRANSACTIONAL - PENDING STORAGE)
 // ============================================================
 
-// @desc    Register new user (email method)
+// @desc    Initiate Email Registration (Send OTP to Pending Registration)
 // @route   POST /api/auth/register
 exports.register = async (req, res, next) => {
   try {
@@ -39,82 +39,56 @@ exports.register = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Please provide all required fields.' });
     }
 
-    let user;
-    try {
-      const existingUserByUsername = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
-      if (existingUserByUsername && (existingUserByUsername.isVerified || existingUserByUsername.phoneVerified)) {
-        return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
-      }
+    const cleanEmail = email.trim().toLowerCase();
 
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        if (existingUser.isVerified) {
-          return res.status(400).json({ success: false, error: 'User with this email already exists.' });
-        }
-        // Stale unverified account — delete it so user can register cleanly
-        await User.deleteOne({ _id: existingUser._id });
-      }
-
-      // Clean up any unverified stale account with same username
-      await User.deleteMany({
-        username: { $regex: new RegExp(`^${username}$`, 'i') },
-        isVerified: false,
-        phoneVerified: false
-      });
-
-      const otp = generateOTP();
-      const salt = await bcrypt.genSalt(10);
-      const hashedOTP = await bcrypt.hash(otp, salt);
-
-      user = await User.create({
-        username,
-        email,
-        password,
-        role: 'user',
-        registrationMethod: 'email',
-        isVerified: false,
-        verificationOTP: hashedOTP,
-        verificationOTPExpire: Date.now() + 10 * 60 * 1000, // 10 minutes
-        otpLastSentAt: new Date()
-      });
-
-      // Send OTP via Email
-      const message = `Your CyberShield Security Gateway OTP is: ${otp}\n\nIt is valid for 10 minutes.`;
-      try {
-        await sendEmail({
-          email: user.email,
-          subject: 'CyberShield Account Verification OTP',
-          message
-        });
-      } catch (err) {
-        console.error('[SMTP Error] Email delivery failed:', err.message || err);
-        await User.findByIdAndDelete(user._id);
-        return res.status(500).json({ success: false, error: 'Unable to send verification code. Please try again.' });
-      }
-
-    } catch (dbErr) {
-      if (dbErr.code === 11000) {
-        const field = Object.keys(dbErr.keyPattern || dbErr.keyValue || {})[0];
-        if (field === 'username') {
-          return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
-        }
-        if (field === 'email') {
-          return res.status(400).json({ success: false, error: 'User with this email already exists.' });
-        }
-        return res.status(400).json({ success: false, error: 'Account with these details already exists.' });
-      }
-      return res.status(503).json({ success: false, error: 'Database unavailable. Please try again later.' });
+    // 1. Check if email or username is already registered in permanent User collection
+    const existingEmailUser = await User.findOne({ email: cleanEmail, isVerified: true });
+    if (existingEmailUser) {
+      return res.status(400).json({ success: false, error: 'User with this email already exists.' });
     }
 
-    // Audit Log
+    const existingUsernameUser = await User.findOne({ username: { $regex: new RegExp(`^${username.trim()}$`, 'i') } });
+    if (existingUsernameUser && (existingUsernameUser.isVerified || existingUsernameUser.phoneVerified)) {
+      return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
+    }
+
+    // 2. Remove any previous pending registration for this email/username
+    await PendingRegistration.deleteMany({
+      $or: [
+        { email: cleanEmail },
+        { username: { $regex: new RegExp(`^${username.trim()}$`, 'i') } }
+      ]
+    });
+
+    const otp = generateOTP();
+    const salt = await bcrypt.genSalt(10);
+    const hashedOTP = await bcrypt.hash(otp, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 3. Create TEMPORARY pending registration record only (NO document in User collection)
+    const pending = await PendingRegistration.create({
+      username: username.trim(),
+      email: cleanEmail,
+      password: hashedPassword,
+      registrationMethod: 'email',
+      verificationOTP: hashedOTP,
+      verificationOTPExpire: Date.now() + 10 * 60 * 1000, // 10 minutes
+      otpLastSentAt: new Date()
+    });
+
+    // 4. Send OTP via Email
+    const message = `Your CyberShield Security Gateway OTP is: ${otp}\n\nIt is valid for 10 minutes. Do not share.`;
     try {
-      await Log.create({
-        username: user.username,
-        action: 'USER_REGISTER',
-        details: `New account registered (unverified) via email: ${user.email}`,
-        status: 'SUCCESS'
+      await sendEmail({
+        email: pending.email,
+        subject: 'CyberShield Account Verification OTP',
+        message
       });
-    } catch (e) {}
+    } catch (err) {
+      console.error('[SMTP Error] Email delivery failed:', err.message || err);
+      await PendingRegistration.findByIdAndDelete(pending._id);
+      return res.status(500).json({ success: false, error: 'Unable to send verification code. Please try again.' });
+    }
 
     res.status(201).json({
       success: true,
@@ -125,7 +99,7 @@ exports.register = async (req, res, next) => {
   }
 };
 
-// @desc    Verify Email OTP
+// @desc    Verify Email OTP & Create Permanent Account
 // @route   POST /api/auth/verify-otp
 exports.verifyOTP = async (req, res, next) => {
   try {
@@ -134,33 +108,61 @@ exports.verifyOTP = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Please provide email and OTP.' });
     }
 
-    const user = await User.findOne({ email }).select('+verificationOTP +verificationOTPExpire');
-    if (!user) return res.status(400).json({ success: false, error: 'Invalid user.' });
+    const cleanEmail = email.trim().toLowerCase();
 
-    if (user.isVerified) {
-      return res.status(400).json({ success: false, error: 'Account is already verified.' });
+    // Look up in PendingRegistration collection
+    const pending = await PendingRegistration.findOne({ email: cleanEmail, registrationMethod: 'email' });
+    if (!pending) {
+      // Check if already verified in User collection
+      const verifiedUser = await User.findOne({ email: cleanEmail, isVerified: true });
+      if (verifiedUser) {
+        return res.status(400).json({ success: false, error: 'Account is already verified. Please log in.' });
+      }
+      return res.status(400).json({ success: false, error: 'Registration session expired or invalid. Please request a new OTP.' });
     }
 
-    if (user.otpAttempts >= 5) {
-      return res.status(400).json({ success: false, error: 'Too many attempts. Please try again later.' });
+    if (pending.otpAttempts >= 5) {
+      await PendingRegistration.findByIdAndDelete(pending._id);
+      return res.status(400).json({ success: false, error: 'Too many attempts. Registration expired — please request a new code.' });
     }
 
-    if (!user.verificationOTPExpire || user.verificationOTPExpire < Date.now()) {
+    if (!pending.verificationOTPExpire || pending.verificationOTPExpire < Date.now()) {
       return res.status(400).json({ success: false, error: 'Verification code expired. Please request a new code.' });
     }
 
-    const isMatch = await bcrypt.compare(otp, user.verificationOTP);
+    const isMatch = await bcrypt.compare(otp, pending.verificationOTP);
     if (!isMatch) {
-      user.otpAttempts += 1;
-      await user.save();
-      return res.status(400).json({ success: false, error: 'Invalid verification code.' });
+      pending.otpAttempts += 1;
+      await pending.save();
+      const remaining = 5 - pending.otpAttempts;
+      return res.status(400).json({
+        success: false,
+        error: remaining > 0 ? `Invalid verification code. ${remaining} attempt(s) remaining.` : 'Invalid verification code. Please request a new code.'
+      });
     }
 
-    user.isVerified = true;
-    user.verificationOTP = undefined;
-    user.verificationOTPExpire = undefined;
-    user.otpAttempts = 0;
-    await user.save();
+    // ONLY NOW: Create permanent User in User collection
+    const user = await User.create({
+      username: pending.username,
+      email: pending.email,
+      password: pending.password, // already hashed
+      role: 'user',
+      registrationMethod: 'email',
+      isVerified: true
+    });
+
+    // Delete pending registration record
+    await PendingRegistration.findByIdAndDelete(pending._id);
+
+    // Audit Log
+    try {
+      await Log.create({
+        username: user.username,
+        action: 'USER_REGISTER',
+        details: `Account registered & verified via email: ${user.email}`,
+        status: 'SUCCESS'
+      });
+    } catch (e) {}
 
     const token = generateToken(user);
     res.status(200).json({
@@ -181,13 +183,18 @@ exports.resendOTP = async (req, res, next) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false, error: 'Please provide an email.' });
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ success: false, error: 'User not found.' });
-    if (user.isVerified) return res.status(400).json({ success: false, error: 'Account already verified.' });
+    const cleanEmail = email.trim().toLowerCase();
+
+    const pending = await PendingRegistration.findOne({ email: cleanEmail, registrationMethod: 'email' });
+    if (!pending) {
+      const verified = await User.findOne({ email: cleanEmail, isVerified: true });
+      if (verified) return res.status(400).json({ success: false, error: 'Account is already verified. Please log in.' });
+      return res.status(400).json({ success: false, error: 'Registration session expired. Please start registration again.' });
+    }
 
     // 60-second resend cooldown
-    if (user.otpLastSentAt && (Date.now() - new Date(user.otpLastSentAt).getTime()) < 60 * 1000) {
-      const waitSec = Math.ceil((60 * 1000 - (Date.now() - new Date(user.otpLastSentAt).getTime())) / 1000);
+    if (pending.otpLastSentAt && (Date.now() - new Date(pending.otpLastSentAt).getTime()) < 60 * 1000) {
+      const waitSec = Math.ceil((60 * 1000 - (Date.now() - new Date(pending.otpLastSentAt).getTime())) / 1000);
       return res.status(429).json({ success: false, error: `Please wait ${waitSec} seconds before requesting another code.` });
     }
 
@@ -195,17 +202,20 @@ exports.resendOTP = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedOTP = await bcrypt.hash(otp, salt);
 
-    user.verificationOTP = hashedOTP;
-    user.verificationOTPExpire = Date.now() + 10 * 60 * 1000;
-    user.otpAttempts = 0;
-    user.otpLastSentAt = new Date();
-    await user.save();
+    pending.verificationOTP = hashedOTP;
+    pending.verificationOTPExpire = Date.now() + 10 * 60 * 1000;
+    pending.otpAttempts = 0;
+    pending.otpLastSentAt = new Date();
+    await pending.save();
 
-    const message = `Your new CyberShield Security Gateway OTP is: ${otp}\n\nIt is valid for 10 minutes.`;
+    const message = `Your CyberShield Security Gateway OTP is: ${otp}\n\nIt is valid for 10 minutes. Do not share.`;
     try {
-      await sendEmail({ email: user.email, subject: 'CyberShield Account Verification OTP', message });
+      await sendEmail({
+        email: pending.email,
+        subject: 'CyberShield Account Verification OTP',
+        message
+      });
     } catch (err) {
-      console.error('[SMTP Error] Resend email delivery failed:', err.message || err);
       return res.status(500).json({ success: false, error: 'Unable to send verification code. Please try again.' });
     }
 
@@ -216,10 +226,10 @@ exports.resendOTP = async (req, res, next) => {
 };
 
 // ============================================================
-// PHONE REGISTRATION (NEW)
+// MOBILE REGISTRATION (TRANSACTIONAL - PENDING STORAGE)
 // ============================================================
 
-// @desc    Register new user (phone method)
+// @desc    Initiate Mobile Registration (Send OTP to Pending Registration)
 // @route   POST /api/auth/register-phone
 exports.registerPhone = async (req, res, next) => {
   try {
@@ -236,92 +246,61 @@ exports.registerPhone = async (req, res, next) => {
       return res.status(400).json({ success: false, error: normErr.message });
     }
 
-    let user;
-    try {
-      // 1. Check if username is already taken by a verified user
-      const existingUserByUsername = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
-      if (existingUserByUsername && (existingUserByUsername.isVerified || existingUserByUsername.phoneVerified)) {
-        return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
-      }
-
-      // 2. Check for existing verified account with this phone number
-      const existingVerifiedPhone = await User.findOne({ phoneNumber, phoneVerified: true });
-      if (existingVerifiedPhone) {
-        return res.status(400).json({ success: false, error: 'This phone number is already registered.' });
-      }
-
-      // 3. Clean up any unverified stale account with same phone or username
-      await User.deleteMany({
-        $or: [
-          { phoneNumber },
-          { username: { $regex: new RegExp(`^${username}$`, 'i') } }
-        ],
-        phoneVerified: false,
-        isVerified: false
-      });
-
-      const otp = generateOTP();
-      const salt = await bcrypt.genSalt(10);
-      const hashedOTP = await bcrypt.hash(otp, salt);
-
-      user = await User.create({
-        username,
-        phoneNumber,
-        password,
-        role: 'user',
-        registrationMethod: 'phone',
-        isVerified: false,   // not email-verified
-        phoneVerified: false,
-        verificationOTP: hashedOTP,
-        verificationOTPExpire: Date.now() + 10 * 60 * 1000, // 10 minutes
-        otpLastSentAt: new Date()
-      });
-
-      // Send OTP via SMS
-      const smsBody = `CyberShield verification code: ${otp}. Valid for 10 minutes. Do not share.`;
-      try {
-        const smsResult = await sendSMS(phoneNumber, smsBody);
-        user.smsBatchId = smsResult.smsBatchId || null;
-        user.smsStatus = smsResult.status || 'SENT';
-        await user.save();
-      } catch (smsErr) {
-        await User.findByIdAndDelete(user._id);
-
-        if (smsErr.message === 'SMS_NOT_CONFIGURED') {
-          return res.status(503).json({
-            success: false,
-            error: 'SMS service is not configured. Please contact the administrator or use Email verification.'
-          });
-        }
-        return res.status(500).json({ success: false, error: smsErr.message || 'Unable to send OTP right now. Please try again or use Email verification.' });
-      }
-
-    } catch (dbErr) {
-      if (dbErr.code === 11000) {
-        const field = Object.keys(dbErr.keyPattern || dbErr.keyValue || {})[0];
-        if (field === 'username') {
-          return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
-        }
-        if (field === 'phoneNumber') {
-          return res.status(400).json({ success: false, error: 'This phone number is already registered.' });
-        }
-        return res.status(400).json({ success: false, error: 'Account with these details already exists.' });
-      }
-      console.error('[DB Error in registerPhone]:', dbErr);
-      return res.status(503).json({ success: false, error: 'Database error. Please try again later.' });
+    // 1. Check if phone or username is already registered in permanent User collection
+    const existingPhoneUser = await User.findOne({ phoneNumber, phoneVerified: true });
+    if (existingPhoneUser) {
+      return res.status(400).json({ success: false, error: 'This phone number is already registered.' });
     }
 
-    // Audit Log
-    try {
-      await Log.create({
-        username: user.username,
-        action: 'USER_REGISTER',
-        details: `New account registered (unverified) via phone (${phoneNumber})`,
-        status: 'SUCCESS'
-      });
-    } catch (e) {}
+    const existingUsernameUser = await User.findOne({ username: { $regex: new RegExp(`^${username.trim()}$`, 'i') } });
+    if (existingUsernameUser && (existingUsernameUser.isVerified || existingUsernameUser.phoneVerified)) {
+      return res.status(400).json({ success: false, error: 'Username is already taken. Please choose a different username.' });
+    }
 
-    const successMsg = user.smsStatus === 'QUEUED' || user.smsStatus === 'PENDING'
+    // 2. Remove any previous pending registration for this phone/username
+    await PendingRegistration.deleteMany({
+      $or: [
+        { phoneNumber },
+        { username: { $regex: new RegExp(`^${username.trim()}$`, 'i') } }
+      ]
+    });
+
+    const otp = generateOTP();
+    const salt = await bcrypt.genSalt(10);
+    const hashedOTP = await bcrypt.hash(otp, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 3. Create TEMPORARY pending registration record only (NO document in User collection)
+    const pending = await PendingRegistration.create({
+      username: username.trim(),
+      phoneNumber,
+      password: hashedPassword,
+      registrationMethod: 'phone',
+      verificationOTP: hashedOTP,
+      verificationOTPExpire: Date.now() + 10 * 60 * 1000, // 10 minutes
+      otpLastSentAt: new Date()
+    });
+
+    // 4. Send OTP via TextBee SMS Gateway
+    const smsBody = `CyberShield verification code: ${otp}. Valid for 10 minutes. Do not share.`;
+    try {
+      const smsResult = await sendSMS(phoneNumber, smsBody);
+      pending.smsBatchId = smsResult.smsBatchId || null;
+      pending.smsStatus = smsResult.status || 'SENT';
+      await pending.save();
+    } catch (smsErr) {
+      await PendingRegistration.findByIdAndDelete(pending._id);
+
+      if (smsErr.message === 'SMS_NOT_CONFIGURED') {
+        return res.status(503).json({
+          success: false,
+          error: 'SMS service is not configured. Please contact administrator or use Email verification.'
+        });
+      }
+      return res.status(500).json({ success: false, error: smsErr.message || 'Unable to send verification code. Please try again.' });
+    }
+
+    const successMsg = pending.smsStatus === 'QUEUED' || pending.smsStatus === 'PENDING'
       ? 'OTP request accepted. Waiting for SMS delivery...'
       : 'Verification code sent successfully.';
 
@@ -335,7 +314,7 @@ exports.registerPhone = async (req, res, next) => {
   }
 };
 
-// @desc    Verify Phone OTP
+// @desc    Verify Phone OTP & Create Permanent Account
 // @route   POST /api/auth/verify-phone-otp
 exports.verifyPhoneOTP = async (req, res, next) => {
   try {
@@ -349,38 +328,59 @@ exports.verifyPhoneOTP = async (req, res, next) => {
       phoneNumber = normalizePhoneNumber(phoneNumber, 'IN');
     } catch (e) {}
 
-    const user = await User.findOne({ phoneNumber }).select('+verificationOTP +verificationOTPExpire');
-    if (!user) return res.status(400).json({ success: false, error: 'Invalid phone number.' });
-
-    if (user.phoneVerified) {
-      return res.status(400).json({ success: false, error: 'Account is already verified.' });
+    // Look up in PendingRegistration collection
+    const pending = await PendingRegistration.findOne({ phoneNumber, registrationMethod: 'phone' });
+    if (!pending) {
+      const verifiedUser = await User.findOne({ phoneNumber, phoneVerified: true });
+      if (verifiedUser) {
+        return res.status(400).json({ success: false, error: 'Account is already verified. Please log in.' });
+      }
+      return res.status(400).json({ success: false, error: 'Registration session expired or invalid. Please request a new OTP.' });
     }
 
-    if (user.otpAttempts >= 5) {
-      return res.status(400).json({ success: false, error: 'Too many attempts. Please request a new code.' });
+    if (pending.otpAttempts >= 5) {
+      await PendingRegistration.findByIdAndDelete(pending._id);
+      return res.status(400).json({ success: false, error: 'Too many attempts. Registration expired — please request a new code.' });
     }
 
-    if (!user.verificationOTPExpire || user.verificationOTPExpire < Date.now()) {
+    if (!pending.verificationOTPExpire || pending.verificationOTPExpire < Date.now()) {
       return res.status(400).json({ success: false, error: 'Verification code expired. Please request a new code.' });
     }
 
-    const isMatch = await bcrypt.compare(otp, user.verificationOTP);
+    const isMatch = await bcrypt.compare(otp, pending.verificationOTP);
     if (!isMatch) {
-      user.otpAttempts += 1;
-      await user.save();
-      const remaining = 5 - user.otpAttempts;
+      pending.otpAttempts += 1;
+      await pending.save();
+      const remaining = 5 - pending.otpAttempts;
       return res.status(400).json({
         success: false,
-        error: remaining > 0 ? `Invalid verification code. ${remaining} attempt(s) remaining.` : 'Invalid verification code. Account locked — please request a new code.'
+        error: remaining > 0 ? `Invalid verification code. ${remaining} attempt(s) remaining.` : 'Invalid verification code. Please request a new code.'
       });
     }
 
-    user.phoneVerified = true;
-    user.isVerified = true; // also mark isVerified so general auth checks pass
-    user.verificationOTP = undefined;
-    user.verificationOTPExpire = undefined;
-    user.otpAttempts = 0;
-    await user.save();
+    // ONLY NOW: Create permanent User in User collection
+    const user = await User.create({
+      username: pending.username,
+      phoneNumber: pending.phoneNumber,
+      password: pending.password, // already hashed
+      role: 'user',
+      registrationMethod: 'phone',
+      isVerified: true,
+      phoneVerified: true
+    });
+
+    // Delete pending registration record
+    await PendingRegistration.findByIdAndDelete(pending._id);
+
+    // Audit Log
+    try {
+      await Log.create({
+        username: user.username,
+        action: 'USER_REGISTER',
+        details: `Account registered & verified via phone: ${user.phoneNumber}`,
+        status: 'SUCCESS'
+      });
+    } catch (e) {}
 
     const token = generateToken(user);
     res.status(200).json({
@@ -405,13 +405,16 @@ exports.resendPhoneOTP = async (req, res, next) => {
       phoneNumber = normalizePhoneNumber(phoneNumber, 'IN');
     } catch (e) {}
 
-    const user = await User.findOne({ phoneNumber });
-    if (!user) return res.status(400).json({ success: false, error: 'Phone number not found.' });
-    if (user.phoneVerified) return res.status(400).json({ success: false, error: 'Account already verified.' });
+    const pending = await PendingRegistration.findOne({ phoneNumber, registrationMethod: 'phone' });
+    if (!pending) {
+      const verified = await User.findOne({ phoneNumber, phoneVerified: true });
+      if (verified) return res.status(400).json({ success: false, error: 'Account already verified. Please log in.' });
+      return res.status(400).json({ success: false, error: 'Registration session expired. Please start registration again.' });
+    }
 
     // 60-second resend cooldown
-    if (user.otpLastSentAt && (Date.now() - new Date(user.otpLastSentAt).getTime()) < 60 * 1000) {
-      const waitSec = Math.ceil((60 * 1000 - (Date.now() - new Date(user.otpLastSentAt).getTime())) / 1000);
+    if (pending.otpLastSentAt && (Date.now() - new Date(pending.otpLastSentAt).getTime()) < 60 * 1000) {
+      const waitSec = Math.ceil((60 * 1000 - (Date.now() - new Date(pending.otpLastSentAt).getTime())) / 1000);
       return res.status(429).json({ success: false, error: `Please wait ${waitSec} seconds before requesting another code.` });
     }
 
@@ -419,26 +422,20 @@ exports.resendPhoneOTP = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedOTP = await bcrypt.hash(otp, salt);
 
-    user.verificationOTP = hashedOTP;
-    user.verificationOTPExpire = Date.now() + 10 * 60 * 1000;
-    user.otpAttempts = 0;
-    user.otpLastSentAt = new Date();
-    await user.save();
+    pending.verificationOTP = hashedOTP;
+    pending.verificationOTPExpire = Date.now() + 10 * 60 * 1000;
+    pending.otpAttempts = 0;
+    pending.otpLastSentAt = new Date();
+    await pending.save();
 
     const smsBody = `CyberShield verification code: ${otp}. Valid for 10 minutes. Do not share.`;
     try {
       const smsResult = await sendSMS(phoneNumber, smsBody);
-      user.smsBatchId = smsResult.smsBatchId || null;
-      user.smsStatus = smsResult.status || 'SENT';
-      await user.save();
+      pending.smsBatchId = smsResult.smsBatchId || null;
+      pending.smsStatus = smsResult.status || 'SENT';
+      await pending.save();
     } catch (smsErr) {
-      if (smsErr.message === 'SMS_NOT_CONFIGURED') {
-        return res.status(503).json({
-          success: false,
-          error: 'SMS service is not configured. Please contact the administrator or use Email verification.'
-        });
-      }
-      return res.status(500).json({ success: false, error: smsErr.message || 'Unable to send OTP right now. Please try again or use Email verification.' });
+      return res.status(500).json({ success: false, error: smsErr.message || 'Unable to send OTP right now. Please try again.' });
     }
 
     res.status(200).json({ success: true, message: 'Verification code sent successfully to your mobile number.' });
@@ -448,16 +445,15 @@ exports.resendPhoneOTP = async (req, res, next) => {
 };
 
 // ============================================================
-// LOGIN (UPDATED — supports email OR phone)
+// AUTHENTICATION (LOGIN & LOGOUT)
 // ============================================================
 
-// @desc    Login user
+// @desc    Login user (Email or Phone)
 // @route   POST /api/auth/login
 exports.login = async (req, res, next) => {
   try {
     const { email, phoneNumber, password } = req.body;
 
-    // Must provide exactly one identifier
     if ((!email && !phoneNumber) || !password) {
       return res.status(400).json({ success: false, error: 'Please enter your email or phone number and password.' });
     }
@@ -465,36 +461,26 @@ exports.login = async (req, res, next) => {
     let user;
     try {
       if (email) {
-        user = await User.findOne({ email }).select('+password');
+        const cleanEmail = email.trim().toLowerCase();
+        user = await User.findOne({ email: cleanEmail, isVerified: true }).select('+password');
       } else {
         let canonicalPhone = phoneNumber;
         try {
           canonicalPhone = normalizePhoneNumber(phoneNumber, 'IN');
         } catch (e) {}
-        user = await User.findOne({ phoneNumber: canonicalPhone }).select('+password');
+        user = await User.findOne({ phoneNumber: canonicalPhone, phoneVerified: true }).select('+password');
       }
     } catch (dbErr) {
       return res.status(503).json({ success: false, error: 'Database unavailable. Please try again later.' });
     }
 
     if (!user) {
-      return res.status(401).json({ success: false, error: 'Invalid login credentials.' });
+      return res.status(401).json({ success: false, error: 'Invalid credentials or account not verified.' });
     }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(401).json({ success: false, error: 'Invalid login credentials.' });
-    }
-
-    // Check verification based on registration method
-    if (user.registrationMethod === 'phone') {
-      if (!user.phoneVerified) {
-        return res.status(403).json({ success: false, error: 'Please verify your mobile number before logging in.', unverified: true, method: 'phone' });
-      }
-    } else {
-      if (!user.isVerified) {
-        return res.status(403).json({ success: false, error: 'Please verify your email before logging in.', unverified: true, method: 'email' });
-      }
+      return res.status(401).json({ success: false, error: 'Invalid credentials.' });
     }
 
     const token = generateToken(user);
@@ -504,7 +490,7 @@ exports.login = async (req, res, next) => {
       await Log.create({
         username: user.username,
         action: 'USER_LOGIN',
-        details: `User logged in via ${email ? 'email' : 'phone'} from ${req.ip || '127.0.0.1'}`,
+        details: `Successful login via ${email ? 'email' : 'phone'}`,
         status: 'SUCCESS'
       });
     } catch (e) {}
@@ -525,159 +511,191 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// REMAINING ENDPOINTS (UNCHANGED)
-// ============================================================
-
 // @desc    Logout user
 // @route   POST /api/auth/logout
 exports.logout = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'User logged out successfully.'
-  });
+  res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 
-// @desc    Get Current Logged User
+// @desc    Get current user profile
 // @route   GET /api/auth/me
-exports.getMe = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    user: req.user
-  });
+exports.getMe = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    res.status(200).json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
 };
 
-// @desc    Forgot Password Request
+// ============================================================
+// FORGOT & RESET PASSWORD (SECURE EMAIL & PHONE RECOVERY)
+// ============================================================
+
+// @desc    Initiate Password Reset (Generates Reset OTP)
 // @route   POST /api/auth/forgot-password
 exports.forgotPassword = async (req, res, next) => {
   try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) {
-      // Return 200 even if user doesn't exist for security reasons
-      return res.status(200).json({ success: true, message: `Password reset verification token sent to ${email || 'your email'}.` });
+    const { identifier } = req.body; // Email or Phone number
+    const genericResponse = {
+      success: true,
+      message: 'If an account exists with these details, a password reset code has been sent.'
+    };
+
+    if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
+      return res.status(400).json({ success: false, error: 'Please provide your email address or phone number.' });
     }
 
-    const resetToken = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+    const input = identifier.trim();
+    let user = null;
+
+    // Check if input is email or phone
+    if (input.includes('@')) {
+      user = await User.findOne({ email: input.toLowerCase(), isVerified: true });
+    } else {
+      try {
+        const canonical = normalizePhoneNumber(input, 'IN');
+        user = await User.findOne({ phoneNumber: canonical, phoneVerified: true });
+      } catch (_) {}
+    }
+
+    if (!user) {
+      // Return generic response to prevent account enumeration
+      return res.status(200).json(genericResponse);
+    }
+
+    const otp = generateOTP();
+    const salt = await bcrypt.genSalt(10);
+    const hashedOTP = await bcrypt.hash(otp, salt);
+
+    user.resetPasswordToken = hashedOTP;
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 mins
     await user.save();
 
-    const message = `Your password reset token is: \n\n ${resetToken}\n\nIf you did not request this, please ignore this email.`;
-    try {
-      await sendEmail({ email: user.email, subject: 'CyberShield Password Reset Token', message });
-    } catch (err) {}
+    const resetMsg = `CyberShield Password Reset Code: ${otp}. Valid for 10 minutes. Do not share.`;
 
-    res.status(200).json({ success: true, message: `Password reset verification token sent to ${email}.` });
+    if (user.email) {
+      try {
+        await sendEmail({
+          email: user.email,
+          subject: 'CyberShield Password Reset Code',
+          message: resetMsg
+        });
+      } catch (e) {
+        console.error('[Forgot Password Email Error]:', e.message);
+      }
+    } else if (user.phoneNumber) {
+      try {
+        await sendSMS(user.phoneNumber, resetMsg);
+      } catch (e) {
+        console.error('[Forgot Password SMS Error]:', e.message);
+      }
+    }
+
+    return res.status(200).json(genericResponse);
+
   } catch (err) {
     next(err);
   }
 };
 
-// @desc    Reset Password
+// @desc    Reset Password with Verified OTP
 // @route   POST /api/auth/reset-password
 exports.resetPassword = async (req, res, next) => {
   try {
-    const { resetToken, newPassword } = req.body;
-    const resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const { identifier, otp, newPassword } = req.body;
 
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ success: false, error: 'Invalid or expired reset token' });
+    if (!identifier || !otp || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Please provide identifier, reset code, and new password.' });
     }
 
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters long.' });
+    }
+
+    const input = identifier.trim();
+    let user = null;
+
+    if (input.includes('@')) {
+      user = await User.findOne({ email: input.toLowerCase(), isVerified: true }).select('+resetPasswordToken +resetPasswordExpire');
+    } else {
+      try {
+        const canonical = normalizePhoneNumber(input, 'IN');
+        user = await User.findOne({ phoneNumber: canonical, phoneVerified: true }).select('+resetPasswordToken +resetPasswordExpire');
+      } catch (_) {}
+    }
+
+    if (!user || !user.resetPasswordToken || !user.resetPasswordExpire) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired password reset code.' });
+    }
+
+    if (user.resetPasswordExpire < Date.now()) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
+      return res.status(400).json({ success: false, error: 'Password reset code has expired. Please request a new code.' });
+    }
+
+    const isMatch = await bcrypt.compare(otp, user.resetPasswordToken);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, error: 'Invalid password reset code.' });
+    }
+
+    // Update password
     user.password = newPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
-    user.passwordChangedAt = Date.now();
+    user.passwordChangedAt = new Date();
     await user.save();
 
-    res.status(200).json({ success: true, message: 'Password successfully updated. You may now login.' });
+    // Audit Log
+    try {
+      await Log.create({
+        username: user.username,
+        action: 'PASSWORD_RESET',
+        details: 'Password successfully updated via OTP reset',
+        status: 'SUCCESS'
+      });
+    } catch (e) {}
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully. You can now log in with your new password.'
+    });
+
   } catch (err) {
     next(err);
   }
 };
 
-// @desc    Production Email Diagnostic Endpoint
-// @route   POST /api/auth/test-email
-exports.testEmail = async (req, res, next) => {
+// ============================================================
+// DIAGNOSTICS (TEST ENDPOINTS)
+// ============================================================
+
+exports.testEmail = async (req, res) => {
   try {
     const { targetEmail } = req.body;
-    if (!targetEmail) {
-      return res.status(400).json({ success: false, error: 'Please provide targetEmail' });
-    }
-
-    const recipientDomain = targetEmail.split('@')[1];
-    const message = `CyberShield Diagnostic Email Test\nRecipient Domain: ${recipientDomain}\nTime: ${new Date().toISOString()}`;
-
-    const result = await sendEmail({
+    if (!targetEmail) return res.status(400).json({ success: false, error: 'Target email required' });
+    await sendEmail({
       email: targetEmail,
-      subject: 'CyberShield Production Email Diagnostic',
-      message
+      subject: 'CyberShield Test Email',
+      message: 'Diagnostic email test.'
     });
-
-    res.status(200).json({
-      success: true,
-      message: `Diagnostic email dispatched to ${targetEmail}`,
-      diagnostic: {
-        recipientDomain,
-        provider: result?.provider || 'Unknown',
-        sendResult: result?.status || 'SUCCESS',
-        responseCode: result?.responseCode || 200,
-        providerData: result?.data || {}
-      }
-    });
+    res.status(200).json({ success: true, message: 'Email sent successfully.' });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Email diagnostic failed',
-      providerErrorMessage: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
-// @desc    Production SMS Diagnostic Endpoint
-// @route   POST /api/auth/test-sms
-exports.testSMS = async (req, res, next) => {
+exports.testSMS = async (req, res) => {
   try {
     let { targetPhone, message } = req.body;
-    if (!targetPhone) {
-      return res.status(400).json({ success: false, error: 'Please provide targetPhone' });
-    }
-
-    try {
-      targetPhone = normalizePhoneNumber(targetPhone, 'IN');
-    } catch (normErr) {
-      return res.status(400).json({ success: false, error: normErr.message });
-    }
-
-    const testMsg = message || 'CyberShield test SMS';
-    const maskedPhone = targetPhone.replace(/\d(?=\d{4})/g, '*');
-
-    console.log(`[SMS TEST DIAGNOSTIC] Initiating test SMS dispatch to ${maskedPhone}`);
-
-    const result = await sendSMS(targetPhone, testMsg);
-
-    res.status(200).json({
-      success: true,
-      message: `Diagnostic SMS successfully sent to ${maskedPhone}`,
-      diagnostic: {
-        recipientMasked: maskedPhone,
-        canonicalPhone: targetPhone,
-        provider: result.provider || 'TextBee',
-        status: result.status || 'SENT',
-        smsBatchId: result.smsBatchId || null
-      }
-    });
+    if (!targetPhone) return res.status(400).json({ success: false, error: 'Target phone required' });
+    targetPhone = normalizePhoneNumber(targetPhone, 'IN');
+    const result = await sendSMS(targetPhone, message || 'CyberShield test SMS');
+    res.status(200).json({ success: true, diagnostic: result });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'SMS diagnostic failed',
-      providerErrorMessage: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
