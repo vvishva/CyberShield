@@ -1,7 +1,8 @@
 /**
  * CyberShield — SMS Sender Utility (SMSGate / Android SMS Gateway)
  *
- * Primary Provider: SMSGate (Official Android SMS Gateway https://github.com/android-sms-gateway)
+ * Official SMSGate documentation: https://docs.sms-gate.app
+ * Primary Provider: SMSGate (https://sms-gate.app)
  * Fallback Providers: TextBee Gateway, Twilio
  */
 
@@ -11,30 +12,37 @@ const { normalizePhoneNumber } = require('./phoneNormalizer');
  * Check SMSGate message status via GET /message/{id}
  */
 const checkSMSGateStatus = async (baseUrl, authHeader, messageId) => {
-  try {
-    const res = await fetch(`${baseUrl}/message/${messageId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
-      }
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const state = json.state || json.status || null;
-    return state ? String(state).toUpperCase() : null;
-  } catch (_) {
-    return null;
+  const checkEndpoints = [
+    `${baseUrl}/message/${messageId}`,
+    `${baseUrl}/messages/${messageId}`,
+    `https://api.sms-gate.app/3rdparty/v1/message/${messageId}`
+  ];
+
+  for (const endpoint of checkEndpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const state = json.state || json.status || null;
+      if (state) return String(state).toUpperCase();
+    } catch (_) {}
   }
+  return null;
 };
 
 const sendSMS = async (to, message) => {
   const smsgateLogin    = process.env.SMSGATEWAY_LOGIN;
   const smsgatePassword = process.env.SMSGATEWAY_PASSWORD;
   const smsgateToken    = process.env.SMSGATEWAY_TOKEN;
-  const smsgateBaseUrl  = (process.env.SMSGATEWAY_URL || 'https://api.sms-gateway.app/v1').replace(/\/+$/, '');
+  const rawBaseUrl      = process.env.SMSGATEWAY_URL || 'https://api.sms-gate.app/3rdparty/v1';
 
-  // ── Strategy 1: SMSGate (Official Android SMS Gateway) ─────────────────
+  // ── Strategy 1: SMSGate (Official Android SMS Gateway https://sms-gate.app)
   if (smsgateToken || (smsgateLogin && smsgatePassword)) {
     const formattedPhone = normalizePhoneNumber(to, 'IN');
     const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
@@ -47,80 +55,98 @@ const sendSMS = async (to, message) => {
       authHeader = 'Basic ' + Buffer.from(`${smsgateLogin.trim()}:${smsgatePassword.trim()}`).toString('base64');
     }
 
-    const endpoint = `${smsgateBaseUrl}/message/send`;
-    console.log(`[SMSGate] Dispatching to recipient: ${maskedPhone} via ${endpoint}`);
+    const cleanBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+    const endpoints = [
+      `${cleanBaseUrl}/message/send`,
+      `${cleanBaseUrl}/messages`,
+      `https://api.sms-gate.app/3rdparty/v1/message/send`,
+      `https://api.sms-gateway.app/v1/message/send`
+    ];
 
     const payload = {
       message: message,
       phoneNumbers: [formattedPhone]
     };
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    let lastError = null;
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
+    for (const endpoint of endpoints) {
+      console.log(`[SMSGate] Dispatching to recipient: ${maskedPhone} via ${endpoint}`);
 
-      clearTimeout(timeoutId);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const responseText = await response.text();
-      console.log(`[SMSGate] HTTP Status: ${response.status}`);
-      console.log(`[SMSGate] Response snippet: ${responseText.substring(0, 300)}`);
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
 
-      let resData = {};
-      try { resData = JSON.parse(responseText); } catch (_) {}
+        clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error('SMSGate authentication failed. Please check SMSGate credentials.');
+        const responseText = await response.text();
+        console.log(`[SMSGate] HTTP Status: ${response.status}`);
+        console.log(`[SMSGate] Response snippet: ${responseText.substring(0, 300)}`);
+
+        let resData = {};
+        try { resData = JSON.parse(responseText); } catch (_) {}
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            throw new Error('SMSGate authentication failed. Please check your SMSGate token or login/password.');
+          }
+          if (response.status === 404) {
+            console.warn(`[SMSGate] Endpoint ${endpoint} returned 404. Trying fallback route...`);
+            lastError = new Error(`Endpoint 404: ${endpoint}`);
+            continue;
+          }
+          throw new Error(`SMSGate HTTP error ${response.status}: ${resData.message || responseText}`);
         }
-        throw new Error(`SMSGate HTTP error ${response.status}: ${resData.message || responseText}`);
-      }
 
-      const messageId = resData.id || resData._id || resData.messageId || null;
-      let currentState = String(resData.state || resData.status || 'PENDING').toUpperCase();
+        const messageId = resData.id || resData._id || resData.messageId || null;
+        let currentState = String(resData.state || resData.status || 'PENDING').toUpperCase();
 
-      console.log(`[SMSGate] Message accepted. ID: ${messageId || 'N/A'}, Initial State: ${currentState}`);
+        console.log(`[SMSGate] Message accepted. ID: ${messageId || 'N/A'}, Initial State: ${currentState}`);
 
-      // Poll status if messageId available
-      if (messageId) {
-        for (let i = 0; i < 2; i++) {
-          await new Promise(r => setTimeout(r, 1200));
-          const statusResult = await checkSMSGateStatus(smsgateBaseUrl, authHeader, messageId);
-          if (statusResult) {
-            currentState = statusResult;
-            console.log(`[SMSGate] Status check #${i+1}: ${currentState}`);
-            if (['FAILED', 'ERROR', 'REJECTED'].includes(currentState)) {
-              throw new Error(`SMSGate Android device reported message dispatch failure: ${currentState}`);
-            }
-            if (['SENT', 'DELIVERED', 'SUCCESS'].includes(currentState)) {
-              break;
+        // Poll status if messageId available
+        if (messageId) {
+          for (let i = 0; i < 2; i++) {
+            await new Promise(r => setTimeout(r, 1200));
+            const statusResult = await checkSMSGateStatus(cleanBaseUrl, authHeader, messageId);
+            if (statusResult) {
+              currentState = statusResult;
+              console.log(`[SMSGate] Status check #${i+1}: ${currentState}`);
+              if (['FAILED', 'ERROR', 'REJECTED'].includes(currentState)) {
+                throw new Error(`SMSGate Android device reported message dispatch failure: ${currentState}`);
+              }
+              if (['SENT', 'DELIVERED', 'SUCCESS'].includes(currentState)) {
+                break;
+              }
             }
           }
         }
+
+        return {
+          provider: 'SMSGate',
+          status: currentState,
+          smsBatchId: messageId || 'accepted',
+          endpointUsed: endpoint,
+          recipientMasked: maskedPhone
+        };
+
+      } catch (err) {
+        clearTimeout(timeoutId);
+        lastError = err;
+        if (err.message.includes('authentication failed')) throw err;
       }
-
-      return {
-        provider: 'SMSGate',
-        status: currentState,
-        smsBatchId: messageId || 'accepted',
-        endpointUsed: endpoint,
-        recipientMasked: maskedPhone
-      };
-
-    } catch (err) {
-      clearTimeout(timeoutId);
-      console.error('[SMSGate Error]:', err.message);
-      throw err;
     }
+
+    throw lastError || new Error('Unable to send SMS via SMSGate.');
   }
 
   // ── Strategy 2: TextBee Gateway (Secondary Fallback) ───────────────────
