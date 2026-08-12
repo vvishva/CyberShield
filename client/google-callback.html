@@ -52,7 +52,7 @@
       if (token) {
         let openerNotified = false;
 
-        // Try sending raw token to opener tab first
+        // Try sending raw token to opener tab first (if opener exists on desktop)
         if (window.opener && !window.opener.closed) {
           try {
             window.opener.postMessage({
@@ -92,24 +92,24 @@
                   token: data.token,
                   user: data.user
                 }, '*');
-                window.opener.location.replace('dashboard.html');
+                window.opener.location.replace('dashboard.html?t=' + Date.now());
               } catch (e) {}
+              try { window.close(); } catch(e) {}
             }
 
-            // Close popup after navigating parent tab
+            // Direct window replace (Mobile Flow)
             setTimeout(() => {
-              try { window.close(); } catch(e) {}
-              window.location.replace('dashboard.html');
-            }, 300);
+              window.location.replace('dashboard.html?t=' + Date.now());
+            }, 100);
           } else {
             if (spinner) spinner.style.display = 'none';
             statusMsg.innerHTML = '<span style="color:#ef4444;">❌ ' + (data.error || 'Google authentication failed.') + '</span>';
-            setTimeout(() => { window.close(); }, 2500);
+            setTimeout(() => { window.location.replace('login.html'); }, 2000);
           }
         } catch (err) {
           if (spinner) spinner.style.display = 'none';
           statusMsg.innerHTML = '<span style="color:#ef4444;">❌ Unable to complete authentication.</span>';
-          setTimeout(() => { window.close(); }, 2500);
+          setTimeout(() => { window.location.replace('login.html'); }, 2000);
         }
       } else {
         // No token present
@@ -120,7 +120,7 @@
         }
         if (spinner) spinner.style.display = 'none';
         statusMsg.textContent = 'Google sign-in was cancelled.';
-        setTimeout(() => { window.close(); }, 1200);
+        setTimeout(() => { window.location.replace('login.html'); }, 1200);
       }
     })();
   </script>

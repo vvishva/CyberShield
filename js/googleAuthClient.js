@@ -6,6 +6,10 @@
 (function () {
   const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID || '216593256191-jc2kvjrfjt4ounthofpph92q65pct9n4.apps.googleusercontent.com';
 
+  function isMobileBrowser() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || window.innerWidth < 768;
+  }
+
   function initGoogleSSO() {
     const googleBtn = document.getElementById('btn-google-sso');
     if (!googleBtn) return;
@@ -20,13 +24,13 @@
       if (e.key === 'cybershield_token' && e.newValue) {
         showToast('✓ Authentication successful! Opening Dashboard...', 'success');
         setTimeout(() => {
-          window.location.replace('dashboard.html');
-        }, 200);
+          window.location.replace('dashboard.html?t=' + Date.now());
+        }, 150);
       }
     });
 
-    // Initialize GIS if SDK loaded
-    if (window.google && window.google.accounts && window.google.accounts.id) {
+    // Initialize GIS if SDK loaded and on Desktop
+    if (!isMobileBrowser() && window.google && window.google.accounts && window.google.accounts.id) {
       try {
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
@@ -52,8 +56,8 @@
 
       showToast('✓ Authentication successful! Opening Dashboard...', 'success');
       setTimeout(() => {
-        window.location.replace('dashboard.html');
-      }, 300);
+        window.location.replace('dashboard.html?t=' + Date.now());
+      }, 200);
     } else if (event.data.type === 'GOOGLE_AUTH_CREDENTIAL' && event.data.credential) {
       const googleBtn = document.getElementById('btn-google-sso');
       verifyWithBackend({ credential: event.data.credential }, googleBtn, googleBtn ? googleBtn.innerHTML : '');
@@ -74,7 +78,22 @@
     const originalHTML = googleBtn.innerHTML;
     setGoogleBtnLoading(googleBtn, true);
 
-    // Strategy 1: GIS Native Token Client (Mobile + Desktop)
+    // Strategy 0: Direct Main Tab Navigation on Mobile Devices (Prevents popup freeze)
+    if (isMobileBrowser()) {
+      const redirectUri = window.location.origin + '/client/google-callback.html';
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=id_token` +
+        `&scope=${encodeURIComponent('openid email profile')}` +
+        `&nonce=${Date.now()}` +
+        `&prompt=select_account`;
+
+      window.location.href = authUrl;
+      return;
+    }
+
+    // Strategy 1: GIS Native Token Client (Desktop)
     if (window.google && window.google.accounts && window.google.accounts.oauth2) {
       try {
         const tokenClient = window.google.accounts.oauth2.initTokenClient({
@@ -102,7 +121,7 @@
       } catch (e) {}
     }
 
-    // Strategy 2: GIS ID Prompt
+    // Strategy 2: GIS ID Prompt (Desktop)
     if (window.google && window.google.accounts && window.google.accounts.id) {
       try {
         window.google.accounts.id.initialize({
@@ -201,8 +220,8 @@
 
         showToast('Authentication successful! Opening Dashboard...', 'success');
         setTimeout(() => {
-          window.location.replace('dashboard.html');
-        }, 300);
+          window.location.replace('dashboard.html?t=' + Date.now());
+        }, 200);
       } else {
         if (btn) setGoogleBtnLoading(btn, false, originalHTML);
         showToast(data.error || 'Google authentication could not be verified.', 'danger');
