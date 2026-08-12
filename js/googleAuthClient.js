@@ -1,29 +1,54 @@
 /**
  * CyberShield — Official Google Identity Services & OAuth 2.0 Client
- * Handles real Google Authentication flow for Login & Registration pages.
+ *
+ * Implements Google's official Account Chooser flow via Google Identity Services
+ * and fallback OAuth 2.0 Web Authorization Popup.
  */
 
 (function () {
-  // Google Client ID
   const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID || '216593256191-jc2kvjrfjt4ounthofpph92q65pct9n4.apps.googleusercontent.com';
+
+  // Ensure Google Identity Services SDK script is present and loaded
+  function loadGoogleSDK(callback) {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      if (callback) callback();
+      return;
+    }
+
+    const existingScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => { if (callback) callback(); });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (callback) callback();
+    };
+    document.head.appendChild(script);
+  }
 
   function initGoogleSSO() {
     const googleBtn = document.getElementById('btn-google-sso');
     if (!googleBtn) return;
 
-    // Check if Google Identity Services SDK loaded
-    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+    loadGoogleSDK(() => {
       try {
-        google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true
-        });
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true
+          });
+        }
       } catch (e) {
-        console.warn('[Google GIS Init Warning]:', e.message);
+        console.warn('[Google GIS Init]:', e.message);
       }
-    }
+    });
 
     googleBtn.addEventListener('click', onGoogleBtnClicked);
   }
@@ -36,76 +61,110 @@
     const originalHTML = googleBtn.innerHTML;
     setGoogleBtnLoading(googleBtn, true);
 
-    try {
-      // Strategy A: Check if official Google Identity Services SDK is available
-      if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-        // Trigger Google's official Account Chooser prompt
-        google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment_()) {
-            // Fallback to Google OAuth Token Client popup if prompt is suppressed
-            triggerGoogleOAuthPopup(googleBtn, originalHTML);
-          } else if (notification.isDismissedMoment()) {
-            setGoogleBtnLoading(googleBtn, false, originalHTML);
-            showToast('Google sign-in was cancelled.', 'info');
-          }
-        });
+    // Strategy 1: Tries Google Identity Services SDK prompt
+    loadGoogleSDK(() => {
+      let promptTriggered = false;
+
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (res) => handleGoogleCredentialResponse(res, googleBtn, originalHTML),
+            auto_select: false
+          });
+
+          window.google.accounts.id.prompt((notification) => {
+            promptTriggered = true;
+            if (notification.isDismissedMoment()) {
+              setGoogleBtnLoading(googleBtn, false, originalHTML);
+              showToast('Google sign-in was cancelled.', 'info');
+            } else if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              openGoogleOAuthPopup(googleBtn, originalHTML);
+            }
+          });
+        } catch (err) {
+          openGoogleOAuthPopup(googleBtn, originalHTML);
+        }
       } else {
-        // Strategy B: Fallback Google OAuth Popup
-        triggerGoogleOAuthPopup(googleBtn, originalHTML);
+        openGoogleOAuthPopup(googleBtn, originalHTML);
       }
-    } catch (err) {
-      setGoogleBtnLoading(googleBtn, false, originalHTML);
-      showToast('Unable to sign in with Google. Please try again.', 'danger');
-    }
+
+      // Fallback timeout in case GIS prompt is blocked or silent
+      setTimeout(() => {
+        if (!promptTriggered && googleBtn.disabled && googleBtn.innerHTML.includes('Connecting')) {
+          openGoogleOAuthPopup(googleBtn, originalHTML);
+        }
+      }, 1500);
+    });
   }
 
-  function triggerGoogleOAuthPopup(googleBtn, originalHTML) {
-    if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: 'email profile openid',
-        callback: async (tokenResponse) => {
-          if (tokenResponse && tokenResponse.access_token) {
-            await verifyWithBackend({ token: tokenResponse.access_token }, googleBtn, originalHTML);
-          } else {
-            setGoogleBtnLoading(googleBtn, false, originalHTML);
-            showToast('Google sign-in was cancelled.', 'info');
-          }
-        },
-        error_callback: (err) => {
+  // Strategy 2: Official Google OAuth 2.0 Web Popup Authorization
+  function openGoogleOAuthPopup(googleBtn, originalHTML) {
+    const redirectUri = window.location.origin + '/client/google-callback.html';
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=id_token` +
+      `&scope=${encodeURIComponent('openid email profile')}` +
+      `&nonce=${Date.now()}` +
+      `&prompt=select_account`;
+
+    const width = 500;
+    const height = 600;
+    const left = Math.max(0, (window.screen.width - width) / 2);
+    const top = Math.max(0, (window.screen.height - height) / 2);
+
+    const popup = window.open(
+      googleAuthUrl,
+      'GoogleAuthPopup',
+      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,status=1,resizable=1`
+    );
+
+    if (!popup) {
+      setGoogleBtnLoading(googleBtn, false, originalHTML);
+      showToast('Popup blocker prevented Google Sign-In. Please allow popups for this site.', 'warning');
+      return;
+    }
+
+    // Monitor popup window closure
+    const popupCheckInterval = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(popupCheckInterval);
+        window.removeEventListener('message', handleMessage);
+        if (googleBtn.disabled && googleBtn.innerHTML.includes('Connecting')) {
           setGoogleBtnLoading(googleBtn, false, originalHTML);
           showToast('Google sign-in was cancelled.', 'info');
         }
-      });
-      client.requestAccessToken();
-    } else {
-      // Modal Chooser Fallback (Safe fallback for local dev / unconfigured origins)
-      const modal = document.getElementById('google-sso-modal');
-      if (modal) {
-        setGoogleBtnLoading(googleBtn, false, originalHTML);
-        modal.classList.add('active');
-      } else {
-        setGoogleBtnLoading(googleBtn, false, originalHTML);
-        showToast('Unable to connect to Google OAuth service.', 'warning');
+      }
+    }, 500);
+
+    async function handleMessage(event) {
+      if (event.data && event.data.type === 'GOOGLE_AUTH_CREDENTIAL' && event.data.credential) {
+        clearInterval(popupCheckInterval);
+        window.removeEventListener('message', handleMessage);
+        if (popup && !popup.closed) popup.close();
+        await verifyWithBackend({ credential: event.data.credential }, googleBtn, originalHTML);
       }
     }
+
+    window.addEventListener('message', handleMessage);
   }
 
-  async function handleGoogleCredentialResponse(response) {
-    const googleBtn = document.getElementById('btn-google-sso');
-    const originalHTML = googleBtn ? googleBtn.innerHTML : '';
+  async function handleGoogleCredentialResponse(response, googleBtn, originalHTML) {
+    const btn = googleBtn || document.getElementById('btn-google-sso');
     if (response && response.credential) {
-      await verifyWithBackend({ credential: response.credential }, googleBtn, originalHTML);
+      await verifyWithBackend({ credential: response.credential }, btn, originalHTML);
     } else {
-      if (googleBtn) setGoogleBtnLoading(googleBtn, false, originalHTML);
+      if (btn) setGoogleBtnLoading(btn, false, originalHTML);
       showToast('Google authentication could not be verified.', 'danger');
     }
   }
 
   async function verifyWithBackend(payload, googleBtn, originalHTML) {
+    const btn = googleBtn || document.getElementById('btn-google-sso');
     try {
-      if (googleBtn) setGoogleBtnLoading(googleBtn, true);
-      showToast('Verifying Google credentials with CyberShield backend...', 'info');
+      if (btn) setGoogleBtnLoading(btn, true);
+      showToast('Verifying Google credential with CyberShield backend...', 'info');
 
       const data = await apiRequest('/auth/google', 'POST', payload);
 
@@ -113,23 +172,22 @@
         setToken(data.token);
         setUser(data.user);
 
-        if (googleBtn) {
-          googleBtn.innerHTML = '<i class="fas fa-check-circle" style="color:#00c896;"></i> Authentication successful';
-          googleBtn.disabled = true;
+        if (btn) {
+          btn.innerHTML = '<i class="fas fa-check-circle" style="color:#00c896;"></i> Authentication successful';
+          btn.disabled = true;
         }
 
         showToast('Authentication successful! Redirecting to Dashboard...', 'success');
         setTimeout(() => {
           window.location.href = 'dashboard.html';
-        }, 1200);
+        }, 1000);
       } else {
-        if (googleBtn) setGoogleBtnLoading(googleBtn, false, originalHTML);
+        if (btn) setGoogleBtnLoading(btn, false, originalHTML);
         showToast(data.error || 'Google authentication could not be verified.', 'danger');
       }
     } catch (err) {
-      if (googleBtn) setGoogleBtnLoading(googleBtn, false, originalHTML);
-      const errMsg = err.message || 'Unable to sign in with Google. Please try again.';
-      showToast(errMsg, 'danger');
+      if (btn) setGoogleBtnLoading(btn, false, originalHTML);
+      showToast(err.message || 'Unable to sign in with Google. Please try again.', 'danger');
     }
   }
 
@@ -144,7 +202,6 @@
     }
   }
 
-  // Expose global callback helper
   window.handleGoogleCredentialResponse = handleGoogleCredentialResponse;
   window.performGoogleAuthToken = verifyWithBackend;
 
