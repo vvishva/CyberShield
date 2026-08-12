@@ -92,6 +92,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // Serve Static Assets (Frontend)
 const rootDir = path.join(__dirname, '..');
 app.use(express.static(path.join(rootDir, 'client')));
+app.use('/client', express.static(path.join(rootDir, 'client')));
 app.use('/css', express.static(path.join(rootDir, 'css')));
 app.use('/js', express.static(path.join(rootDir, 'js')));
 app.use('/images', express.static(path.join(rootDir, 'images')));
