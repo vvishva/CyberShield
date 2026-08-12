@@ -52,7 +52,7 @@
       if (token) {
         let openerNotified = false;
 
-        // Try notifying opener window first
+        // Try sending raw token to opener tab first
         if (window.opener && !window.opener.closed) {
           try {
             window.opener.postMessage({
@@ -77,35 +77,38 @@
           const data = await response.json();
 
           if (data.success && data.token) {
+            // Save session to localStorage
             localStorage.setItem('cybershield_token', data.token);
             localStorage.setItem('cybershield_user', JSON.stringify(data.user));
 
             if (spinner) spinner.style.borderColor = '#00c896';
             statusMsg.innerHTML = '<span style="color:#00c896;">✓ Authentication successful! Opening Dashboard...</span>';
 
+            // Post SUCCESS message to opener tab
+            if (window.opener && !window.opener.closed) {
+              try {
+                window.opener.postMessage({
+                  type: 'GOOGLE_AUTH_SUCCESS',
+                  token: data.token,
+                  user: data.user
+                }, '*');
+                window.opener.focus();
+              } catch (e) {}
+            }
+
+            // Close popup after notifying parent
             setTimeout(() => {
-              // Redirect main full-screen window and close this small popup window
-              if (window.opener && !window.opener.closed) {
-                try {
-                  window.opener.location.href = 'dashboard.html';
-                } catch (e) {
-                  window.open('dashboard.html', '_blank');
-                }
-                window.close();
-              } else {
-                window.open('dashboard.html', '_blank');
-                window.close();
-              }
-            }, 600);
+              window.close();
+            }, 300);
           } else {
             if (spinner) spinner.style.display = 'none';
             statusMsg.innerHTML = '<span style="color:#ef4444;">❌ ' + (data.error || 'Google authentication failed.') + '</span>';
-            setTimeout(() => { window.close(); }, 3000);
+            setTimeout(() => { window.close(); }, 2500);
           }
         } catch (err) {
           if (spinner) spinner.style.display = 'none';
           statusMsg.innerHTML = '<span style="color:#ef4444;">❌ Unable to complete authentication.</span>';
-          setTimeout(() => { window.close(); }, 3000);
+          setTimeout(() => { window.close(); }, 2500);
         }
       } else {
         // No token present
@@ -116,7 +119,7 @@
         }
         if (spinner) spinner.style.display = 'none';
         statusMsg.textContent = 'Google sign-in was cancelled.';
-        setTimeout(() => { window.close(); }, 1500);
+        setTimeout(() => { window.close(); }, 1200);
       }
     })();
   </script>
