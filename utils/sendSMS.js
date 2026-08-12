@@ -2,10 +2,10 @@
  * CyberShield — SMS Sender Utility
  *
  * Supported SMS Providers:
- *   1. Fast2SMS (Indian Cloud Gateway https://www.fast2sms.com)
- *   2. SMSGate (Official Android SMS Gateway https://sms-gate.app)
- *   3. TextBee Gateway (https://textbee.dev)
- *   4. Twilio Cloud Gateway (https://www.twilio.com)
+ *   1. Twilio Cloud Gateway (https://www.twilio.com)
+ *   2. Fast2SMS (Indian Cloud Gateway https://www.fast2sms.com)
+ *   3. SMSGate (Official Android SMS Gateway https://sms-gate.app)
+ *   4. TextBee Gateway (https://textbee.dev)
  */
 
 const { normalizePhoneNumber } = require('./phoneNormalizer');
@@ -39,7 +39,59 @@ const checkSMSGateStatus = async (baseUrl, authHeader, messageId) => {
 };
 
 const sendSMS = async (to, message) => {
-  // ── Strategy 1: Fast2SMS (Indian Cloud SMS Gateway https://www.fast2sms.com)
+  // ── Strategy 1: Twilio Cloud Gateway (https://www.twilio.com) ───────────
+  const twilioSid   = process.env.TWILIO_ACCOUNT_SID;
+  const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+  const twilioFrom  = process.env.TWILIO_PHONE_NUMBER;
+
+  if (twilioSid && twilioToken && twilioFrom) {
+    const formattedPhone = normalizePhoneNumber(to, 'IN');
+    const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
+
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+    const body = new URLSearchParams();
+    body.append('To', formattedPhone);
+    body.append('From', twilioFrom);
+    body.append('Body', message);
+
+    console.log(`[Twilio] Dispatching to recipient: ${maskedPhone} via ${url}`);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${twilioSid.trim()}:${twilioToken.trim()}`).toString('base64'),
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: body.toString()
+      });
+
+      const responseText = await response.text();
+      console.log(`[Twilio] HTTP Status: ${response.status}`);
+      console.log(`[Twilio] Response snippet: ${responseText.substring(0, 300)}`);
+
+      let resData = {};
+      try { resData = JSON.parse(responseText); } catch (_) {}
+
+      if (!response.ok) {
+        const errMsg = resData.message || (resData.code ? `Error ${resData.code}` : responseText);
+        throw new Error(`Twilio error: ${errMsg}`);
+      }
+
+      return {
+        provider: 'Twilio',
+        status: 'SENT',
+        smsBatchId: resData.sid || 'twilio_sent',
+        endpointUsed: url,
+        recipientMasked: maskedPhone
+      };
+    } catch (err) {
+      console.error('[Twilio Error]:', err.message);
+      throw err;
+    }
+  }
+
+  // ── Strategy 2: Fast2SMS (Indian Cloud SMS Gateway https://www.fast2sms.com)
   const fast2smsApiKey = process.env.FAST2SMS_API_KEY;
   if (fast2smsApiKey && fast2smsApiKey.trim()) {
     const formattedPhone = normalizePhoneNumber(to, 'IN');
@@ -52,7 +104,6 @@ const sendSMS = async (to, message) => {
     const endpoint = 'https://www.fast2sms.com/dev/bulkV2';
     console.log(`[Fast2SMS] Dispatching to recipient: ${maskedPhone} via ${endpoint}`);
 
-    // Extract digits for OTP route if present, or fallback to quick route
     const digitsOnly = message.replace(/\D/g, '');
     const otpValue = digitsOnly.length >= 4 ? digitsOnly.substring(0, 6) : '123456';
 
@@ -114,7 +165,7 @@ const sendSMS = async (to, message) => {
     throw lastFast2SMSErr || new Error('Fast2SMS delivery failed');
   }
 
-  // ── Strategy 2: SMSGate (Official Android SMS Gateway https://sms-gate.app)
+  // ── Strategy 3: SMSGate (Official Android SMS Gateway https://sms-gate.app)
   const smsgateLogin    = process.env.SMSGATEWAY_LOGIN;
   const smsgatePassword = process.env.SMSGATEWAY_PASSWORD;
   const smsgateToken    = process.env.SMSGATEWAY_TOKEN;
@@ -227,7 +278,7 @@ const sendSMS = async (to, message) => {
     }
   }
 
-  // ── Strategy 3: TextBee Gateway ─────────────────────────────────────────
+  // ── Strategy 4: TextBee Gateway ─────────────────────────────────────────
   const textbeeApiKey   = process.env.TEXTBEE_API_KEY;
   const textbeeDeviceId = process.env.TEXTBEE_DEVICE_ID;
   const textbeeBaseUrl  = process.env.TEXTBEE_API_BASE_URL || 'https://api.textbee.dev/api/v1';
@@ -274,43 +325,6 @@ const sendSMS = async (to, message) => {
       smsBatchId: resData.data?.smsBatchId || resData.smsBatchId || 'accepted',
       endpointUsed: endpoint,
       recipientMasked: maskedPhone
-    };
-  }
-
-  // ── Strategy 4: Twilio Fallback ─────────────────────────────────────────
-  const twilioSid   = process.env.TWILIO_ACCOUNT_SID;
-  const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-  const twilioFrom  = process.env.TWILIO_PHONE_NUMBER;
-
-  if (twilioSid && twilioToken && twilioFrom) {
-    const formattedPhone = normalizePhoneNumber(to, 'IN');
-
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
-    const body = new URLSearchParams();
-    body.append('To', formattedPhone);
-    body.append('From', twilioFrom);
-    body.append('Body', message);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64'),
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: body.toString()
-    });
-
-    let resData = {};
-    try { resData = await response.json(); } catch (_) {}
-
-    if (!response.ok) {
-      throw new Error('Twilio SMS delivery failed.');
-    }
-
-    return {
-      provider: 'Twilio',
-      status: 'SENT',
-      smsBatchId: resData.sid || 'unknown'
     };
   }
 
