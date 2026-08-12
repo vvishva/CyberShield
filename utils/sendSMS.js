@@ -47,6 +47,13 @@ const sendSMS = async (to, message) => {
     const formattedPhone = normalizePhoneNumber(to, 'IN');
     const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
 
+    // For Indian local SIM card sending via Android SmsManager,
+    // convert +91XXXXXXXXXX to local 10-digit format (e.g. 9876543210) to match Dashboard manual send
+    let dispatchNumber = formattedPhone;
+    if (formattedPhone.startsWith('+91') && formattedPhone.length === 13) {
+      dispatchNumber = formattedPhone.slice(3); // 10 digits: 9876543210
+    }
+
     // Build endpoint priority list (Primary: /gateway/send-sms)
     const endpoints = [
       {
@@ -64,7 +71,7 @@ const sendSMS = async (to, message) => {
 
     // Build payload matching exact TextBee Dashboard manual send format
     const payload = {
-      recipients: [formattedPhone],
+      recipients: [dispatchNumber],
       message: message
     };
 
@@ -76,7 +83,7 @@ const sendSMS = async (to, message) => {
     let lastError = null;
 
     for (const ep of endpoints) {
-      console.log(`[SMS] Dispatching to recipient: ${maskedPhone} via endpoint: ${ep.url}`);
+      console.log(`[SMS] Dispatching to local recipient: ${dispatchNumber.replace(/\d(?=\d{4})/g, '*')} (Canonical: ${maskedPhone}) via endpoint: ${ep.url}`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -147,7 +154,8 @@ const sendSMS = async (to, message) => {
           status: actualStatus,
           smsBatchId: smsBatchId || 'accepted',
           endpointUsed: ep.url,
-          recipientMasked: maskedPhone
+          recipientMasked: maskedPhone,
+          dispatchNumberMasked: dispatchNumber.replace(/\d(?=\d{4})/g, '*')
         };
 
       } catch (err) {
