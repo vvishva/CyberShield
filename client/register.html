@@ -3,120 +3,397 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register - CyberShield AI</title>
+  <title>Create Account – CyberShield Security Operations Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="../css/style.css">
   <style>
+    :root {
+      --soc-bg: #060913;
+      --soc-card-bg: rgba(11, 17, 32, 0.88);
+      --soc-border: rgba(0, 163, 255, 0.2);
+      --soc-cyan: #00d4ff;
+      --soc-blue: #1d72f3;
+      --soc-blue-hover: #155ecb;
+      --soc-text: #f0f4fc;
+      --soc-muted: #8a99b5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      background: var(--bg-main);
+      background-color: var(--soc-bg);
+      color: var(--soc-text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    .auth-card {
-      background: var(--bg-glass);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-lg);
-      padding: 36px 40px;
-      width: 100%;
-      max-width: 440px;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+      overflow-x: hidden;
       position: relative;
-      overflow: hidden;
-    }
-    .auth-card::before {
-      content: "";
-      position: absolute;
-      top: -50px; left: -50px; right: -50px; height: 150px;
-      background: radial-gradient(ellipse at top, rgba(0, 212, 255, 0.15), transparent 70%);
-      pointer-events: none;
-    }
-    .auth-brand {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-    .auth-brand i {
-      font-size: 42px;
-      color: var(--cyan);
-      margin-bottom: 12px;
-    }
-    .auth-brand h2 {
-      font-size: 22px;
-      font-weight: 700;
-      margin: 0;
-      letter-spacing: -0.5px;
-    }
-    .auth-brand p {
-      color: var(--text-secondary);
-      font-size: 13px;
-      margin-top: 6px;
     }
 
-    .form-group { margin-bottom: 16px; }
+    /* ── Animated Background Canvas ── */
+    .bg-grid-overlay {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .bg-glow-radial {
+      position: fixed;
+      top: 50%;
+      left: 30%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(0, 163, 255, 0.12) 0%, rgba(0, 80, 200, 0.04) 45%, transparent 70%);
+      pointer-events: none;
+      z-index: 1;
+      animation: pulseGlow 8s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+      0% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.95); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    /* ── Main Layout Container ── */
+    .soc-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 1240px;
+      min-height: 680px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 40px;
+      padding: 40px 30px;
+      align-items: center;
+    }
+
+    /* ── Left Showcase Panel ── */
+    .showcase-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      padding-right: 20px;
+      position: relative;
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .brand-logo-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #00d4ff, #1d72f3);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    }
+
+    .brand-text h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    .brand-text span {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--soc-muted);
+      display: block;
+      margin-top: 1px;
+    }
+
+    .showcase-headline h2 {
+      font-size: 34px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.8px;
+      margin-bottom: 10px;
+    }
+
+    .showcase-headline h2 span.protect-accent {
+      color: #1d72f3;
+      text-shadow: 0 0 25px rgba(29, 114, 243, 0.6);
+    }
+
+    .showcase-desc {
+      color: var(--soc-muted);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 440px;
+      margin-bottom: 30px;
+    }
+
+    /* Feature List */
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .feature-icon-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(15, 25, 45, 0.9);
+      border: 1px solid rgba(0, 212, 255, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #00d4ff;
+      font-size: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .feature-item:hover .feature-icon-badge {
+      transform: translateY(-2px);
+      border-color: #00d4ff;
+      box-shadow: 0 0 18px rgba(0, 212, 255, 0.3);
+    }
+
+    .feature-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 3px;
+    }
+
+    .feature-subtitle {
+      font-size: 12px;
+      color: var(--soc-muted);
+    }
+
+    /* Shield Graphic & Beams Animation */
+    .graphic-center-wrap {
+      position: absolute;
+      top: 50%;
+      right: 5%;
+      transform: translateY(-50%);
+      width: 320px;
+      height: 320px;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hologram-shield {
+      font-size: 160px;
+      background: linear-gradient(180deg, #00d4ff 0%, #1d72f3 60%, rgba(29, 114, 243, 0.2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 35px rgba(0, 212, 255, 0.5));
+      animation: floatShield 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatShield {
+      0% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 25px rgba(0, 212, 255, 0.4)); }
+      100% { transform: translateY(-12px) scale(1.03); filter: drop-shadow(0 0 45px rgba(0, 212, 255, 0.7)); }
+    }
+
+    .light-beams {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(0, 212, 255, 0.08) 15px, rgba(0, 212, 255, 0.08) 16px);
+      mask-image: radial-gradient(circle, black 40%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle, black 40%, transparent 80%);
+      animation: beamPulse 3s infinite alternate;
+    }
+
+    @keyframes beamPulse {
+      0% { opacity: 0.4; }
+      100% { opacity: 0.9; }
+    }
+
+    .bottom-security-notice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--soc-muted);
+      font-size: 11px;
+      line-height: 1.4;
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      max-width: 440px;
+    }
+
+    .bottom-security-notice i { font-size: 14px; color: #00d4ff; }
+
+    /* ── Right Auth Glass Card ── */
+    .auth-card-wrap {
+      background: var(--soc-card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--soc-border);
+      border-radius: 20px;
+      padding: 36px 36px 32px 36px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+      animation: cardSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes cardSlideUp {
+      0% { opacity: 0; transform: translateY(20px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Top Nav Tabs Inside Card */
+    .card-nav-tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .card-tab {
+      flex: 1;
+      padding: 12px 16px;
+      background: transparent;
+      border: none;
+      color: var(--soc-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+      position: relative;
+      text-decoration: none;
+    }
+
+    .card-tab:hover { color: #fff; }
+    .card-tab.active { color: #fff; }
+
+    .card-tab.active::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #00d4ff, #1d72f3);
+      box-shadow: 0 0 10px #00d4ff;
+    }
+
+    .card-tab i { font-size: 15px; color: var(--soc-muted); transition: color 0.25s ease; }
+    .card-tab.active i { color: #00d4ff; }
+
+    /* Card Title Header */
+    .card-title-group {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .card-title-group h3 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.4px;
+      margin-bottom: 6px;
+    }
+
+    .card-title-group p {
+      font-size: 13px;
+      color: var(--soc-muted);
+    }
+
+    /* Form Styles */
+    .form-group { margin-bottom: 15px; }
     .form-group label {
       display: block;
       font-size: 12px;
       font-weight: 500;
-      color: var(--text-secondary);
-      margin-bottom: 7px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: #c0cdf0;
+      margin-bottom: 6px;
     }
-    .input-group { position: relative; }
-    .input-group .input-icon {
+
+    .input-wrap { position: relative; }
+
+    .input-wrap i.input-icon {
       position: absolute;
       left: 14px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--text-muted);
-      font-size: 13px;
+      color: #64748b;
+      font-size: 14px;
       pointer-events: none;
     }
+
     .form-control {
       width: 100%;
-      background: rgba(15, 22, 40, 0.6);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 12px 14px 12px 40px;
-      color: var(--text-primary);
+      background: rgba(12, 18, 34, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 11px 14px 11px 42px;
+      color: #fff;
       font-size: 14px;
-      transition: all 0.2s ease;
       font-family: 'Inter', sans-serif;
-      box-sizing: border-box;
+      transition: all 0.2s ease;
     }
+
     .form-control:focus {
       outline: none;
-      border-color: var(--cyan);
-      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
-      background: rgba(15, 22, 40, 0.9);
+      border-color: #1d72f3;
+      box-shadow: 0 0 0 3px rgba(29, 114, 243, 0.25);
+      background: rgba(12, 18, 34, 0.95);
     }
+
     .eye-icon {
       position: absolute;
       right: 14px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--text-muted);
+      color: #64748b;
       cursor: pointer;
-      padding: 5px;
-      font-size: 13px;
+      padding: 4px;
+      font-size: 14px;
     }
-    .eye-icon:hover { color: var(--cyan); }
 
-    /* ── 6-Digit OTP Box Grid ── */
+    .eye-icon:hover { color: #00d4ff; }
+
+    /* 6-Digit OTP Box Grid */
     .otp-box-container {
       display: flex;
       gap: 8px;
       justify-content: center;
       margin: 18px 0 10px 0;
     }
+
     .otp-digit-box {
       width: 44px;
       height: 52px;
@@ -124,46 +401,23 @@
       font-size: 22px;
       font-weight: 700;
       color: #00d4ff;
-      background: rgba(15, 22, 40, 0.8);
-      border: 1.5px solid var(--border-subtle, rgba(0, 212, 255, 0.2));
-      border-radius: var(--radius-md);
+      background: rgba(12, 18, 34, 0.85);
+      border: 1.5px solid rgba(0, 212, 255, 0.25);
+      border-radius: 10px;
       box-sizing: border-box;
       font-family: 'Inter', monospace;
       transition: all 0.2s ease;
     }
+
     .otp-digit-box:focus {
       outline: none;
       border-color: #00d4ff;
-      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
-      background: rgba(15, 22, 40, 0.95);
-    }
-
-    .auth-btn {
-      width: 100%;
-      padding: 13px;
-      font-size: 15px;
-      font-weight: 600;
-      margin-top: 16px;
-      border-radius: var(--radius-md);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-    }
-    .otp-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .otp-actions button {
-      flex: 1;
-      padding: 11px 8px;
-      font-size: 12px;
-      border-radius: var(--radius-md);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.25);
+      background: rgba(12, 18, 34, 0.95);
     }
 
     .otp-notice {
-      color: var(--text-muted);
+      color: var(--soc-muted);
       font-size: 12px;
       display: block;
       margin-top: 6px;
@@ -175,7 +429,7 @@
       background: rgba(0, 200, 150, 0.15);
       border: 1px solid rgba(0, 200, 150, 0.35);
       color: #00c896;
-      border-radius: var(--radius-md);
+      border-radius: 10px;
       padding: 12px;
       font-size: 13px;
       text-align: center;
@@ -183,79 +437,268 @@
       display: none;
     }
 
-    .auth-footer {
-      text-align: center;
-      margin-top: 22px;
-      font-size: 13px;
-      color: var(--text-secondary);
+    .otp-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
     }
-    .auth-footer a {
-      color: var(--cyan);
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .auth-footer a:hover { text-decoration: underline; }
 
-    @media (max-width: 480px) {
-      body { padding: 12px; align-items: flex-start; padding-top: 20px; }
-      .auth-card { padding: 28px 20px; border: none; box-shadow: none; background: transparent; }
+    .otp-actions button {
+      flex: 1;
+      padding: 10px 8px;
+      font-size: 12px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--soc-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .otp-actions button:hover {
+      background: rgba(20, 30, 55, 0.9);
+      color: #fff;
+    }
+
+    /* Action Buttons */
+    .btn-submit-primary {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #1d72f3 0%, #1052c5 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(29, 114, 243, 0.4);
+      transition: all 0.25s ease;
+      margin-top: 10px;
+    }
+
+    .btn-submit-primary:hover {
+      background: linear-gradient(135deg, #257bfb 0%, #155ecb 100%);
+      box-shadow: 0 6px 24px rgba(29, 114, 243, 0.6);
+      transform: translateY(-1px);
+    }
+
+    /* Divider */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin: 18px 0;
+    }
+
+    .or-divider::before, .or-divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .or-divider span { padding: 0 12px; }
+
+    /* Google SSO Button */
+    .btn-google {
+      width: 100%;
+      padding: 11px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-google:hover {
+      background: rgba(20, 30, 55, 0.9);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-google svg { width: 18px; height: 18px; }
+
+    .card-footer-note {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--soc-muted);
+    }
+
+    .card-footer-note a {
+      color: #1d72f3;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .card-footer-note a:hover {
+      color: #00d4ff;
+      text-decoration: underline;
+    }
+
+    @media (max-width: 992px) {
+      .soc-container { grid-template-columns: 1fr; gap: 30px; max-width: 480px; }
+      .showcase-panel { display: none; }
       .otp-digit-box { width: 38px; height: 46px; font-size: 18px; }
     }
   </style>
 </head>
 <body>
 
+  <div class="bg-grid-overlay"></div>
+  <div class="bg-glow-radial"></div>
   <div id="toast-container"></div>
 
-  <div class="auth-card">
-    <div class="auth-brand">
-      <i class="fas fa-user-plus"></i>
-      <h2>Create Account</h2>
-      <p id="brand-subtitle">Register as a new CyberShield Security Analyst</p>
+  <div class="soc-container">
+    
+    <!-- ════════════════════════════════════════════
+         LEFT SHOWCASE PANEL
+    ═══════════════════════════════════════════════ -->
+    <div class="showcase-panel">
+      <div>
+        <div class="brand-header">
+          <div class="brand-logo-icon"><i class="fas fa-shield-halved"></i></div>
+          <div class="brand-text">
+            <h1>CyberShield</h1>
+            <span>Security Operations Center</span>
+          </div>
+        </div>
+
+        <div class="showcase-headline">
+          <h2>Secure. Monitor. <span class="protect-accent">Protect.</span></h2>
+        </div>
+
+        <p class="showcase-desc">
+          Advanced security monitoring and threat detection for a safer digital world.
+        </p>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-icon-badge"><i class="fas fa-shield-halved"></i></div>
+            <div>
+              <div class="feature-title">Real-time Threat Detection</div>
+              <div class="feature-subtitle">AI-powered monitoring 24/7</div>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon-badge"><i class="fas fa-bullseye"></i></div>
+            <div>
+              <div class="feature-title">Advanced Analytics</div>
+              <div class="feature-subtitle">Deep insights into security events</div>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon-badge"><i class="fas fa-lock"></i></div>
+            <div>
+              <div class="feature-title">Enterprise Security</div>
+              <div class="feature-subtitle">Bank-level encryption &amp; protection</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hologram Shield Graphic -->
+      <div class="graphic-center-wrap">
+        <div class="light-beams"></div>
+        <i class="fas fa-shield-cat hologram-shield"></i>
+      </div>
+
+      <div class="bottom-security-notice">
+        <i class="fas fa-lock"></i>
+        <span>Your security is our priority. All data is encrypted and protected with industry-leading standards.</span>
+      </div>
     </div>
 
     <!-- ════════════════════════════════════════════
-         EMAIL REGISTRATION FORMS
+         RIGHT AUTH GLASS CARD
     ═══════════════════════════════════════════════ -->
-    <div id="email-section">
-      <!-- Step 1: Email Registration -->
+    <div class="auth-card-wrap">
+      
+      <!-- Top Card Nav Tabs -->
+      <div class="card-nav-tabs">
+        <a href="login.html" class="card-tab">
+          <i class="fas fa-shield-halved"></i> Login
+        </a>
+        <a href="register.html" class="card-tab active">
+          <i class="fas fa-user-plus"></i> Create Account
+        </a>
+      </div>
+
+      <div class="card-title-group">
+        <h3>Create Account</h3>
+        <p id="brand-subtitle">Register to access your security dashboard</p>
+      </div>
+
+      <!-- Step 1: Email Registration Form -->
       <form id="register-form">
         <div class="form-group">
           <label>Username / Name</label>
-          <div class="input-group">
+          <div class="input-wrap">
             <i class="fas fa-user input-icon"></i>
             <input type="text" id="reg-username" class="form-control" placeholder="SecurityAnalyst" required minlength="3" autocomplete="username">
           </div>
         </div>
+
         <div class="form-group">
           <label>Email Address</label>
-          <div class="input-group">
+          <div class="input-wrap">
             <i class="fas fa-envelope input-icon"></i>
-            <input type="email" id="reg-email" class="form-control" placeholder="analyst@example.com" required autocomplete="email">
+            <input type="email" id="reg-email" class="form-control" placeholder="Enter your email address" required autocomplete="email">
           </div>
         </div>
+
         <div class="form-group">
           <label>Password</label>
-          <div class="input-group">
+          <div class="input-wrap">
             <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+            <input type="password" id="reg-password" class="form-control" placeholder="Enter your password" required autocomplete="new-password">
             <i class="fas fa-eye eye-icon" id="toggle-pwd1"></i>
           </div>
         </div>
+
         <div class="form-group">
           <label>Confirm Password</label>
-          <div class="input-group">
+          <div class="input-wrap">
             <i class="fas fa-check-double input-icon"></i>
-            <input type="password" id="reg-confirm" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+            <input type="password" id="reg-confirm" class="form-control" placeholder="Confirm your password" required autocomplete="new-password">
             <i class="fas fa-eye eye-icon" id="toggle-pwd2"></i>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary auth-btn" id="reg-btn">
+
+        <button type="submit" class="btn-submit-primary" id="reg-btn">
           <i class="fas fa-paper-plane"></i> Generate OTP
         </button>
+
+        <div class="or-divider"><span>OR</span></div>
+
+        <button type="button" class="btn-google" id="btn-google-sso">
+          <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+          Continue with Google
+        </button>
+
+        <div class="card-footer-note">
+          Already registered? <a href="login.html">Login</a>
+        </div>
       </form>
 
-      <!-- Step 2: Email OTP Verification -->
+      <!-- Step 2: Email OTP Verification Form -->
       <form id="otp-form" style="display: none;">
         <div class="success-alert-banner" id="verified-banner">
           <i class="fas fa-circle-check"></i> ✓ Email verified successfully
@@ -263,7 +706,6 @@
         <div class="form-group">
           <label style="text-align:center; display:block;">Enter Security OTP Code</label>
           
-          <!-- 6-digit OTP input grid: [ _ ][ _ ][ _ ][ _ ][ _ ][ _ ] -->
           <div class="otp-box-container" id="otp-grid">
             <input type="text" maxlength="1" class="otp-digit-box" data-index="0" inputmode="numeric" pattern="\d" autocomplete="one-time-code">
             <input type="text" maxlength="1" class="otp-digit-box" data-index="1" inputmode="numeric" pattern="\d">
@@ -275,22 +717,20 @@
           
           <small class="otp-notice" id="otp-sent-notice">Verification code sent to your email.</small>
         </div>
-        <button type="submit" class="btn btn-primary auth-btn" id="otp-btn">
+
+        <button type="submit" class="btn-submit-primary" id="otp-btn">
           <i class="fas fa-unlock-keyhole"></i> Verify &amp; Complete Registration
         </button>
+
         <div class="otp-actions">
-          <button type="button" class="btn btn-secondary" id="resend-otp-btn">
+          <button type="button" id="resend-otp-btn">
             <i class="fas fa-rotate"></i> Resend OTP <span id="cooldown-timer">(60s)</span>
           </button>
-          <button type="button" class="btn btn-secondary" id="change-email-btn">
+          <button type="button" id="change-email-btn">
             <i class="fas fa-pen"></i> Change Email
           </button>
         </div>
       </form>
-    </div>
-
-    <div class="auth-footer">
-      Already registered? <a href="login.html">Back to Login</a>
     </div>
   </div>
 
@@ -344,7 +784,7 @@
         }, 1000);
       }
 
-      // ── 6-Digit OTP Box Grid Auto-Advance Logic ──
+      // ── 6-Digit OTP Box Grid Auto-Advance ──
       const otpBoxes = Array.from(document.querySelectorAll('.otp-digit-box'));
       
       function getCombinedOTP() {
@@ -365,7 +805,6 @@
             otpBoxes[idx + 1].focus();
           }
 
-          // Auto-submit when all 6 digits entered
           if (getCombinedOTP().length === 6) {
             document.getElementById('otp-form').dispatchEvent(new Event('submit'));
           }
@@ -391,6 +830,14 @@
           }
         });
       });
+
+      // Google SSO Button handler
+      const googleBtn = document.getElementById('btn-google-sso');
+      if (googleBtn) {
+        googleBtn.addEventListener('click', () => {
+          showToast('Google Single Sign-On is configured. Redirecting...', 'info');
+        });
+      }
 
       // Step 1: Generate OTP
       const registerForm = document.getElementById('register-form');
@@ -445,7 +892,7 @@
           }
 
           const btn = document.getElementById('otp-btn');
-          if (btn.disabled) return; // Prevent double submit
+          if (btn.disabled) return;
           btn.disabled = true;
           btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
 
