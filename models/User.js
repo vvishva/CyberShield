@@ -50,10 +50,17 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  // Registration method: 'email' or 'phone'
+  // Google OAuth ID
+  googleId: {
+    type: String,
+    required: false,
+    default: null,
+    sparse: true
+  },
+  // Registration method: 'email', 'phone', or 'google'
   registrationMethod: {
     type: String,
-    enum: ['email', 'phone'],
+    enum: ['email', 'phone', 'google'],
     default: 'email'
   },
   // Email verification (existing flow — unchanged)

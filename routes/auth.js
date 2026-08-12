@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  register, login, logout, getMe, forgotPassword, resetPassword,
+  register, login, googleAuth, logout, getMe, forgotPassword, resetPassword,
   verifyOTP, resendOTP, testEmail, testSMS,
   // Phone registration (new)
   registerPhone, verifyPhoneOTP, resendPhoneOTP
@@ -30,6 +30,7 @@ router.post('/resend-phone-otp', resendPhoneOTPValidator, resendPhoneOTP);
 
 // ── Authentication (shared) ───────────────────────────────────────────────────
 router.post('/login', loginValidator, login);
+router.post('/google', googleAuth);
 router.post('/logout', logout);
 router.get('/me', protect, getMe);
 router.post('/forgot-password', forgotPassword);

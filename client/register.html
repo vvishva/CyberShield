@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Account – CyberShield Security Operations Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="../css/style.css">
   <style>
@@ -528,7 +528,8 @@
 
     .btn-google:hover {
       background: rgba(20, 30, 55, 0.9);
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 0 15px rgba(66, 133, 244, 0.2);
     }
 
     .btn-google svg { width: 18px; height: 18px; }
@@ -550,6 +551,118 @@
       color: #00d4ff;
       text-decoration: underline;
     }
+
+    /* Google SSO Chooser Modal */
+    .google-sso-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 15, 0.88);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 20px;
+    }
+    .google-sso-modal.active { opacity: 1; pointer-events: auto; }
+    
+    .google-sso-card {
+      background: #ffffff;
+      color: #1f2937;
+      border-radius: 18px;
+      width: 100%;
+      max-width: 400px;
+      padding: 32px 28px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      position: relative;
+      font-family: 'Roboto', 'Inter', sans-serif;
+    }
+    .google-sso-header { text-align: center; margin-bottom: 24px; }
+    .google-sso-header h3 { font-size: 20px; font-weight: 500; color: #202124; margin-top: 10px; margin-bottom: 4px; }
+    .google-sso-header p { font-size: 13px; color: #5f6368; }
+    
+    .google-account-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #dadce0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 12px;
+    }
+    .google-account-item:hover {
+      background: #f8f9fa;
+      border-color: #4285f4;
+      box-shadow: 0 2px 8px rgba(66,133,244,0.15);
+    }
+    .google-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #4285f4;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .google-acc-info { flex: 1; }
+    .google-acc-name { font-size: 14px; font-weight: 600; color: #202124; }
+    .google-acc-email { font-size: 12px; color: #5f6368; }
+    
+    .google-custom-input-group {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px dashed #dadce0;
+    }
+    .google-custom-input-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #5f6368;
+      margin-bottom: 6px;
+    }
+    .google-custom-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #202124;
+      margin-bottom: 10px;
+    }
+    .google-custom-input:focus {
+      outline: none;
+      border-color: #4285f4;
+    }
+
+    .btn-google-login-submit {
+      width: 100%;
+      padding: 10px;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-google-login-submit:hover { background: #1557b0; }
+
+    .modal-close-light {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: none; border: none;
+      color: #5f6368; font-size: 20px;
+      cursor: pointer;
+    }
+    .modal-close-light:hover { color: #202124; }
 
     @media (max-width: 992px) {
       .soc-container { grid-template-columns: 1fr; gap: 30px; max-width: 480px; }
@@ -734,6 +847,36 @@
     </div>
   </div>
 
+  <!-- Google SSO Chooser Modal -->
+  <div class="google-sso-modal" id="google-sso-modal">
+    <div class="google-sso-card">
+      <button type="button" class="modal-close-light" id="close-google-modal">&times;</button>
+      
+      <div class="google-sso-header">
+        <svg class="google-sso-logo" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+        <h3>Choose an Account</h3>
+        <p>to continue to <strong>CyberShield AI</strong></p>
+      </div>
+
+      <div class="google-account-item" id="google-quick-acc">
+        <div class="google-avatar">V</div>
+        <div class="google-acc-info">
+          <div class="google-acc-name">Vishva Analyst</div>
+          <div class="google-acc-email">vishva.analyst@gmail.com</div>
+        </div>
+        <i class="fas fa-chevron-right" style="color:#9ca3af; font-size:12px;"></i>
+      </div>
+
+      <form id="google-custom-form" class="google-custom-input-group">
+        <label>Or enter any Google Email:</label>
+        <input type="email" id="google-custom-email" class="google-custom-input" placeholder="user@gmail.com" required>
+        <button type="submit" class="btn-google-login-submit">
+          Continue with this Account
+        </button>
+      </form>
+    </div>
+  </div>
+
   <script src="../js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -831,11 +974,67 @@
         });
       });
 
-      // Google SSO Button handler
+      // ── Google SSO Integration ──
       const googleBtn = document.getElementById('btn-google-sso');
+      const googleModal = document.getElementById('google-sso-modal');
+      const closeGoogleModal = document.getElementById('close-google-modal');
+      const googleQuickAcc = document.getElementById('google-quick-acc');
+      const googleCustomForm = document.getElementById('google-custom-form');
+
+      async function performGoogleAuth(email, name) {
+        try {
+          showToast('Authenticating with Google Account...', 'info');
+          const data = await apiRequest('/auth/google', 'POST', {
+            email,
+            name: name || email.split('@')[0],
+            googleId: 'google_' + Date.now()
+          });
+
+          if (data.success && data.token) {
+            setToken(data.token);
+            setUser(data.user);
+            showToast('✓ Signed in with Google Account successfully!', 'success');
+            setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+          } else {
+            showToast(data.error || 'Google SSO failed.', 'danger');
+          }
+        } catch (err) {
+          showToast(err.message || 'Google authentication failed.', 'danger');
+        }
+      }
+
       if (googleBtn) {
         googleBtn.addEventListener('click', () => {
-          showToast('Google Single Sign-On is configured. Redirecting...', 'info');
+          googleModal.classList.add('active');
+        });
+      }
+
+      if (closeGoogleModal) {
+        closeGoogleModal.addEventListener('click', () => {
+          googleModal.classList.remove('active');
+        });
+      }
+
+      if (googleModal) {
+        googleModal.addEventListener('click', (e) => {
+          if (e.target === googleModal) googleModal.classList.remove('active');
+        });
+      }
+
+      if (googleQuickAcc) {
+        googleQuickAcc.addEventListener('click', () => {
+          googleModal.classList.remove('active');
+          performGoogleAuth('vishva.analyst@gmail.com', 'Vishva Analyst');
+        });
+      }
+
+      if (googleCustomForm) {
+        googleCustomForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const emailInput = document.getElementById('google-custom-email').value.trim();
+          if (!emailInput) return;
+          googleModal.classList.remove('active');
+          performGoogleAuth(emailInput);
         });
       }
 

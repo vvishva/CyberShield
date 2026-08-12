@@ -709,3 +709,79 @@ exports.testSMS = async (req, res) => {
     });
   }
 };
+
+// @desc    Google Single Sign-On (SSO) Authentication Handler
+// @route   POST /api/auth/google
+exports.googleAuth = async (req, res, next) => {
+  try {
+    const { email, name, googleId } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email address is required for Google SSO.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const displayName = name ? name.trim() : cleanEmail.split('@')[0];
+
+    // Check if user already exists
+    let user = await User.findOne({ email: cleanEmail });
+
+    if (user) {
+      // Mark verified & connect Google ID if missing
+      user.isVerified = true;
+      if (googleId && !user.googleId) user.googleId = googleId;
+      await user.save();
+    } else {
+      // Create new verified Google user
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+      // Unique username check
+      let baseUsername = displayName.replace(/[^a-zA-Z0-9]/g, '');
+      if (baseUsername.length < 3) baseUsername = 'GoogleAnalyst';
+      let uniqueUsername = baseUsername;
+      let counter = 1;
+      while (await User.findOne({ username: uniqueUsername })) {
+        uniqueUsername = `${baseUsername}${counter++}`;
+      }
+
+      user = await User.create({
+        username: uniqueUsername,
+        email: cleanEmail,
+        password: hashedPassword,
+        googleId: googleId || `google_${Date.now()}`,
+        role: 'user',
+        registrationMethod: 'google',
+        isVerified: true
+      });
+
+      try {
+        await Log.create({
+          username: user.username,
+          action: 'USER_REGISTER_GOOGLE',
+          details: `Google SSO account created & verified for email: ${user.email}`,
+          status: 'SUCCESS'
+        });
+      } catch (e) {}
+    }
+
+    const token = generateToken(user);
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      }
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
