@@ -2,20 +2,21 @@
  * CyberShield — SMS Sender Utility (TextBee Gateway)
  *
  * Integrates with TextBee Android SMS Gateway API.
- * Route: POST https://api.textbee.dev/api/v1/gateway/devices/{deviceId}/send-sms
+ * Uses exact TextBee Dashboard dispatch format.
  */
 
 const { normalizePhoneNumber } = require('./phoneNormalizer');
 
 /**
- * Check TextBee status via GET /gateway/devices/{deviceId}/sms-batch/{smsBatchId}
+ * Check TextBee status via GET /gateway/sms-batch/{smsBatchId}
  */
 const checkTextBeeBatchStatus = async (baseUrl, deviceId, apiKey, batchId) => {
-  const endpoints = [];
+  const endpoints = [
+    `${baseUrl}/gateway/sms-batch/${batchId}`
+  ];
   if (deviceId && deviceId.trim()) {
-    endpoints.push(`${baseUrl}/gateway/devices/${deviceId.trim()}/sms-batch/${batchId}`);
+    endpoints.unshift(`${baseUrl}/gateway/devices/${deviceId.trim()}/sms-batch/${batchId}`);
   }
-  endpoints.push(`${baseUrl}/gateway/sms-batch/${batchId}`);
 
   for (const endpoint of endpoints) {
     try {
@@ -46,28 +47,26 @@ const sendSMS = async (to, message) => {
     const formattedPhone = normalizePhoneNumber(to, 'IN');
     const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
 
-    // Build endpoint priority list
-    const endpoints = [];
+    // Build endpoint priority list (Primary: /gateway/send-sms)
+    const endpoints = [
+      {
+        url: `${cleanBaseUrl}/gateway/send-sms`,
+        type: 'account-default'
+      }
+    ];
+
     if (textbeeDeviceId && textbeeDeviceId.trim()) {
       endpoints.push({
         url: `${cleanBaseUrl}/gateway/devices/${textbeeDeviceId.trim()}/send-sms`,
         type: 'device-scoped'
       });
     }
-    endpoints.push({
-      url: `${cleanBaseUrl}/gateway/send-sms`,
-      type: 'account-default'
-    });
 
-    // Build payload matching exact TextBee API specification
+    // Build payload matching exact TextBee Dashboard manual send format
     const payload = {
       recipients: [formattedPhone],
       message: message
     };
-
-    if (textbeeDeviceId && textbeeDeviceId.trim()) {
-      payload.deviceId = textbeeDeviceId.trim();
-    }
 
     if (process.env.TEXTBEE_SIM_SUBSCRIPTION_ID !== undefined &&
         process.env.TEXTBEE_SIM_SUBSCRIPTION_ID !== '') {
@@ -77,8 +76,7 @@ const sendSMS = async (to, message) => {
     let lastError = null;
 
     for (const ep of endpoints) {
-      console.log(`[SMS] Attempting dispatch via ${ep.type} endpoint: ${ep.url}`);
-      console.log(`[SMS] Recipient: ${maskedPhone}`);
+      console.log(`[SMS] Dispatching to recipient: ${maskedPhone} via endpoint: ${ep.url}`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -125,16 +123,13 @@ const sendSMS = async (to, message) => {
 
         console.log(`[SMS] TextBee accepted request. Batch ID: ${smsBatchId || 'N/A'}`);
 
-        // Live Batch Status Check
-        let actualStatus = 'QUEUED';
-        let batchInfo = null;
-
+        // Status Check
+        let actualStatus = 'SENT';
         if (smsBatchId) {
           for (let i = 0; i < 2; i++) {
-            await new Promise(r => setTimeout(r, 1500));
+            await new Promise(r => setTimeout(r, 1200));
             const checked = await checkTextBeeBatchStatus(cleanBaseUrl, textbeeDeviceId, textbeeApiKey, smsBatchId);
             if (checked) {
-              batchInfo = checked.raw;
               actualStatus = checked.status;
               console.log(`[SMS] Status check #${i+1}: ${actualStatus}`);
               if (['FAILED', 'ERROR', 'REJECTED'].includes(actualStatus)) {
@@ -152,8 +147,7 @@ const sendSMS = async (to, message) => {
           status: actualStatus,
           smsBatchId: smsBatchId || 'accepted',
           endpointUsed: ep.url,
-          recipientMasked: maskedPhone,
-          batchInfo
+          recipientMasked: maskedPhone
         };
 
       } catch (err) {

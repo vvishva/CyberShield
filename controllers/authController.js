@@ -300,13 +300,9 @@ exports.registerPhone = async (req, res, next) => {
       return res.status(500).json({ success: false, error: smsErr.message || 'Unable to send verification code. Please try again.' });
     }
 
-    const successMsg = pending.smsStatus === 'QUEUED' || pending.smsStatus === 'PENDING'
-      ? 'OTP request accepted. Waiting for SMS delivery...'
-      : 'Verification code sent successfully.';
-
     res.status(201).json({
       success: true,
-      message: successMsg,
+      message: 'Verification code sent successfully to your mobile number.',
       phoneNumber
     });
   } catch (err) {
