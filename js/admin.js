@@ -5,19 +5,18 @@
 document.addEventListener('DOMContentLoaded', () => {
   requireAuth();
   
-  // Basic client-side role check (backend validates for real)
-  const userStr = localStorage.getItem('cybershield_user') || sessionStorage.getItem('cybershield_user');
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr);
-      if (user.role === 'admin') {
-        document.getElementById('admin-content').style.display = 'block';
-        loadAdminData();
-      } else {
-        document.getElementById('not-admin-state').style.display = 'block';
-      }
-    } catch(e) {}
+  const currentUser = getUser();
+  if (!currentUser || currentUser.role !== 'admin') {
+    showToast('Access Denied: Admin privileges required.', 'danger');
+    setTimeout(() => {
+      window.location.replace('dashboard.html');
+    }, 200);
+    return;
   }
+
+  const adminContent = document.getElementById('admin-content');
+  if (adminContent) adminContent.style.display = 'block';
+  loadAdminData();
 
   const exportBtn = document.getElementById('btn-export-admin-pdf');
   if (exportBtn) {

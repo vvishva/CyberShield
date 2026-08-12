@@ -187,6 +187,15 @@ window.addEventListener('pageshow', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
   const currentUser = getUser();
 
+  // Hide Admin Panel sidebar links for non-admin users
+  if (currentUser.role !== 'admin') {
+    document.querySelectorAll('a[href="admin.html"]').forEach(a => {
+      const li = a.closest('li');
+      if (li) li.remove();
+    });
+  }
+
+  // Update sidebar user details & developer credit badge
   const nameEl = document.getElementById('user-display-name');
   const roleEl = document.getElementById('user-display-role');
   if (nameEl) nameEl.textContent = currentUser.username || 'SecAnalyst';
