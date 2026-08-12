@@ -2,8 +2,8 @@
  * CyberShield — SMS Sender Utility
  *
  * Supported SMS Providers:
- *   1. SMSGate (Official Android SMS Gateway https://sms-gate.app)
- *   2. Fast2SMS (Indian Cloud Gateway https://www.fast2sms.com)
+ *   1. Fast2SMS (Indian Cloud Gateway https://www.fast2sms.com)
+ *   2. SMSGate (Official Android SMS Gateway https://sms-gate.app)
  *   3. TextBee Gateway (https://textbee.dev)
  *   4. Twilio Cloud Gateway (https://www.twilio.com)
  */
@@ -39,9 +39,65 @@ const checkSMSGateStatus = async (baseUrl, authHeader, messageId) => {
 };
 
 const sendSMS = async (to, message) => {
-  // ── Strategy 1: SMSGate (Official Android SMS Gateway https://sms-gate.app)
-  const smsgateLogin    = process.env.SMSGATEWAY_LOGIN || 'TIWGS4';
-  const smsgatePassword = process.env.SMSGATEWAY_PASSWORD || '4j1icnoh2qorlp';
+  // ── Strategy 1: Fast2SMS (Indian Cloud SMS Gateway https://www.fast2sms.com)
+  const fast2smsApiKey = process.env.FAST2SMS_API_KEY;
+  if (fast2smsApiKey && fast2smsApiKey.trim()) {
+    const formattedPhone = normalizePhoneNumber(to, 'IN');
+    const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
+    let local10Digits = formattedPhone;
+    if (formattedPhone.startsWith('+91') && formattedPhone.length === 13) {
+      local10Digits = formattedPhone.slice(3);
+    }
+
+    const endpoint = 'https://www.fast2sms.com/dev/bulkV2';
+    console.log(`[Fast2SMS] Dispatching to recipient: ${maskedPhone} via ${endpoint}`);
+
+    const payload = {
+      route: 'q',
+      message: message,
+      language: 'english',
+      flash: 0,
+      numbers: local10Digits
+    };
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'authorization': fast2smsApiKey.trim(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const responseText = await response.text();
+      console.log(`[Fast2SMS] HTTP Status: ${response.status}`);
+      console.log(`[Fast2SMS] Response snippet: ${responseText.substring(0, 300)}`);
+
+      let resData = {};
+      try { resData = JSON.parse(responseText); } catch (_) {}
+
+      if (!response.ok || resData.return === false) {
+        const errMsg = resData.message || (resData.error ? JSON.stringify(resData.error) : responseText);
+        throw new Error(`Fast2SMS error: ${errMsg}`);
+      }
+
+      return {
+        provider: 'Fast2SMS',
+        status: 'SENT',
+        smsBatchId: resData.request_id || 'fast2sms_sent',
+        endpointUsed: endpoint,
+        recipientMasked: maskedPhone
+      };
+    } catch (err) {
+      console.error('[Fast2SMS Error]:', err.message);
+      throw err;
+    }
+  }
+
+  // ── Strategy 2: SMSGate (Official Android SMS Gateway https://sms-gate.app)
+  const smsgateLogin    = process.env.SMSGATEWAY_LOGIN;
+  const smsgatePassword = process.env.SMSGATEWAY_PASSWORD;
   const smsgateToken    = process.env.SMSGATEWAY_TOKEN;
   const rawBaseUrl      = process.env.SMSGATEWAY_URL || 'https://api.sms-gate.app/3rdparty/v1';
 
@@ -149,58 +205,6 @@ const sendSMS = async (to, message) => {
       console.warn('[SMSGate] Dispatch failed. Checking secondary providers...');
     } else if (lastError) {
       throw lastError;
-    }
-  }
-
-  // ── Strategy 2: Fast2SMS (Indian Cloud SMS Gateway https://www.fast2sms.com)
-  const fast2smsApiKey = process.env.FAST2SMS_API_KEY;
-  if (fast2smsApiKey) {
-    const formattedPhone = normalizePhoneNumber(to, 'IN');
-    const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
-    let local10Digits = formattedPhone;
-    if (formattedPhone.startsWith('+91') && formattedPhone.length === 13) {
-      local10Digits = formattedPhone.slice(3);
-    }
-
-    const endpoint = 'https://www.fast2sms.com/dev/bulkV2';
-    console.log(`[Fast2SMS] Dispatching to recipient: ${maskedPhone}`);
-
-    const payload = {
-      route: 'q',
-      message: message,
-      language: 'english',
-      flash: 0,
-      numbers: local10Digits
-    };
-
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'authorization': fast2smsApiKey.trim(),
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const responseText = await response.text();
-      let resData = {};
-      try { resData = JSON.parse(responseText); } catch (_) {}
-
-      if (!response.ok || resData.return === false) {
-        throw new Error(`Fast2SMS error: ${resData.message || resData.error || responseText}`);
-      }
-
-      return {
-        provider: 'Fast2SMS',
-        status: 'SENT',
-        smsBatchId: resData.request_id || 'fast2sms_sent',
-        endpointUsed: endpoint,
-        recipientMasked: maskedPhone
-      };
-    } catch (err) {
-      console.error('[Fast2SMS Error]:', err.message);
-      throw err;
     }
   }
 
