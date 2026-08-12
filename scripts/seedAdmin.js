@@ -8,19 +8,11 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true, minlength: 6, select: false },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   avatar: { type: String, default: 'avatar-cyber-1.png' },
-  twoFactorEnabled: { type: Boolean, default: false },
-  emailNotifications: { type: Boolean, default: true },
+  isVerified: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
 });
 
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-const User = mongoose.model('User', UserSchema);
+const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
 async function seedAdmin() {
   try {
@@ -28,32 +20,45 @@ async function seedAdmin() {
     await mongoose.connect(mongoUri);
     console.log('[Seed] Connected to MongoDB');
 
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@cybershield.io';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
-    const adminUsername = process.env.ADMIN_USERNAME || 'CyberAdmin';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@cybershield15043001.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin@15043001';
+    const adminUsername = process.env.ADMIN_USERNAME || 'CyberShieldAdmin';
 
-    const existingAdmin = await User.findOne({ email: adminEmail });
-    if (existingAdmin) {
-      console.log('[Seed] Admin user already exists:', adminEmail);
-      await mongoose.disconnect();
-      return;
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(adminPassword, salt);
+
+    let admin = await User.findOne({ $or: [{ role: 'admin' }, { email: adminEmail.toLowerCase() }] });
+
+    if (admin) {
+      admin.username = adminUsername;
+      admin.email = adminEmail.toLowerCase().trim();
+      admin.password = hashedPassword;
+      admin.role = 'admin';
+      admin.isVerified = true;
+      await admin.save();
+      console.log('[Seed] Existing Admin updated successfully:', admin.email);
+    } else {
+      admin = await User.create({
+        username: adminUsername,
+        email: adminEmail.toLowerCase().trim(),
+        password: hashedPassword,
+        role: 'admin',
+        isVerified: true
+      });
+      console.log('[Seed] Admin user created successfully:', admin.email);
     }
 
-    const admin = await User.create({
-      username: adminUsername,
-      email: adminEmail,
-      password: adminPassword,
-      role: 'admin'
-    });
-
-    console.log('[Seed] Admin user created successfully:', admin.email);
     console.log('[Seed] Role:', admin.role);
+    console.log('[Seed] Username:', admin.username);
   } catch (error) {
     console.error('[Seed] Error:', error.message);
-    process.exit(1);
   } finally {
     await mongoose.disconnect();
   }
 }
 
-seedAdmin();
+if (require.main === module) {
+  seedAdmin();
+}
+
+module.exports = seedAdmin;
