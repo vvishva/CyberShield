@@ -7,6 +7,7 @@ const Log = require('../models/Log');
 const sendEmail = require('../utils/sendEmail');
 const sendSMS = require('../utils/sendSMS');
 const { normalizePhoneNumber } = require('../utils/phoneNormalizer');
+const { verifyGoogleToken } = require('../utils/googleAuth');
 
 const generateToken = (user) => {
   const secret = process.env.JWT_SECRET;
@@ -710,36 +711,62 @@ exports.testSMS = async (req, res) => {
   }
 };
 
-// @desc    Google Single Sign-On (SSO) Authentication Handler
+// @desc    Google Single Sign-On (SSO) Real Verification Handler
 // @route   POST /api/auth/google
 exports.googleAuth = async (req, res, next) => {
   try {
-    const { email, name, googleId } = req.body;
+    const { credential, id_token, token } = req.body;
+    const googleToken = credential || id_token || token;
 
-    if (!email) {
-      return res.status(400).json({ success: false, error: 'Email address is required for Google SSO.' });
+    if (!googleToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Google authentication credential is required.'
+      });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    const displayName = name ? name.trim() : cleanEmail.split('@')[0];
+    // 1. Backend Token Verification using Google Official Library / TokenInfo API
+    let verifiedGoogleUser = null;
+    try {
+      verifiedGoogleUser = await verifyGoogleToken(googleToken);
+    } catch (verr) {
+      console.error('[Google Verification Failed]:', verr.message);
+      return res.status(401).json({
+        success: false,
+        error: verr.message || 'Google authentication could not be verified.'
+      });
+    }
 
-    // Check if user already exists
-    let user = await User.findOne({ email: cleanEmail });
+    const { googleId, email, name, picture, emailVerified } = verifiedGoogleUser;
+
+    if (!emailVerified || !email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please use a verified Google account.'
+      });
+    }
+
+    // 2. Account Lookup & Safe Account Linking
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
     if (user) {
-      // Mark verified & connect Google ID if missing
+      // Existing User Account Found — Link Google ID securely
+      if (!user.googleId) {
+        user.googleId = googleId;
+      }
       user.isVerified = true;
-      if (googleId && !user.googleId) user.googleId = googleId;
+      if (picture && !user.avatar) {
+        user.avatar = picture;
+      }
       await user.save();
     } else {
-      // Create new verified Google user
+      // Create new permanent verified User document
       const randomPassword = crypto.randomBytes(16).toString('hex');
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(randomPassword, salt);
 
-      // Unique username check
-      let baseUsername = displayName.replace(/[^a-zA-Z0-9]/g, '');
-      if (baseUsername.length < 3) baseUsername = 'GoogleAnalyst';
+      let baseUsername = name.replace(/[^a-zA-Z0-9]/g, '');
+      if (baseUsername.length < 3) baseUsername = 'GoogleUser';
       let uniqueUsername = baseUsername;
       let counter = 1;
       while (await User.findOne({ username: uniqueUsername })) {
@@ -748,29 +775,31 @@ exports.googleAuth = async (req, res, next) => {
 
       user = await User.create({
         username: uniqueUsername,
-        email: cleanEmail,
+        email: email,
         password: hashedPassword,
-        googleId: googleId || `google_${Date.now()}`,
+        googleId: googleId,
         role: 'user',
         registrationMethod: 'google',
-        isVerified: true
+        isVerified: true,
+        avatar: picture || 'avatar-cyber-1.png'
       });
 
       try {
         await Log.create({
           username: user.username,
           action: 'USER_REGISTER_GOOGLE',
-          details: `Google SSO account created & verified for email: ${user.email}`,
+          details: `Verified Google account created for ${user.email} (ID: ${googleId})`,
           status: 'SUCCESS'
         });
       } catch (e) {}
     }
 
-    const token = generateToken(user);
+    // 3. Create Secure Session Token
+    const jwtToken = generateToken(user);
 
     res.status(200).json({
       success: true,
-      token,
+      token: jwtToken,
       user: {
         id: user._id,
         username: user.username,
