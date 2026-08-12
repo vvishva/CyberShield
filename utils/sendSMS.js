@@ -14,8 +14,7 @@ const { normalizePhoneNumber } = require('./phoneNormalizer');
 const checkSMSGateStatus = async (baseUrl, authHeader, messageId) => {
   const checkEndpoints = [
     `${baseUrl}/message/${messageId}`,
-    `${baseUrl}/messages/${messageId}`,
-    `https://api.sms-gate.app/3rdparty/v1/message/${messageId}`
+    `${baseUrl}/messages/${messageId}`
   ];
 
   for (const endpoint of checkEndpoints) {
@@ -30,15 +29,16 @@ const checkSMSGateStatus = async (baseUrl, authHeader, messageId) => {
       if (!res.ok) continue;
       const json = await res.json();
       const state = json.state || json.status || null;
-      if (state) return String(state).toUpperCase();
+      const recipientErr = json.recipients?.[0]?.error || null;
+      if (state) return { status: String(state).toUpperCase(), error: recipientErr, raw: json };
     } catch (_) {}
   }
   return null;
 };
 
 const sendSMS = async (to, message) => {
-  const smsgateLogin    = process.env.SMSGATEWAY_LOGIN;
-  const smsgatePassword = process.env.SMSGATEWAY_PASSWORD;
+  const smsgateLogin    = process.env.SMSGATEWAY_LOGIN || 'TIWGS4';
+  const smsgatePassword = process.env.SMSGATEWAY_PASSWORD || '4j1icnoh2qorlp';
   const smsgateToken    = process.env.SMSGATEWAY_TOKEN;
   const rawBaseUrl      = process.env.SMSGATEWAY_URL || 'https://api.sms-gate.app/3rdparty/v1';
 
@@ -57,15 +57,14 @@ const sendSMS = async (to, message) => {
 
     const cleanBaseUrl = rawBaseUrl.replace(/\/+$/, '');
     const endpoints = [
-      `${cleanBaseUrl}/message/send`,
-      `${cleanBaseUrl}/messages`,
-      `https://api.sms-gate.app/3rdparty/v1/message/send`,
-      `https://api.sms-gateway.app/v1/message/send`
+      `${cleanBaseUrl}/message`,
+      `${cleanBaseUrl}/messages`
     ];
 
     const payload = {
       message: message,
-      phoneNumbers: [formattedPhone]
+      phoneNumbers: [formattedPhone],
+      simNumber: 1 // Default to active SIM 1 slot
     };
 
     let lastError = null;
@@ -113,16 +112,17 @@ const sendSMS = async (to, message) => {
 
         console.log(`[SMSGate] Message accepted. ID: ${messageId || 'N/A'}, Initial State: ${currentState}`);
 
-        // Poll status if messageId available
+        // Status Polling Check
         if (messageId) {
-          for (let i = 0; i < 2; i++) {
-            await new Promise(r => setTimeout(r, 1200));
+          for (let i = 0; i < 3; i++) {
+            await new Promise(r => setTimeout(r, 1500));
             const statusResult = await checkSMSGateStatus(cleanBaseUrl, authHeader, messageId);
             if (statusResult) {
-              currentState = statusResult;
+              currentState = statusResult.status;
               console.log(`[SMSGate] Status check #${i+1}: ${currentState}`);
               if (['FAILED', 'ERROR', 'REJECTED'].includes(currentState)) {
-                throw new Error(`SMSGate Android device reported message dispatch failure: ${currentState}`);
+                const detailedError = statusResult.error ? ` (Carrier: ${statusResult.error})` : '';
+                throw new Error(`SMSGate Android device reported message dispatch failure: ${currentState}${detailedError}`);
               }
               if (['SENT', 'DELIVERED', 'SUCCESS'].includes(currentState)) {
                 break;
