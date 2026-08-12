@@ -105,6 +105,7 @@ app.use('/api/user', require('../routes/user'));
 app.use('/api/admin', require('../routes/admin'));
 app.use('/api/tips', require('../routes/tip'));
 app.use('/api/copilot', require('../routes/copilot'));
+app.use('/api/ai', require('../routes/ai'));
 app.use('/api/events', require('../routes/events').router);
 app.use('/api/monitor', require('../routes/monitor'));
 
