@@ -17,8 +17,8 @@
       text-align: center;
     }
     .spinner {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border: 3px solid rgba(0, 212, 255, 0.2);
       border-top-color: #00d4ff;
       border-radius: 50%;
@@ -26,28 +26,86 @@
       margin-bottom: 16px;
     }
     @keyframes spin { 100% { transform: rotate(360deg); } }
+    .status-text { font-size: 15px; font-weight: 500; color: #f0f4fc; }
   </style>
 </head>
 <body>
-  <div class="spinner"></div>
-  <p>Verifying Google Authentication...</p>
-  <script>
-    (function () {
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
-      const idToken = params.get('id_token');
+  <div class="spinner" id="spinner"></div>
+  <p class="status-text" id="status-msg">Verifying Google Authentication...</p>
 
-      if (idToken && window.opener) {
-        window.opener.postMessage({
-          type: 'GOOGLE_AUTH_CREDENTIAL',
-          credential: idToken
-        }, '*');
-        window.close();
-      } else if (window.opener) {
-        window.opener.postMessage({
-          type: 'GOOGLE_AUTH_CANCELLED'
-        }, '*');
-        window.close();
+  <script>
+    (async function () {
+      const statusMsg = document.getElementById('status-msg');
+      const spinner = document.getElementById('spinner');
+
+      // 1. Extract token from URL Hash and URL Search Query
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const queryParams = new URLSearchParams(window.location.search);
+
+      const token = hashParams.get('id_token') || 
+                    hashParams.get('access_token') || 
+                    queryParams.get('id_token') || 
+                    queryParams.get('access_token') || 
+                    queryParams.get('credential') || 
+                    queryParams.get('code');
+
+      if (token) {
+        // Option A: Send credential back to opener window if open
+        let openerNotified = false;
+        if (window.opener && !window.opener.closed) {
+          try {
+            window.opener.postMessage({
+              type: 'GOOGLE_AUTH_CREDENTIAL',
+              credential: token
+            }, '*');
+            openerNotified = true;
+            setTimeout(() => { window.close(); }, 400);
+          } catch (e) {
+            openerNotified = false;
+          }
+        }
+
+        // Option B: Self-service Backend Verification inside callback window if opener missing/blocked
+        if (!openerNotified) {
+          try {
+            statusMsg.textContent = 'Authenticating with CyberShield...';
+            const response = await fetch('/api/auth/google', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ credential: token, token: token })
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.token) {
+              localStorage.setItem('cybershield_token', data.token);
+              localStorage.setItem('cybershield_user', JSON.stringify(data.user));
+              if (spinner) spinner.style.borderColor = '#00c896';
+              statusMsg.innerHTML = '<span style="color:#00c896;">✓ Authentication successful! Redirecting to Dashboard...</span>';
+              setTimeout(() => {
+                window.location.href = 'dashboard.html';
+              }, 800);
+            } else {
+              if (spinner) spinner.style.display = 'none';
+              statusMsg.innerHTML = '<span style="color:#ef4444;">❌ ' + (data.error || 'Google authentication failed.') + '</span>';
+              setTimeout(() => { window.close(); }, 3000);
+            }
+          } catch (err) {
+            if (spinner) spinner.style.display = 'none';
+            statusMsg.innerHTML = '<span style="color:#ef4444;">❌ Unable to complete authentication.</span>';
+            setTimeout(() => { window.close(); }, 3000);
+          }
+        }
+      } else {
+        // No token present
+        if (window.opener && !window.opener.closed) {
+          try {
+            window.opener.postMessage({ type: 'GOOGLE_AUTH_CANCELLED' }, '*');
+          } catch (e) {}
+        }
+        if (spinner) spinner.style.display = 'none';
+        statusMsg.textContent = 'Google sign-in was cancelled.';
+        setTimeout(() => { window.close(); }, 1500);
       }
     })();
   </script>
