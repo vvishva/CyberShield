@@ -41,7 +41,7 @@
     }
     .auth-brand {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
     .auth-brand i {
       font-size: 42px;
@@ -60,48 +60,6 @@
       margin-top: 8px;
     }
 
-    /* ── Method Tabs ── */
-    .method-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      background: rgba(0,0,0,0.35);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 4px;
-      position: relative;
-      z-index: 10;
-    }
-    .method-tab {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      padding: 11px 10px;
-      border-radius: calc(var(--radius-md) - 2px);
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text-secondary);
-      font-family: 'Inter', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    .method-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.08); }
-    .method-tab.active {
-      background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1));
-      color: #00d4ff;
-      border: 1px solid rgba(0,212,255,0.35);
-      box-shadow: 0 2px 8px rgba(0, 212, 255, 0.15);
-    }
-    .method-tab i { font-size: 14px; }
-
-    /* ── Form ── */
     .form-group { margin-bottom: 20px; }
     .form-group label {
       display: block;
@@ -152,22 +110,6 @@
     }
     .eye-icon:hover { color: var(--cyan); }
 
-    /* ── Phone row ── */
-    .phone-row { display: flex; gap: 8px; }
-    .country-select-wrap { position: relative; flex: 0 0 110px; }
-    .country-select-wrap .input-icon { left: 10px; font-size: 12px; }
-    .form-control.country-select {
-      padding-left: 30px;
-      padding-right: 8px;
-      appearance: none;
-      -webkit-appearance: none;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .phone-number-wrap { flex: 1; position: relative; }
-    .phone-number-wrap .form-control { padding-left: 14px; }
-
-    /* ── Extras row ── */
     .auth-extras {
       display: flex;
       justify-content: space-between;
@@ -185,7 +127,6 @@
     .forgot-link { color: var(--cyan); text-decoration: none; }
     .forgot-link:hover { text-decoration: underline; }
 
-    /* ── Buttons ── */
     .auth-btn {
       width: 100%;
       padding: 14px;
@@ -199,7 +140,6 @@
       gap: 8px;
     }
 
-    /* ── Footer ── */
     .auth-footer {
       text-align: center;
       margin-top: 20px;
@@ -209,11 +149,61 @@
     .auth-footer a { color: var(--cyan); text-decoration: none; font-weight: 500; }
     .auth-footer a:hover { text-decoration: underline; }
 
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(5, 8, 16, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-box {
+      background: var(--bg-card, #0f1628);
+      border: 1px solid var(--border-glass, rgba(0, 212, 255, 0.2));
+      border-radius: var(--radius-lg, 12px);
+      width: 100%;
+      max-width: 440px;
+      padding: 30px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      position: relative;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-header h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: #fff; }
+
     @media (max-width: 480px) {
       body { padding: 0; align-items: flex-start; padding-top: 40px; }
       .auth-card { padding: 30px 20px; border: none; box-shadow: none; background: transparent; }
-      .method-tab { font-size: 12px; padding: 10px 6px; }
-      .country-select-wrap { flex: 0 0 95px; }
     }
   </style>
 </head>
@@ -228,16 +218,6 @@
       <p id="login-brand-subtitle">Enter your credentials to access the SOC</p>
     </div>
 
-    <!-- ── Method Selector Tabs ── -->
-    <div class="method-tabs">
-      <button type="button" class="method-tab active" id="login-tab-email">
-        <i class="fas fa-envelope"></i> Email Login
-      </button>
-      <button type="button" class="method-tab" id="login-tab-phone">
-        <i class="fas fa-mobile-screen-button"></i> Mobile Login
-      </button>
-    </div>
-
     <!-- ── Email Login ── -->
     <div id="login-email-section">
       <form id="login-form">
@@ -245,14 +225,14 @@
           <label>Email Address</label>
           <div class="input-group">
             <i class="fas fa-envelope input-icon"></i>
-            <input type="email" id="login-email" class="form-control" placeholder="analyst@example.com" autocomplete="email">
+            <input type="email" id="login-email" class="form-control" placeholder="analyst@example.com" required autocomplete="email">
           </div>
         </div>
         <div class="form-group">
           <label>Password</label>
           <div class="input-group">
             <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="login-password" class="form-control" placeholder="••••••••" autocomplete="current-password">
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
             <i class="fas fa-eye eye-icon" id="toggle-pwd"></i>
           </div>
         </div>
@@ -268,380 +248,220 @@
       </form>
     </div>
 
-    <!-- ── Phone Login (new) ── -->
-    <div id="login-phone-section" style="display: none;">
-      <form id="login-phone-form">
+    <div class="auth-footer">
+      Don't have an account? <a href="register.html">Register Account</a>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div class="modal-overlay" id="forgot-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fas fa-key text-cyan"></i> Password Recovery</h3>
+        <button type="button" class="modal-close" id="close-forgot-modal">&times;</button>
+      </div>
+
+      <!-- Step 1: Request OTP -->
+      <form id="forgot-request-form">
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+          Enter your registered email address. We will send a 6-digit recovery code to reset your password.
+        </p>
         <div class="form-group">
-          <label>Mobile Number</label>
-          <div class="phone-row">
-            <div class="country-select-wrap">
-              <i class="fas fa-flag input-icon"></i>
-              <select id="login-country-code" class="form-control country-select" aria-label="Country code">
-                <option value="+91">🇮🇳 +91</option>
-                <option value="+1">🇺🇸 +1</option>
-                <option value="+44">🇬🇧 +44</option>
-                <option value="+61">🇦🇺 +61</option>
-                <option value="+81">🇯🇵 +81</option>
-                <option value="+86">🇨🇳 +86</option>
-                <option value="+49">🇩🇪 +49</option>
-                <option value="+33">🇫🇷 +33</option>
-                <option value="+39">🇮🇹 +39</option>
-                <option value="+34">🇪捎 +34</option>
-                <option value="+7">🇷🇺 +7</option>
-                <option value="+55">🇧🇷 +55</option>
-                <option value="+52">🇲🇽 +52</option>
-                <option value="+82">🇰🇷 +82</option>
-                <option value="+65">🇸🇬 +65</option>
-                <option value="+971">🇦🇪 +971</option>
-                <option value="+966">🇸🇦 +966</option>
-                <option value="+92">🇵🇰 +92</option>
-                <option value="+880">🇧🇩 +880</option>
-                <option value="+94">🇱🇰 +94</option>
-                <option value="+60">🇲🇾 +60</option>
-                <option value="+62">🇮🇩 +62</option>
-                <option value="+63">🇵🇭 +63</option>
-                <option value="+66">🇹🇭 +66</option>
-                <option value="+84">🇻🇳 +84</option>
-                <option value="+234">🇳🇬 +234</option>
-                <option value="+27">🇿🇦 +27</option>
-                <option value="+20">🇪🇬 +20</option>
-                <option value="+254">🇰🇪 +254</option>
-                <option value="+212">🇲🇦 +212</option>
-                <option value="+41">🇨🇭 +41</option>
-                <option value="+31">🇳🇱 +31</option>
-                <option value="+46">🇸🇪 +46</option>
-                <option value="+47">🇳🇴 +47</option>
-                <option value="+45">🇩🇰 +45</option>
-                <option value="+358">🇫🇮 +358</option>
-                <option value="+48">🇵🇱 +48</option>
-                <option value="+380">🇺🇦 +380</option>
-                <option value="+30">🇬🇷 +30</option>
-                <option value="+90">🇹🇷 +90</option>
-                <option value="+972">🇮🇱 +972</option>
-                <option value="+98">🇮🇷 +98</option>
-                <option value="+64">🇳🇿 +64</option>
-                <option value="+54">🇦🇷 +54</option>
-                <option value="+56">🇨🇱 +56</option>
-                <option value="+57">🇨🇴 +57</option>
-                <option value="+51">🇵🇪 +51</option>
-                <option value="+58">🇻🇪 +58</option>
-              </select>
-            </div>
-            <div class="phone-number-wrap">
-              <input type="tel" id="login-phone-number" class="form-control" placeholder="9876543210" inputmode="numeric" autocomplete="tel-national">
-            </div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Password</label>
+          <label>Email Address</label>
           <div class="input-group">
-            <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="login-phone-password" class="form-control" placeholder="••••••••" autocomplete="current-password">
-            <i class="fas fa-eye eye-icon" id="toggle-phone-pwd"></i>
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" id="forgot-email-input" class="form-control" placeholder="analyst@example.com" required autocomplete="email">
           </div>
         </div>
-        <div class="auth-extras">
-          <label class="remember-label">
-            <input type="checkbox" id="login-phone-remember"> Remember me
-          </label>
-          <a href="#" class="forgot-link" id="open-forgot-modal-phone">Forgot password?</a>
-        </div>
-        <button type="submit" class="btn btn-primary auth-btn" id="login-phone-btn">
-          <i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter
+        <button type="submit" class="btn btn-primary auth-btn" id="forgot-req-btn">
+          <i class="fas fa-paper-plane"></i> Send Recovery Code
         </button>
       </form>
-    </div>
 
-    <div class="auth-footer">
-      Don't have an account? <a href="register.html">Create Account</a>
+      <!-- Step 2: Reset Password -->
+      <form id="forgot-reset-form" style="display:none;">
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+          Enter the 6-digit code sent to your email and your new password.
+        </p>
+        <div class="form-group">
+          <label>Recovery OTP Code</label>
+          <div class="input-group">
+            <i class="fas fa-shield-cat input-icon"></i>
+            <input type="text" id="forgot-otp-input" class="form-control" placeholder="123456" required maxlength="6" pattern="\d{6}" inputmode="numeric">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <div class="input-group">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" id="forgot-new-pwd" class="form-control" placeholder="••••••••" required minlength="6">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <div class="input-group">
+            <i class="fas fa-check-double input-icon"></i>
+            <input type="password" id="forgot-confirm-pwd" class="form-control" placeholder="••••••••" required minlength="6">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary auth-btn" id="forgot-reset-btn">
+          <i class="fas fa-key"></i> Reset Password
+        </button>
+      </form>
     </div>
   </div>
 
   <script src="../js/app.js"></script>
   <script>
-    // Global tab switching function
-    function switchLoginMethod(method) {
-      const emailSection = document.getElementById('login-email-section');
-      const phoneSection = document.getElementById('login-phone-section');
-      const tabEmail = document.getElementById('login-tab-email');
-      const tabPhone = document.getElementById('login-tab-phone');
-      const subtitle = document.getElementById('login-brand-subtitle');
-
-      if (method === 'email') {
-        if (emailSection) emailSection.style.display = 'block';
-        if (phoneSection) phoneSection.style.display = 'none';
-        if (tabEmail) tabEmail.classList.add('active');
-        if (tabPhone) tabPhone.classList.remove('active');
-        if (subtitle) subtitle.textContent = 'Enter your email credentials to access the SOC';
-      } else {
-        if (emailSection) emailSection.style.display = 'none';
-        if (phoneSection) phoneSection.style.display = 'block';
-        if (tabEmail) tabEmail.classList.remove('active');
-        if (tabPhone) tabPhone.classList.add('active');
-        if (subtitle) subtitle.textContent = 'Enter your registered mobile number & password';
-      }
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
       // Redirect if already logged in
       if (getToken() && getUser()) {
         window.location.href = 'dashboard.html';
       }
 
-      // Bind direct click listeners to tabs
-      const tabEmail = document.getElementById('login-tab-email');
-      const tabPhone = document.getElementById('login-tab-phone');
-      if (tabEmail) tabEmail.addEventListener('click', () => switchLoginMethod('email'));
-      if (tabPhone) tabPhone.addEventListener('click', () => switchLoginMethod('phone'));
-
-      // ── Password Toggles ─────────────────────────────────────────────
-      const setupToggle = (toggleId, inputId) => {
-        const el = document.getElementById(toggleId);
-        if (!el) return;
-        el.addEventListener('click', function () {
-          const input = document.getElementById(inputId);
-          if (input.type === 'password') {
-            input.type = 'text';
-            this.classList.replace('fa-eye', 'fa-eye-slash');
+      // Password Toggle
+      const togglePwd = document.getElementById('toggle-pwd');
+      const loginPassword = document.getElementById('login-password');
+      if (togglePwd && loginPassword) {
+        togglePwd.addEventListener('click', () => {
+          if (loginPassword.type === 'password') {
+            loginPassword.type = 'text';
+            togglePwd.classList.replace('fa-eye', 'fa-eye-slash');
           } else {
-            input.type = 'password';
-            this.classList.replace('fa-eye-slash', 'fa-eye');
+            loginPassword.type = 'password';
+            togglePwd.classList.replace('fa-eye-slash', 'fa-eye');
           }
         });
-      };
-      setupToggle('toggle-pwd', 'login-password');
-      setupToggle('toggle-phone-pwd', 'login-phone-password');
+      }
 
-      // ── Email Login Form ──────────────────────────────────────────────
-      document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('login-btn');
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-        const remember = document.getElementById('login-remember').checked;
+      // Email Login
+      const loginForm = document.getElementById('login-form');
+      if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('login-email').value.trim();
+          const password = document.getElementById('login-password').value;
 
-        if (!email || !password) {
-          showToast('Please enter both email and password', 'warning');
-          return;
-        }
+          const btn = document.getElementById('login-btn');
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
 
-        btn.classList.add('btn-loading');
-        btn.disabled = true;
-
-        try {
-          const data = await apiRequest('/auth/login', 'POST', { email, password });
-          if (data.success && data.token) {
-            setToken(data.token, remember);
-            if (data.user) setUser(data.user, remember);
-            btn.innerHTML = '<i class="fas fa-check"></i> Authenticated!';
-            btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
-            showToast('Welcome back! Redirecting...', 'success');
-            setTimeout(() => window.location.href = 'dashboard.html', 800);
+          try {
+            const data = await apiRequest('/auth/login', 'POST', { email, password });
+            if (data.success && data.token) {
+              setToken(data.token);
+              setUser(data.user);
+              showToast('Authentication successful! Welcome to CyberShield.', 'success');
+              setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+            } else {
+              showToast(data.error || 'Login failed. Please check your credentials.', 'danger');
+            }
+          } catch (err) {
+            showToast(err.message || 'Login failed. Please check email and password.', 'danger');
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter';
           }
-        } catch (err) {
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter';
-          document.querySelector('.auth-card').classList.add('shake');
-          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          if (err.unverified) {
-            showToast('Account not verified. Please complete registration first.', 'warning');
-          } else {
-            showToast(err.message || 'Login failed', 'danger');
+        });
+      }
+
+      // Forgot Password Modal Handlers
+      const forgotModal = document.getElementById('forgot-modal');
+      const openForgotBtn = document.getElementById('open-forgot-modal');
+      const closeForgotBtn = document.getElementById('close-forgot-modal');
+      const reqForm = document.getElementById('forgot-request-form');
+      const resetForm = document.getElementById('forgot-reset-form');
+
+      let recoveryTarget = '';
+
+      if (openForgotBtn) {
+        openForgotBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const emailVal = document.getElementById('login-email').value.trim();
+          if (emailVal) document.getElementById('forgot-email-input').value = emailVal;
+          reqForm.style.display = 'block';
+          resetForm.style.display = 'none';
+          forgotModal.classList.add('active');
+        });
+      }
+
+      if (closeForgotBtn) {
+        closeForgotBtn.addEventListener('click', () => {
+          forgotModal.classList.remove('active');
+        });
+      }
+
+      if (forgotModal) {
+        forgotModal.addEventListener('click', (e) => {
+          if (e.target === forgotModal) forgotModal.classList.remove('active');
+        });
+      }
+
+      if (reqForm) {
+        reqForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const emailInput = document.getElementById('forgot-email-input').value.trim();
+          if (!emailInput) { showToast('Please enter your email', 'warning'); return; }
+
+          const btn = document.getElementById('forgot-req-btn');
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending Code...';
+
+          try {
+            const data = await apiRequest('/auth/forgot-password', 'POST', { input: emailInput });
+            recoveryTarget = emailInput;
+            showToast(data.message || 'If an account exists, a recovery code has been sent.', 'info');
+            reqForm.style.display = 'none';
+            resetForm.style.display = 'block';
+          } catch (err) {
+            showToast(err.message || 'Unable to send recovery code.', 'danger');
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Recovery Code';
           }
-        }
-      });
+        });
+      }
 
-      // ── Phone Login Form ──────────────────────────────────────────────
-      document.getElementById('login-phone-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const cc = document.getElementById('login-country-code').value.trim();
-        let raw = document.getElementById('login-phone-number').value.trim();
-        const ccDigits = cc.replace('+', '');
-        const cleanDigits = raw.replace(/\D/g, '');
-        let phoneNumber = cc + cleanDigits;
-        if (raw.startsWith('+')) {
-          phoneNumber = raw;
-        } else if (cleanDigits.startsWith(ccDigits) && cleanDigits.length >= ccDigits.length + 10) {
-          phoneNumber = '+' + cleanDigits;
-        }
-        const password = document.getElementById('login-phone-password').value;
-        const remember = document.getElementById('login-phone-remember').checked;
+      if (resetForm) {
+        resetForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const otp = document.getElementById('forgot-otp-input').value.trim();
+          const newPassword = document.getElementById('forgot-new-pwd').value;
+          const confirmPassword = document.getElementById('forgot-confirm-pwd').value;
 
-        if (!num || !password) {
-          showToast('Please enter your phone number and password', 'warning');
-          return;
-        }
-        if (phoneNumber.replace('+', '').length < 8) {
-          showToast('Invalid phone number', 'warning');
-          return;
-        }
-
-        btn.classList.add('btn-loading');
-        btn.disabled = true;
-
-        try {
-          const data = await apiRequest('/auth/login', 'POST', { phoneNumber, password });
-          if (data.success && data.token) {
-            setToken(data.token, remember);
-            if (data.user) setUser(data.user, remember);
-            btn.innerHTML = '<i class="fas fa-check"></i> Authenticated!';
-            btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
-            showToast('Welcome back! Redirecting...', 'success');
-            setTimeout(() => window.location.href = 'dashboard.html', 800);
+          if (newPassword !== confirmPassword) {
+            showToast('Passwords do not match.', 'danger');
+            return;
           }
-        } catch (err) {
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Authenticate &amp; Enter';
-          document.querySelector('.auth-card').classList.add('shake');
-          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          if (err.unverified) {
-            showToast('Mobile number not verified. Please complete registration first.', 'warning');
-          } else {
-            showToast(err.message || 'Login failed', 'danger');
+
+          const btn = document.getElementById('forgot-reset-btn');
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+
+          try {
+            const data = await apiRequest('/auth/reset-password', 'POST', {
+              input: recoveryTarget,
+              otp,
+              newPassword
+            });
+
+            if (data.success) {
+              showToast('Password reset successful! You can now log in with your new password.', 'success');
+              forgotModal.classList.remove('active');
+              document.getElementById('login-email').value = recoveryTarget;
+              document.getElementById('login-password').value = '';
+            } else {
+              showToast(data.error || 'Password reset failed.', 'danger');
+            }
+          } catch (err) {
+            showToast(err.message || 'Password reset failed.', 'danger');
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-key"></i> Reset Password';
           }
-        }
-      });
-
-      // ── Password Reset Modal Logic ────────────────────────────────────
-      const modal = document.getElementById('forgot-modal');
-      const openBtn1 = document.getElementById('open-forgot-modal');
-      const openBtn2 = document.getElementById('open-forgot-modal-phone');
-      const closeBtn = document.getElementById('close-forgot-modal');
-      let resetIdentifier = '';
-
-      const showForgotModal = (e) => {
-        if (e) e.preventDefault();
-        document.getElementById('forgot-step-1').style.display = 'block';
-        document.getElementById('forgot-step-2').style.display = 'none';
-        document.getElementById('forgot-identifier').value = '';
-        modal.style.display = 'flex';
-      };
-
-      if (openBtn1) openBtn1.addEventListener('click', showForgotModal);
-      if (openBtn2) openBtn2.addEventListener('click', showForgotModal);
-      if (closeBtn) closeBtn.addEventListener('click', () => modal.style.display = 'none');
-
-      document.getElementById('forgot-req-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('forgot-req-btn');
-        resetIdentifier = document.getElementById('forgot-identifier').value.trim();
-        if (!resetIdentifier) {
-          showToast('Please enter your email or mobile number', 'warning');
-          return;
-        }
-        btn.classList.add('btn-loading');
-        btn.disabled = true;
-
-        try {
-          const data = await apiRequest('/auth/forgot-password', 'POST', { identifier: resetIdentifier });
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          showToast(data.message || 'Verification code sent.', 'info');
-          document.getElementById('forgot-step-1').style.display = 'none';
-          document.getElementById('forgot-step-2').style.display = 'block';
-          document.getElementById('forgot-step-2-notice').textContent = `Enter the 6-digit code sent to ${resetIdentifier}`;
-        } catch (err) {
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          showToast(err.message || 'Unable to request password reset.', 'danger');
-        }
-      });
-
-      document.getElementById('forgot-reset-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('forgot-reset-btn');
-        const otp = document.getElementById('forgot-otp').value.trim();
-        const newPassword = document.getElementById('forgot-new-password').value;
-        const confirm = document.getElementById('forgot-confirm-password').value;
-
-        if (newPassword !== confirm) {
-          showToast('Passwords do not match', 'warning');
-          return;
-        }
-        if (newPassword.length < 8) {
-          showToast('Password must be at least 8 characters', 'warning');
-          return;
-        }
-
-        btn.classList.add('btn-loading');
-        btn.disabled = true;
-
-        try {
-          const data = await apiRequest('/auth/reset-password', 'POST', {
-            identifier: resetIdentifier,
-            otp,
-            newPassword
-          });
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          showToast(data.message || 'Password reset successful! Please log in.', 'success');
-          modal.style.display = 'none';
-        } catch (err) {
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          showToast(err.message || 'Password reset failed.', 'danger');
-        }
-      });
+        });
+      }
     });
   </script>
-
-  <!-- ── Password Reset Modal Component ── -->
-  <div id="forgot-modal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(11, 15, 26, 0.85); backdrop-filter: blur(8px); z-index: 9999; justify-content: center; align-items: center;">
-    <div class="glass-card modal-card" style="max-width: 440px; width: 90%; padding: 32px; position: relative; border-radius: 12px; background: rgba(15, 22, 40, 0.95); border: 1px solid rgba(0, 212, 255, 0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
-      <button type="button" id="close-forgot-modal" style="position: absolute; top: 16px; right: 20px; background: none; border: none; color: #9ca3af; font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
-
-      <!-- Step 1: Request Reset Code -->
-      <div id="forgot-step-1">
-        <h3 style="color: var(--cyan, #00d4ff); margin-bottom: 8px; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i class="fas fa-key"></i> Account Recovery</h3>
-        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 24px; line-height: 1.5;">Enter your registered Email or Mobile Number to receive a 6-digit password reset code.</p>
-        <form id="forgot-req-form">
-          <div class="form-group" style="margin-bottom: 20px;">
-            <label style="display: block; font-size: 13px; margin-bottom: 6px; color: #d1d5db;">Email or Mobile Number</label>
-            <div class="input-group">
-              <i class="fas fa-user-shield input-icon"></i>
-              <input type="text" id="forgot-identifier" class="form-control" placeholder="analyst@example.com or 9876543210" required>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary auth-btn" id="forgot-req-btn">
-            <i class="fas fa-paper-plane"></i> Send Reset Code
-          </button>
-        </form>
-      </div>
-
-      <!-- Step 2: Enter Reset OTP & New Password -->
-      <div id="forgot-step-2" style="display: none;">
-        <h3 style="color: var(--cyan, #00d4ff); margin-bottom: 8px; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i class="fas fa-lock-open"></i> Set New Password</h3>
-        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 24px; line-height: 1.5;" id="forgot-step-2-notice">Enter the 6-digit verification code and choose your new password.</p>
-        <form id="forgot-reset-form">
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 13px; margin-bottom: 6px; color: #d1d5db;">6-Digit Reset Code</label>
-            <div class="input-group">
-              <i class="fas fa-shield-cat input-icon"></i>
-              <input type="text" id="forgot-otp" class="form-control" placeholder="123456" maxlength="6" inputmode="numeric" required>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 13px; margin-bottom: 6px; color: #d1d5db;">New Password</label>
-            <div class="input-group">
-              <i class="fas fa-lock input-icon"></i>
-              <input type="password" id="forgot-new-password" class="form-control" placeholder="At least 8 characters" required>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom: 20px;">
-            <label style="display: block; font-size: 13px; margin-bottom: 6px; color: #d1d5db;">Confirm New Password</label>
-            <div class="input-group">
-              <i class="fas fa-lock input-icon"></i>
-              <input type="password" id="forgot-confirm-password" class="form-control" placeholder="Repeat new password" required>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary auth-btn" id="forgot-reset-btn">
-            <i class="fas fa-check-circle"></i> Update Password &amp; Login
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
 </body>
 </html>

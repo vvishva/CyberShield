@@ -27,7 +27,7 @@
       border-radius: var(--radius-lg);
       padding: 36px 40px;
       width: 100%;
-      max-width: 460px;
+      max-width: 440px;
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
       position: relative;
       overflow: hidden;
@@ -41,12 +41,12 @@
     }
     .auth-brand {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
     .auth-brand i {
-      font-size: 40px;
+      font-size: 42px;
       color: var(--cyan);
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .auth-brand h2 {
       font-size: 22px;
@@ -60,52 +60,7 @@
       margin-top: 6px;
     }
 
-    /* ── Method Selector Tabs ── */
-    .method-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      background: rgba(0,0,0,0.35);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 4px;
-      position: relative;
-      z-index: 10;
-    }
-    .method-tab {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      padding: 11px 10px;
-      border-radius: calc(var(--radius-md) - 2px);
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text-secondary);
-      font-family: 'Inter', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    .method-tab:hover {
-      color: var(--text-primary);
-      background: rgba(255,255,255,0.08);
-    }
-    .method-tab.active {
-      background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1));
-      color: #00d4ff;
-      border: 1px solid rgba(0,212,255,0.35);
-      box-shadow: 0 2px 8px rgba(0, 212, 255, 0.15);
-    }
-    .method-tab i { font-size: 14px; }
-
-    /* ── Form ── */
-    .form-group { margin-bottom: 15px; }
+    .form-group { margin-bottom: 16px; }
     .form-group label {
       display: block;
       font-size: 12px;
@@ -155,36 +110,6 @@
     }
     .eye-icon:hover { color: var(--cyan); }
 
-    /* ── Phone Row (country code + number) ── */
-    .phone-row {
-      display: flex;
-      gap: 8px;
-    }
-    .country-select-wrap {
-      position: relative;
-      flex: 0 0 110px;
-    }
-    .country-select-wrap .input-icon {
-      left: 10px;
-      font-size: 12px;
-    }
-    .form-control.country-select {
-      padding-left: 30px;
-      padding-right: 8px;
-      appearance: none;
-      -webkit-appearance: none;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .phone-number-wrap {
-      flex: 1;
-      position: relative;
-    }
-    .phone-number-wrap .form-control {
-      padding-left: 14px;
-    }
-
-    /* ── Buttons ── */
     .auth-btn {
       width: 100%;
       padding: 13px;
@@ -209,7 +134,6 @@
       border-radius: var(--radius-md);
     }
 
-    /* ── OTP helper text ── */
     .otp-notice {
       color: var(--text-muted);
       font-size: 12px;
@@ -218,7 +142,6 @@
       line-height: 1.5;
     }
 
-    /* ── Footer ── */
     .auth-footer {
       text-align: center;
       margin-top: 22px;
@@ -235,8 +158,6 @@
     @media (max-width: 480px) {
       body { padding: 12px; align-items: flex-start; padding-top: 20px; }
       .auth-card { padding: 28px 20px; border: none; box-shadow: none; background: transparent; }
-      .method-tab { font-size: 12px; padding: 9px 6px; }
-      .country-select-wrap { flex: 0 0 95px; }
     }
   </style>
 </head>
@@ -251,18 +172,8 @@
       <p id="brand-subtitle">Register as a new CyberShield Security Analyst</p>
     </div>
 
-    <!-- ── Method Selector Tabs ── -->
-    <div class="method-tabs" id="method-tabs">
-      <button type="button" class="method-tab active" id="tab-email">
-        <i class="fas fa-envelope"></i> Email Registration
-      </button>
-      <button type="button" class="method-tab" id="tab-phone">
-        <i class="fas fa-mobile-screen-button"></i> Mobile Registration
-      </button>
-    </div>
-
     <!-- ════════════════════════════════════════════
-         EMAIL REGISTRATION FORMS (existing flow)
+         EMAIL REGISTRATION FORMS
     ═══════════════════════════════════════════════ -->
     <div id="email-section">
       <!-- Step 1: Email Registration -->
@@ -326,126 +237,6 @@
       </form>
     </div>
 
-    <!-- ════════════════════════════════════════════
-         PHONE REGISTRATION FORMS (new)
-    ═══════════════════════════════════════════════ -->
-    <div id="phone-section" style="display: none;">
-      <!-- Step 1: Phone Registration -->
-      <form id="register-phone-form">
-        <div class="form-group">
-          <label>Username</label>
-          <div class="input-group">
-            <i class="fas fa-user input-icon"></i>
-            <input type="text" id="phone-username" class="form-control" placeholder="SecurityAnalyst" required minlength="3" autocomplete="username">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Mobile Number</label>
-          <div class="phone-row">
-            <div class="country-select-wrap">
-              <i class="fas fa-flag input-icon"></i>
-              <select id="country-code" class="form-control country-select" aria-label="Country code">
-                <option value="+91">🇮🇳 +91</option>
-                <option value="+1">🇺🇸 +1</option>
-                <option value="+44">🇬🇧 +44</option>
-                <option value="+61">🇦🇺 +61</option>
-                <option value="+81">🇯🇵 +81</option>
-                <option value="+86">🇨🇳 +86</option>
-                <option value="+49">🇩🇪 +49</option>
-                <option value="+33">🇫🇷 +33</option>
-                <option value="+39">🇮🇹 +39</option>
-                <option value="+34">🇪🇸 +34</option>
-                <option value="+7">🇷🇺 +7</option>
-                <option value="+55">🇧🇷 +55</option>
-                <option value="+52">🇲🇽 +52</option>
-                <option value="+82">🇰🇷 +82</option>
-                <option value="+65">🇸🇬 +65</option>
-                <option value="+971">🇦🇪 +971</option>
-                <option value="+966">🇸🇦 +966</option>
-                <option value="+92">🇵🇰 +92</option>
-                <option value="+880">🇧🇩 +880</option>
-                <option value="+94">🇱🇰 +94</option>
-                <option value="+60">🇲🇾 +60</option>
-                <option value="+62">🇮🇩 +62</option>
-                <option value="+63">🇵🇭 +63</option>
-                <option value="+66">🇹🇭 +66</option>
-                <option value="+84">🇻🇳 +84</option>
-                <option value="+234">🇳🇬 +234</option>
-                <option value="+27">🇿🇦 +27</option>
-                <option value="+20">🇪🇬 +20</option>
-                <option value="+254">🇰🇪 +254</option>
-                <option value="+212">🇲🇦 +212</option>
-                <option value="+41">🇨🇭 +41</option>
-                <option value="+31">🇳🇱 +31</option>
-                <option value="+46">🇸🇪 +46</option>
-                <option value="+47">🇳🇴 +47</option>
-                <option value="+45">🇩🇰 +45</option>
-                <option value="+358">🇫🇮 +358</option>
-                <option value="+48">🇵🇱 +48</option>
-                <option value="+380">🇺🇦 +380</option>
-                <option value="+30">🇬🇷 +30</option>
-                <option value="+90">🇹🇷 +90</option>
-                <option value="+972">🇮🇱 +972</option>
-                <option value="+98">🇮🇷 +98</option>
-                <option value="+64">🇳🇿 +64</option>
-                <option value="+54">🇦🇷 +54</option>
-                <option value="+56">🇨🇱 +56</option>
-                <option value="+57">🇨🇴 +57</option>
-                <option value="+51">🇵🇪 +51</option>
-                <option value="+58">🇻🇪 +58</option>
-              </select>
-            </div>
-            <div class="phone-number-wrap">
-              <input type="tel" id="phone-number" class="form-control" placeholder="9876543210" required inputmode="numeric" autocomplete="tel-national">
-            </div>
-          </div>
-          <small class="otp-notice" style="margin-top:6px;">Enter your number without the country code.</small>
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <div class="input-group">
-            <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="phone-password" class="form-control" placeholder="••••••••" required autocomplete="new-password">
-            <i class="fas fa-eye eye-icon" id="toggle-phone-pwd1"></i>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Confirm Password</label>
-          <div class="input-group">
-            <i class="fas fa-check-double input-icon"></i>
-            <input type="password" id="phone-confirm" class="form-control" placeholder="••••••••" required autocomplete="new-password">
-            <i class="fas fa-eye eye-icon" id="toggle-phone-pwd2"></i>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary auth-btn" id="phone-reg-btn">
-          <i class="fas fa-paper-plane"></i> Send SMS OTP
-        </button>
-      </form>
-
-      <!-- Step 2: Phone OTP Verification -->
-      <form id="phone-otp-form" style="display: none;">
-        <div class="form-group">
-          <label>SMS Verification Code</label>
-          <div class="input-group">
-            <i class="fas fa-key input-icon"></i>
-            <input type="text" id="phone-otp" class="form-control" placeholder="123456" required maxlength="6" pattern="\d{6}" inputmode="numeric" autocomplete="one-time-code">
-          </div>
-          <small class="otp-notice" id="phone-otp-notice">A 6-digit code has been sent to your mobile number.</small>
-        </div>
-        <button type="submit" class="btn btn-primary auth-btn" id="phone-otp-btn">
-          <i class="fas fa-unlock-keyhole"></i> Verify Account
-        </button>
-        <div class="otp-actions">
-          <button type="button" class="btn btn-secondary" id="resend-phone-otp-btn">
-            <i class="fas fa-rotate"></i> Resend OTP <span id="phone-cooldown-timer">(60s)</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="change-phone-btn">
-            <i class="fas fa-pen"></i> Change Number
-          </button>
-        </div>
-      </form>
-    </div>
-
     <div class="auth-footer">
       Already registered? <a href="login.html">Back to Login</a>
     </div>
@@ -453,41 +244,13 @@
 
   <script src="../js/app.js"></script>
   <script>
-    function switchMethod(method) {
-      const emailSection = document.getElementById('email-section');
-      const phoneSection = document.getElementById('phone-section');
-      const tabEmail = document.getElementById('tab-email');
-      const tabPhone = document.getElementById('tab-phone');
-      const subtitle = document.getElementById('brand-subtitle');
-
-      if (method === 'email') {
-        if (emailSection) emailSection.style.display = 'block';
-        if (phoneSection) phoneSection.style.display = 'none';
-        if (tabEmail) tabEmail.classList.add('active');
-        if (tabPhone) tabPhone.classList.remove('active');
-        if (subtitle) subtitle.textContent = 'Register as a new CyberShield Security Analyst';
-      } else {
-        if (emailSection) emailSection.style.display = 'none';
-        if (phoneSection) phoneSection.style.display = 'block';
-        if (tabEmail) tabEmail.classList.remove('active');
-        if (tabPhone) tabPhone.classList.add('active');
-        if (subtitle) subtitle.textContent = 'Register with your mobile number';
-      }
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
       // Redirect if already logged in
       if (getToken() && getUser()) {
         window.location.href = 'dashboard.html';
       }
 
-      // Bind direct click listeners to tabs
-      const tabEmail = document.getElementById('tab-email');
-      const tabPhone = document.getElementById('tab-phone');
-      if (tabEmail) tabEmail.addEventListener('click', () => switchMethod('email'));
-      if (tabPhone) tabPhone.addEventListener('click', () => switchMethod('phone'));
-
-      // ── Password Toggle Helper ────────────────────────────────────
+      // Password Toggle Helper
       const setupToggle = (toggleId, inputId) => {
         const el = document.getElementById(toggleId);
         if (!el) return;
@@ -502,238 +265,139 @@
           }
         });
       };
+
       setupToggle('toggle-pwd1', 'reg-password');
       setupToggle('toggle-pwd2', 'reg-confirm');
-      setupToggle('toggle-phone-pwd1', 'phone-password');
-      setupToggle('toggle-phone-pwd2', 'phone-confirm');
 
-      // ── Countdown Timer Helper ────────────────────────────────────
-      const startCountdown = (btnId, timerId, seconds = 60) => {
-        const btn = document.getElementById(btnId);
-        const timerSpan = document.getElementById(timerId);
-        btn.disabled = true;
+      // State tracking
+      let pendingEmail = '';
+      let cooldownInterval = null;
+
+      function startCooldownTimer(seconds = 60) {
+        const resendBtn = document.getElementById('resend-otp-btn');
+        const timerSpan = document.getElementById('cooldown-timer');
+        if (!resendBtn || !timerSpan) return;
+
+        resendBtn.disabled = true;
         let remaining = seconds;
         timerSpan.textContent = `(${remaining}s)`;
-        const interval = setInterval(() => {
-          remaining -= 1;
+
+        if (cooldownInterval) clearInterval(cooldownInterval);
+        cooldownInterval = setInterval(() => {
+          remaining--;
           if (remaining <= 0) {
-            clearInterval(interval);
+            clearInterval(cooldownInterval);
+            resendBtn.disabled = false;
             timerSpan.textContent = '';
-            btn.disabled = false;
           } else {
             timerSpan.textContent = `(${remaining}s)`;
           }
         }, 1000);
-        return interval;
-      };
+      }
 
-      // ══════════════════════════════════════════════════════
-      // EMAIL REGISTRATION FLOW (existing — unchanged logic)
-      // ══════════════════════════════════════════════════════
-      let registeredEmail = '';
-      let emailTimerInterval = null;
+      // Step 1: Send OTP
+      const registerForm = document.getElementById('register-form');
+      if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const username = document.getElementById('reg-username').value.trim();
+          const email = document.getElementById('reg-email').value.trim();
+          const password = document.getElementById('reg-password').value;
+          const confirm = document.getElementById('reg-confirm').value;
 
-      document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('reg-btn');
-        const username = document.getElementById('reg-username').value.trim();
-        const email = document.getElementById('reg-email').value.trim();
-        const password = document.getElementById('reg-password').value;
-        const confirm = document.getElementById('reg-confirm').value;
-
-        if (password !== confirm) {
-          showToast('Passwords do not match', 'warning');
-          return;
-        }
-
-        btn.classList.add('btn-loading');
-        btn.disabled = true;
-
-        try {
-          const data = await apiRequest('/auth/register', 'POST', { username, email, password });
-          if (data.success) {
-            registeredEmail = email;
-            document.getElementById('register-form').style.display = 'none';
-            document.getElementById('otp-form').style.display = 'block';
-            document.getElementById('brand-subtitle').textContent = `Enter the 6-digit code sent to ${email}`;
-            document.getElementById('otp-sent-notice').textContent = `A 6-digit code has been sent to ${email}`;
-            showToast(data.message || 'Verification code sent to your email.', 'success');
-            emailTimerInterval = startCountdown('resend-otp-btn', 'cooldown-timer', 60);
+          if (password !== confirm) {
+            showToast('Passwords do not match', 'danger');
+            return;
           }
-        } catch (err) {
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          document.querySelector('.auth-card').classList.add('shake');
-          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          showToast(err.message || 'Unable to send verification code. Please try again.', 'danger');
-        }
-      });
 
-      document.getElementById('otp-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('otp-btn');
-        const otp = document.getElementById('reg-otp').value.trim();
-        btn.classList.add('btn-loading');
-        btn.disabled = true;
-        try {
-          const data = await apiRequest('/auth/verify-otp', 'POST', { email: registeredEmail, otp });
-          if (data.success && data.token) {
-            setToken(data.token, false);
-            if (data.user) setUser(data.user, false);
-            btn.innerHTML = '<i class="fas fa-check"></i> Verified!';
-            btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
-            showToast('Account verified! Accessing SOC...', 'success');
-            setTimeout(() => window.location.href = 'dashboard.html', 800);
+          const btn = document.getElementById('reg-btn');
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending OTP...';
+
+          try {
+            const data = await apiRequest('/auth/register', 'POST', { username, email, password });
+            if (data.success) {
+              pendingEmail = email;
+              showToast(data.message || 'OTP sent to your email!', 'success');
+              document.getElementById('register-form').style.display = 'none';
+              document.getElementById('otp-form').style.display = 'block';
+              document.getElementById('otp-sent-notice').textContent = `A 6-digit verification code has been sent to ${email}.`;
+              startCooldownTimer(60);
+            } else {
+              showToast(data.error || 'Failed to send OTP', 'danger');
+            }
+          } catch (err) {
+            showToast(err.message || 'Registration failed', 'danger');
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Email OTP';
           }
-        } catch (err) {
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          document.querySelector('.auth-card').classList.add('shake');
-          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          showToast(err.message || 'Invalid verification code.', 'danger');
-        }
-      });
+        });
+      }
 
-      document.getElementById('resend-otp-btn').addEventListener('click', async () => {
-        const btn = document.getElementById('resend-otp-btn');
-        btn.classList.add('btn-loading');
-        try {
-          const resData = await apiRequest('/auth/resend-otp', 'POST', { email: registeredEmail });
-          showToast(resData.message || 'Verification code sent to your email.', 'success');
-          if (emailTimerInterval) clearInterval(emailTimerInterval);
-          emailTimerInterval = startCountdown('resend-otp-btn', 'cooldown-timer', 60);
-        } catch (err) {
-          showToast(err.message || 'Unable to resend code. Please try again.', 'danger');
-          btn.disabled = false;
-        } finally {
-          btn.classList.remove('btn-loading');
-        }
-      });
-
-      document.getElementById('change-email-btn').addEventListener('click', () => {
-        if (emailTimerInterval) clearInterval(emailTimerInterval);
-        document.getElementById('otp-form').style.display = 'none';
-        document.getElementById('register-form').style.display = 'block';
-        document.getElementById('brand-subtitle').textContent = 'Register as a new CyberShield Security Analyst';
-        const btn = document.getElementById('reg-btn');
-        btn.classList.remove('btn-loading');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Email OTP';
-      });
-
-      // ══════════════════════════════════════════════════════
-      // PHONE REGISTRATION FLOW (new)
-      // ══════════════════════════════════════════════════════
-      let registeredPhone = '';
-      let phoneTimerInterval = null;
-
-      // Build full E.164 phone number from country code + local number
-      const buildE164 = () => {
-        const cc = document.getElementById('country-code').value.trim(); // e.g. "+91"
-        let raw = document.getElementById('phone-number').value.trim();
-        if (raw.startsWith('+')) return raw;
-        const ccDigits = cc.replace('+', '');
-        const cleanDigits = raw.replace(/\D/g, '');
-        if (cleanDigits.startsWith(ccDigits) && cleanDigits.length >= ccDigits.length + 10) {
-          return '+' + cleanDigits;
-        }
-        return cc + cleanDigits;
-      };
-
-      document.getElementById('register-phone-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('phone-reg-btn');
-        const username = document.getElementById('phone-username').value.trim();
-        const phoneNumber = buildE164();
-        const password = document.getElementById('phone-password').value;
-        const confirm = document.getElementById('phone-confirm').value;
-
-        if (password !== confirm) {
-          showToast('Passwords do not match', 'warning');
-          return;
-        }
-
-        // Basic length sanity check
-        if (phoneNumber.replace('+', '').length < 8) {
-          showToast('Invalid phone number. Please enter the full number.', 'warning');
-          return;
-        }
-
-        btn.classList.add('btn-loading');
-        btn.disabled = true;
-
-        try {
-          const data = await apiRequest('/auth/register-phone', 'POST', { username, phoneNumber, password });
-          if (data.success) {
-            registeredPhone = phoneNumber;
-            document.getElementById('register-phone-form').style.display = 'none';
-            document.getElementById('phone-otp-form').style.display = 'block';
-            const masked = phoneNumber.slice(0, 4) + '••••••' + phoneNumber.slice(-2);
-            document.getElementById('brand-subtitle').textContent = `Enter the 6-digit code sent to ${masked}`;
-            document.getElementById('phone-otp-notice').textContent = `A 6-digit SMS code has been sent to ${masked}`;
-            showToast(data.message || 'Verification code sent to your mobile.', 'success');
-            phoneTimerInterval = startCountdown('resend-phone-otp-btn', 'phone-cooldown-timer', 60);
+      // Step 2: Verify OTP
+      const otpForm = document.getElementById('otp-form');
+      if (otpForm) {
+        otpForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const otp = document.getElementById('reg-otp').value.trim();
+          if (!otp || otp.length !== 6) {
+            showToast('Please enter a valid 6-digit OTP', 'warning');
+            return;
           }
-        } catch (err) {
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          document.querySelector('.auth-card').classList.add('shake');
-          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          showToast(err.message || 'Unable to send SMS. Please try again.', 'danger');
-        }
-      });
 
-      document.getElementById('phone-otp-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('phone-otp-btn');
-        const otp = document.getElementById('phone-otp').value.trim();
-        btn.classList.add('btn-loading');
-        btn.disabled = true;
-        try {
-          const data = await apiRequest('/auth/verify-phone-otp', 'POST', { phoneNumber: registeredPhone, otp });
-          if (data.success && data.token) {
-            setToken(data.token, false);
-            if (data.user) setUser(data.user, false);
-            btn.innerHTML = '<i class="fas fa-check"></i> Verified!';
-            btn.style.background = 'linear-gradient(135deg,#00c896,#00a077)';
-            showToast('Account verified! Accessing SOC...', 'success');
-            setTimeout(() => window.location.href = 'dashboard.html', 800);
+          const btn = document.getElementById('otp-btn');
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
+          try {
+            const data = await apiRequest('/auth/verify-otp', 'POST', { email: pendingEmail, otp });
+            if (data.success) {
+              showToast('Account verified successfully! Redirecting to login...', 'success');
+              setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+            } else {
+              showToast(data.error || 'OTP verification failed', 'danger');
+            }
+          } catch (err) {
+            showToast(err.message || 'Verification failed', 'danger');
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-unlock-keyhole"></i> Verify Account';
           }
-        } catch (err) {
-          btn.classList.remove('btn-loading');
-          btn.disabled = false;
-          document.querySelector('.auth-card').classList.add('shake');
-          setTimeout(() => document.querySelector('.auth-card').classList.remove('shake'), 400);
-          showToast(err.message || 'Invalid verification code.', 'danger');
-        }
-      });
+        });
+      }
 
-      document.getElementById('resend-phone-otp-btn').addEventListener('click', async () => {
-        const btn = document.getElementById('resend-phone-otp-btn');
-        btn.classList.add('btn-loading');
-        try {
-          const resData = await apiRequest('/auth/resend-phone-otp', 'POST', { phoneNumber: registeredPhone });
-          showToast(resData.message || 'Verification code sent to your mobile.', 'success');
-          if (phoneTimerInterval) clearInterval(phoneTimerInterval);
-          phoneTimerInterval = startCountdown('resend-phone-otp-btn', 'phone-cooldown-timer', 60);
-        } catch (err) {
-          showToast(err.message || 'Unable to resend code. Please try again.', 'danger');
-          btn.disabled = false;
-        } finally {
-          btn.classList.remove('btn-loading');
-        }
-      });
+      // Resend OTP
+      const resendBtn = document.getElementById('resend-otp-btn');
+      if (resendBtn) {
+        resendBtn.addEventListener('click', async () => {
+          if (!pendingEmail) return;
+          resendBtn.disabled = true;
+          try {
+            const data = await apiRequest('/auth/resend-otp', 'POST', { email: pendingEmail });
+            if (data.success) {
+              showToast('New verification code sent to your email!', 'success');
+              startCooldownTimer(60);
+            } else {
+              showToast(data.error || 'Failed to resend OTP', 'danger');
+              resendBtn.disabled = false;
+            }
+          } catch (err) {
+            showToast(err.message || 'Failed to resend OTP', 'danger');
+            resendBtn.disabled = false;
+          }
+        });
+      }
 
-      document.getElementById('change-phone-btn').addEventListener('click', () => {
-        if (phoneTimerInterval) clearInterval(phoneTimerInterval);
-        document.getElementById('phone-otp-form').style.display = 'none';
-        document.getElementById('register-phone-form').style.display = 'block';
-        document.getElementById('brand-subtitle').textContent = 'Register with your mobile number';
-        const btn = document.getElementById('phone-reg-btn');
-        btn.classList.remove('btn-loading');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send SMS OTP';
-      });
+      // Change Email
+      const changeEmailBtn = document.getElementById('change-email-btn');
+      if (changeEmailBtn) {
+        changeEmailBtn.addEventListener('click', () => {
+          document.getElementById('otp-form').style.display = 'none';
+          document.getElementById('register-form').style.display = 'block';
+          if (cooldownInterval) clearInterval(cooldownInterval);
+        });
+      }
     });
   </script>
 </body>
