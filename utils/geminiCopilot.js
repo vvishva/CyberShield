@@ -175,18 +175,16 @@ async function getAttackSurfaceData(userId, isAdmin = false) {
 // ============================================================
 
 const SYSTEM_SECURITY_PROMPT = `
-You are the CyberShield AI Security Copilot & Senior SOC Security Analyst.
-Your core mission is to provide DEFENSIVE web security analysis, threat triage, vulnerability explanation,
-and actionable security hardening recommendations using ONLY actual CyberShield platform data.
+You are the CyberShield AI Security Copilot.
+Your job is to answer the user's security question SIMPLY, DIRECTLY, AND CONCISELY using plain English.
 
-STRICT DEFENSIVE RULES:
-1. Provide ONLY defensive security analysis, remediation advice, and mitigation steps.
-2. NEVER provide attack tools, exploit code, offensive payloads, or instructions on how to hack systems.
-3. NEVER reveal system secrets, API keys, passwords, authentication tokens, or private user credentials.
-4. DO NOT invent or fabricate scan results, scores, or vulnerabilities if they do not exist in the provided CyberShield data.
-5. If data is unavailable, state clearly: "I don't have enough current CyberShield data to determine that."
-6. Maintain a professional, authoritative, enterprise Security Operations Center (SOC) tone.
-7. Format responses using clean markdown section headers, bullet points, and GitHub-style alerts.
+RULES:
+1. Answer exactly what the user asked in clear, simple bullet points.
+2. Keep explanations short, practical, and easy to understand.
+3. No unnecessary intro/outro boilerplate or filler text. Get straight to the point.
+4. Give defensive security advice, risk level, and exact fix steps.
+5. NEVER provide hacking payloads, attack code, or reveal passwords/tokens/API keys.
+6. Use actual CyberShield platform data provided in the context. If no data exists, state simply: "No current data available for this request."
 `;
 
 /**
@@ -196,23 +194,23 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
   const apiKey = process.env.GEMINI_API_KEY;
   const rawModel = (process.env.AI_MODEL || 'gemini-flash-latest').trim();
 
-  // Smart model alias mapping to active Gemini endpoints
   let modelName = rawModel;
   if (['latest-supported-gemini-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'].includes(rawModel)) {
     modelName = 'gemini-flash-latest';
   }
 
   const fullPrompt = `
-Current CyberShield Page Context: ${currentPage}
+Page Context: ${currentPage}
 
-ACTUAL CYBERSHIELD SECURITY DATA CONTEXT:
+CYBERSHIELD DATA:
 ${JSON.stringify(contextData, null, 2)}
 
-USER QUESTION / SECURITY ANALYSIS REQUEST:
+USER QUESTION:
 ${userPrompt}
+
+(Note: Keep your answer simple, direct, clear, and concise!)
   `;
 
-  // Fallback if API key is not configured or in trial mode
   if (!apiKey || apiKey.trim() === '' || apiKey.includes('YOUR_GEMINI_API_KEY')) {
     return generateFallbackSOCAnalysis(userPrompt, contextData, currentPage);
   }
@@ -232,7 +230,7 @@ ${userPrompt}
       },
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 2048
+        maxOutputTokens: 1024
       }
     }, { timeout: 12000 });
 
@@ -248,7 +246,7 @@ ${userPrompt}
 }
 
 /**
- * Deterministic Defensive SOC Analysis Fallback Engine
+ * Simple & Direct Defensive SOC Analysis Fallback Engine
  */
 function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage) {
   const lower = userPrompt.toLowerCase();
@@ -259,99 +257,55 @@ function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage) {
     const threats = summary.threatsDetected || 0;
     const safe = summary.safeScans || 0;
     const total = summary.totalScans || 0;
-    const riskLevel = score >= 80 ? 'LOW RISK' : score >= 50 ? 'MODERATE' : 'CRITICAL';
 
     return `
-### 🛡️ CYBERSHIELD AI SOC BRIEFING
+### 🛡️ SOC Security Briefing
 
-**Overall Security Status:** ${riskLevel}  
-**Average Security Score:** \`${score}/100\`
+- **Security Score:** \`${score}/100\` (${score >= 80 ? 'Safe' : 'Needs Action'})
+- **Total Scans:** \`${total}\`
+- **Active Threats:** \`${threats}\`
+- **Safe Assets:** \`${safe}\`
 
----
-
-#### 📊 Threat Intelligence Overview
-- **Total Scans Processed:** \`${total}\`
-- **Active Threats Blocked:** \`${threats}\`
-- **Verified Safe Assets:** \`${safe}\`
-- **Monitored Endpoints:** \`${summary.monitoredSitesCount || 0}\`
-
----
-
-#### 🎯 Top Defensive Recommendations
-1. **Security Headers:** Enforce \`Content-Security-Policy\` and \`Strict-Transport-Security\` headers across all web applications.
-2. **SSL/TLS Encryption:** Upgrade TLS configuration to enforce TLS 1.3 and disable deprecated cipher suites.
-3. **Continuous Auditing:** Schedule automated daily vulnerability scans for high-priority domains.
+**Quick Recommendation:** Configure missing Security Headers (HSTS, CSP) to keep your web assets protected.
     `.trim();
   }
 
   if (lower.includes('score') || lower.includes('why is my score')) {
     const score = summary.avgSecurityScore || contextData.securityScore || 85;
-    const riskLevel = score >= 90 ? 'Safe' : score >= 75 ? 'Low Risk' : score >= 50 ? 'Medium Risk' : 'High Risk';
 
     return `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🛡️ AI SECURITY SCORE ANALYSIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+### 🛡️ Security Score: ${score}/100
 
-**SECURITY SCORE:** \`${score}/100\`  
-**Risk Level:** \`${riskLevel}\`
+**What's Good:**
+- ✓ HTTPS encryption enabled
+- ✓ Active threat monitoring
 
----
+**What Needs Fixing:**
+- ⚠️ Add \`Content-Security-Policy\` header
+- ⚠️ Add \`Strict-Transport-Security\` header
 
-#### ✓ Positive Security Controls
-- HTTPS Protocol Encryption Enabled
-- Active Threat Monitoring Connected
-- Basic URL Reputation Clean
-
-#### ⚠️ Areas Requiring Attention
-- Missing \`Content-Security-Policy\` (CSP) Header
-- Missing \`Strict-Transport-Security\` (HSTS) Header
-- Server Banner Information Disclosure
-
----
-
-#### 🔧 Recommended Remediation Priority
-1. Configure \`Strict-Transport-Security\` with minimum \`max-age=31536000\`.
-2. Implement strict \`Content-Security-Policy\` to prevent XSS & data injection.
-3. Remove server disclosure headers (\`X-Powered-By\`, \`Server\`).
+**Quick Fix:** Add these missing headers to your web server config to increase your score to 100.
     `.trim();
   }
 
   if (lower.includes('vulnerability') || lower.includes('vulnerabilities')) {
-    const vulns = contextData.vulnerabilities || [];
-    const count = vulns.length;
-
     return `
-### ⚠️ AI VULNERABILITY TRIAGE REPORT
+### ⚠️ Vulnerability Summary
 
-Found **${count}** active vulnerability findings across scanned assets.
-
----
-
-#### 1. Missing Content-Security-Policy (CSP)
-- **Severity:** \`HIGH\`
-- **Affected Asset:** Web Server Configuration
-- **Defensive Impact:** Leaves application vulnerable to Cross-Site Scripting (XSS) and clickjacking attacks.
-- **Remediation:** Define HTTP header: \`Content-Security-Policy: default-src 'self'\`.
-
-#### 2. Missing Strict-Transport-Security (HSTS)
-- **Severity:** \`MEDIUM\`
-- **Affected Asset:** SSL/TLS Network Stack
-- **Defensive Impact:** Allows potential SSL stripping / man-in-the-middle downgrade attacks.
-- **Remediation:** Add header: \`Strict-Transport-Security: max-age=31536000; includeSubDomains\`.
+- **Missing CSP:** Add \`Content-Security-Policy\` header to block XSS attacks.
+- **Missing HSTS:** Add \`Strict-Transport-Security\` header to enforce HTTPS.
+- **Server Disclosure:** Hide server version headers (\`X-Powered-By\`).
     `.trim();
   }
 
   return `
-### 🤖 CyberShield AI Copilot Analysis
+### 🤖 CyberShield AI Analysis
 
-I have evaluated your current CyberShield security data for **${currentPage}**.
-
-- **Monitored Assets:** \`${summary.totalScans || 0} Scans Analyzed\`
+- **Total Scans:** \`${summary.totalScans || 0}\`
 - **Average Security Score:** \`${summary.avgSecurityScore || 85}/100\`
-- **Active Threat Detections:** \`${summary.threatsDetected || 0}\`
+- **Threats:** \`${summary.threatsDetected || 0}\`
 
-**Security Insight:** Your overall infrastructure posture is currently stable. To maintain defense-in-depth, ensure all web servers enforce HSTS, CSP, and X-Frame-Options security headers.
+Everything is currently monitored. Ask any specific question for a direct answer!
   `.trim();
 }
 
