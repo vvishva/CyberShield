@@ -1,9 +1,11 @@
 /**
- * CyberShield — SMS Sender Utility (SMSGate / Android SMS Gateway)
+ * CyberShield — SMS Sender Utility
  *
- * Official SMSGate documentation: https://docs.sms-gate.app
- * Primary Provider: SMSGate (https://sms-gate.app)
- * Fallback Providers: TextBee Gateway, Twilio
+ * Supported SMS Providers:
+ *   1. SMSGate (Official Android SMS Gateway https://sms-gate.app)
+ *   2. Fast2SMS (Indian Cloud Gateway https://www.fast2sms.com)
+ *   3. TextBee Gateway (https://textbee.dev)
+ *   4. Twilio Cloud Gateway (https://www.twilio.com)
  */
 
 const { normalizePhoneNumber } = require('./phoneNormalizer');
@@ -37,17 +39,16 @@ const checkSMSGateStatus = async (baseUrl, authHeader, messageId) => {
 };
 
 const sendSMS = async (to, message) => {
+  // ── Strategy 1: SMSGate (Official Android SMS Gateway https://sms-gate.app)
   const smsgateLogin    = process.env.SMSGATEWAY_LOGIN || 'TIWGS4';
   const smsgatePassword = process.env.SMSGATEWAY_PASSWORD || '4j1icnoh2qorlp';
   const smsgateToken    = process.env.SMSGATEWAY_TOKEN;
   const rawBaseUrl      = process.env.SMSGATEWAY_URL || 'https://api.sms-gate.app/3rdparty/v1';
 
-  // ── Strategy 1: SMSGate (Official Android SMS Gateway https://sms-gate.app)
   if (smsgateToken || (smsgateLogin && smsgatePassword)) {
     const formattedPhone = normalizePhoneNumber(to, 'IN');
     const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
 
-    // Build Authorization Header
     let authHeader = '';
     if (smsgateToken) {
       authHeader = `Bearer ${smsgateToken.trim()}`;
@@ -64,7 +65,7 @@ const sendSMS = async (to, message) => {
     const payload = {
       message: message,
       phoneNumbers: [formattedPhone],
-      simNumber: 1 // Default to active SIM 1 slot
+      simNumber: 1
     };
 
     let lastError = null;
@@ -97,10 +98,9 @@ const sendSMS = async (to, message) => {
 
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {
-            throw new Error('SMSGate authentication failed. Please check your SMSGate token or login/password.');
+            throw new Error('SMSGate authentication failed. Please check SMSGate credentials.');
           }
           if (response.status === 404) {
-            console.warn(`[SMSGate] Endpoint ${endpoint} returned 404. Trying fallback route...`);
             lastError = new Error(`Endpoint 404: ${endpoint}`);
             continue;
           }
@@ -112,7 +112,6 @@ const sendSMS = async (to, message) => {
 
         console.log(`[SMSGate] Message accepted. ID: ${messageId || 'N/A'}, Initial State: ${currentState}`);
 
-        // Status Polling Check
         if (messageId) {
           for (let i = 0; i < 3; i++) {
             await new Promise(r => setTimeout(r, 1500));
@@ -146,10 +145,66 @@ const sendSMS = async (to, message) => {
       }
     }
 
-    throw lastError || new Error('Unable to send SMS via SMSGate.');
+    if (lastError && !lastError.message.includes('dispatch failure')) {
+      console.warn('[SMSGate] Dispatch failed. Checking secondary providers...');
+    } else if (lastError) {
+      throw lastError;
+    }
   }
 
-  // ── Strategy 2: TextBee Gateway (Secondary Fallback) ───────────────────
+  // ── Strategy 2: Fast2SMS (Indian Cloud SMS Gateway https://www.fast2sms.com)
+  const fast2smsApiKey = process.env.FAST2SMS_API_KEY;
+  if (fast2smsApiKey) {
+    const formattedPhone = normalizePhoneNumber(to, 'IN');
+    const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
+    let local10Digits = formattedPhone;
+    if (formattedPhone.startsWith('+91') && formattedPhone.length === 13) {
+      local10Digits = formattedPhone.slice(3);
+    }
+
+    const endpoint = 'https://www.fast2sms.com/dev/bulkV2';
+    console.log(`[Fast2SMS] Dispatching to recipient: ${maskedPhone}`);
+
+    const payload = {
+      route: 'q',
+      message: message,
+      language: 'english',
+      flash: 0,
+      numbers: local10Digits
+    };
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'authorization': fast2smsApiKey.trim(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const responseText = await response.text();
+      let resData = {};
+      try { resData = JSON.parse(responseText); } catch (_) {}
+
+      if (!response.ok || resData.return === false) {
+        throw new Error(`Fast2SMS error: ${resData.message || resData.error || responseText}`);
+      }
+
+      return {
+        provider: 'Fast2SMS',
+        status: 'SENT',
+        smsBatchId: resData.request_id || 'fast2sms_sent',
+        endpointUsed: endpoint,
+        recipientMasked: maskedPhone
+      };
+    } catch (err) {
+      console.error('[Fast2SMS Error]:', err.message);
+      throw err;
+    }
+  }
+
+  // ── Strategy 3: TextBee Gateway ─────────────────────────────────────────
   const textbeeApiKey   = process.env.TEXTBEE_API_KEY;
   const textbeeDeviceId = process.env.TEXTBEE_DEVICE_ID;
   const textbeeBaseUrl  = process.env.TEXTBEE_API_BASE_URL || 'https://api.textbee.dev/api/v1';
@@ -199,7 +254,7 @@ const sendSMS = async (to, message) => {
     };
   }
 
-  // ── Strategy 3: Twilio Fallback ─────────────────────────────────────────
+  // ── Strategy 4: Twilio Fallback ─────────────────────────────────────────
   const twilioSid   = process.env.TWILIO_ACCOUNT_SID;
   const twilioToken = process.env.TWILIO_AUTH_TOKEN;
   const twilioFrom  = process.env.TWILIO_PHONE_NUMBER;
