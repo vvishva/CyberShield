@@ -84,7 +84,7 @@
             if (spinner) spinner.style.borderColor = '#00c896';
             statusMsg.innerHTML = '<span style="color:#00c896;">✓ Authentication successful! Opening Dashboard...</span>';
 
-            // Post SUCCESS message to opener tab
+            // Post SUCCESS message to opener tab & force immediate location replace
             if (window.opener && !window.opener.closed) {
               try {
                 window.opener.postMessage({
@@ -92,13 +92,14 @@
                   token: data.token,
                   user: data.user
                 }, '*');
-                window.opener.focus();
+                window.opener.location.replace('dashboard.html');
               } catch (e) {}
             }
 
-            // Close popup after notifying parent
+            // Close popup after navigating parent tab
             setTimeout(() => {
-              window.close();
+              try { window.close(); } catch(e) {}
+              window.location.replace('dashboard.html');
             }, 300);
           } else {
             if (spinner) spinner.style.display = 'none';

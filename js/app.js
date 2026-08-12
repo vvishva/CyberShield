@@ -102,7 +102,7 @@ function setUser(user, remember = false) {
 function requireAuth() {
   const token = getToken();
   if (!token) {
-    window.location.href = 'login.html';
+    window.location.replace('login.html');
   }
 }
 
@@ -285,7 +285,9 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.removeItem('cybershield_user');
       sessionStorage.removeItem('cybershield_user');
       showToast('Logged out successfully', 'success');
-      setTimeout(() => window.location.href = 'login.html', 800);
+      setTimeout(() => {
+        window.location.replace('login.html');
+      }, 400);
     });
   }
 });

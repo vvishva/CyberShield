@@ -1,6 +1,6 @@
 /**
  * CyberShield — Official Google Identity Services Client
- * Uses Google Identity Services (GIS) One-Tap & Popup Token Authentication.
+ * Optimized for Desktop and Mobile Browsers (Android / iOS / Chrome / Safari).
  */
 
 (function () {
@@ -15,11 +15,13 @@
     // Global PostMessage listener for popup authorization events
     window.addEventListener('message', handleGlobalAuthMessage);
 
-    // Backup Storage Listener for cross-window session sync
+    // Storage Event listener for cross-tab session sync (Mobile + Desktop)
     window.addEventListener('storage', (e) => {
       if (e.key === 'cybershield_token' && e.newValue) {
-        showToast('✓ Authentication successful! Redirecting to Dashboard...', 'success');
-        setTimeout(() => { window.location.href = 'dashboard.html'; }, 300);
+        showToast('✓ Authentication successful! Opening Dashboard...', 'success');
+        setTimeout(() => {
+          window.location.replace('dashboard.html');
+        }, 200);
       }
     });
 
@@ -39,8 +41,8 @@
     if (!event.data) return;
 
     if (event.data.type === 'GOOGLE_AUTH_SUCCESS' && event.data.token) {
-      setToken(event.data.token);
-      if (event.data.user) setUser(event.data.user);
+      setToken(event.data.token, true);
+      if (event.data.user) setUser(event.data.user, true);
 
       const googleBtn = document.getElementById('btn-google-sso');
       if (googleBtn) {
@@ -48,10 +50,10 @@
         googleBtn.disabled = true;
       }
 
-      showToast('✓ Authentication successful! Redirecting to Dashboard...', 'success');
+      showToast('✓ Authentication successful! Opening Dashboard...', 'success');
       setTimeout(() => {
-        window.location.href = 'dashboard.html';
-      }, 500);
+        window.location.replace('dashboard.html');
+      }, 300);
     } else if (event.data.type === 'GOOGLE_AUTH_CREDENTIAL' && event.data.credential) {
       const googleBtn = document.getElementById('btn-google-sso');
       verifyWithBackend({ credential: event.data.credential }, googleBtn, googleBtn ? googleBtn.innerHTML : '');
@@ -72,7 +74,7 @@
     const originalHTML = googleBtn.innerHTML;
     setGoogleBtnLoading(googleBtn, true);
 
-    // Strategy 1: GIS Native Token Client (Popup)
+    // Strategy 1: GIS Native Token Client (Mobile + Desktop)
     if (window.google && window.google.accounts && window.google.accounts.oauth2) {
       try {
         const tokenClient = window.google.accounts.oauth2.initTokenClient({
@@ -189,18 +191,18 @@
       const data = await apiRequest('/auth/google', 'POST', payload);
 
       if (data.success && data.token) {
-        setToken(data.token);
-        setUser(data.user);
+        setToken(data.token, true);
+        setUser(data.user, true);
 
         if (btn) {
           btn.innerHTML = '<i class="fas fa-check-circle" style="color:#00c896;"></i> Authentication successful';
           btn.disabled = true;
         }
 
-        showToast('Authentication successful! Redirecting to Dashboard...', 'success');
+        showToast('Authentication successful! Opening Dashboard...', 'success');
         setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 500);
+          window.location.replace('dashboard.html');
+        }, 300);
       } else {
         if (btn) setGoogleBtnLoading(btn, false, originalHTML);
         showToast(data.error || 'Google authentication could not be verified.', 'danger');
