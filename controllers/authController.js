@@ -686,12 +686,28 @@ exports.testEmail = async (req, res) => {
 
 exports.testSMS = async (req, res) => {
   try {
-    let { targetPhone, message } = req.body;
-    if (!targetPhone) return res.status(400).json({ success: false, error: 'Target phone required' });
-    targetPhone = normalizePhoneNumber(targetPhone, 'IN');
-    const result = await sendSMS(targetPhone, message || 'CyberShield test SMS');
-    res.status(200).json({ success: true, diagnostic: result });
+    let { targetPhone, phoneNumber, message } = req.body;
+    const phoneInput = targetPhone || phoneNumber;
+    if (!phoneInput) return res.status(400).json({ success: false, error: 'Target phone number required' });
+
+    const canonicalPhone = normalizePhoneNumber(phoneInput, 'IN');
+    const result = await sendSMS(canonicalPhone, message || 'CyberShield SMS TEST');
+
+    res.status(200).json({
+      success: true,
+      diagnostic: {
+        messageSent: message || 'CyberShield SMS TEST',
+        targetCanonical: canonicalPhone.replace(/\d(?=\d{4})/g, '*'),
+        provider: result.provider,
+        status: result.status,
+        smsBatchId: result.smsBatchId,
+        endpointUsed: result.endpointUsed
+      }
+    });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({
+      success: false,
+      error: err.message || 'SMS Diagnostic Test Failed'
+    });
   }
 };
