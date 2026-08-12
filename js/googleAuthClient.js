@@ -1,8 +1,6 @@
 /**
  * CyberShield — Official Google Identity Services & OAuth 2.0 Client
- *
- * Implements Google's official Account Chooser flow via Google Identity Services
- * and fallback OAuth 2.0 Web Authorization Popup.
+ * Uses Google Identity Services GIS SDK native popup flow.
  */
 
 (function () {
@@ -12,10 +10,8 @@
     const googleBtn = document.getElementById('btn-google-sso');
     if (!googleBtn) return;
 
-    // Attach click handler immediately
     googleBtn.addEventListener('click', onGoogleBtnClicked);
 
-    // Initialize GIS if script already loaded
     if (window.google && window.google.accounts && window.google.accounts.id) {
       try {
         window.google.accounts.id.initialize({
@@ -35,7 +31,37 @@
     const originalHTML = googleBtn.innerHTML;
     setGoogleBtnLoading(googleBtn, true);
 
-    // Strategy 1: Check if Google Identity Services SDK is ready
+    // Strategy 1: Use Google Identity Services Native Token Client (Popup)
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+      try {
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: 'email profile openid',
+          callback: async (tokenResponse) => {
+            if (tokenResponse && (tokenResponse.access_token || tokenResponse.id_token)) {
+              await verifyWithBackend({
+                token: tokenResponse.access_token,
+                credential: tokenResponse.id_token
+              }, googleBtn, originalHTML);
+            } else {
+              setGoogleBtnLoading(googleBtn, false, originalHTML);
+              showToast('Google sign-in was cancelled.', 'info');
+            }
+          },
+          error_callback: (err) => {
+            setGoogleBtnLoading(googleBtn, false, originalHTML);
+            showToast('Google sign-in was cancelled.', 'info');
+          }
+        });
+
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        console.warn('[GIS TokenClient Fallback]:', err);
+      }
+    }
+
+    // Strategy 2: GIS ID Prompt
     if (window.google && window.google.accounts && window.google.accounts.id) {
       try {
         window.google.accounts.id.initialize({
@@ -44,40 +70,28 @@
           auto_select: false
         });
 
-        let promptShowed = false;
         window.google.accounts.id.prompt((notification) => {
-          promptShowed = true;
           if (notification.isDismissedMoment()) {
             setGoogleBtnLoading(googleBtn, false, originalHTML);
             showToast('Google sign-in was cancelled.', 'info');
-          } else if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          } else if (notification.isNotDisplayed()) {
             openGoogleOAuthPopup(googleBtn, originalHTML);
           }
         });
-
-        // Fallback to popup if prompt is suppressed or quiet
-        setTimeout(() => {
-          if (!promptShowed && googleBtn.disabled && googleBtn.innerHTML.includes('Connecting')) {
-            openGoogleOAuthPopup(googleBtn, originalHTML);
-          }
-        }, 1200);
-
         return;
-      } catch (err) {
-        console.warn('[GIS Prompt Fallback]:', err);
-      }
+      } catch (err) {}
     }
 
-    // Strategy 2: Direct Official Google OAuth 2.0 Web Popup
+    // Strategy 3: Web Popup Fallback
     openGoogleOAuthPopup(googleBtn, originalHTML);
   }
 
   function openGoogleOAuthPopup(googleBtn, originalHTML) {
-    const redirectUri = window.location.origin + '/client/google-callback.html';
+    const redirectUri = window.location.origin + '/client/login.html';
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&response_type=id_token` +
+      `&response_type=token%20id_token` +
       `&scope=${encodeURIComponent('openid email profile')}` +
       `&nonce=${Date.now()}` +
       `&prompt=select_account`;
@@ -104,12 +118,10 @@
       return;
     }
 
-    // Monitor popup window status
     const popupCheckInterval = setInterval(() => {
       try {
         if (!popup || popup.closed) {
           clearInterval(popupCheckInterval);
-          window.removeEventListener('message', handleMessage);
           if (googleBtn && googleBtn.disabled && googleBtn.innerHTML.includes('Connecting')) {
             setGoogleBtnLoading(googleBtn, false, originalHTML);
             showToast('Google sign-in was cancelled.', 'info');
@@ -117,27 +129,6 @@
         }
       } catch (e) {}
     }, 600);
-
-    async function handleMessage(event) {
-      if (event.data && event.data.type === 'GOOGLE_AUTH_CREDENTIAL' && event.data.credential) {
-        clearInterval(popupCheckInterval);
-        window.removeEventListener('message', handleMessage);
-        if (popup && !popup.closed) {
-          try { popup.close(); } catch (e) {}
-        }
-        await verifyWithBackend({ credential: event.data.credential }, googleBtn, originalHTML);
-      } else if (event.data && event.data.type === 'GOOGLE_AUTH_CANCELLED') {
-        clearInterval(popupCheckInterval);
-        window.removeEventListener('message', handleMessage);
-        if (popup && !popup.closed) {
-          try { popup.close(); } catch (e) {}
-        }
-        setGoogleBtnLoading(googleBtn, false, originalHTML);
-        showToast('Google sign-in was cancelled.', 'info');
-      }
-    }
-
-    window.addEventListener('message', handleMessage);
   }
 
   async function handleGoogleCredentialResponse(response, googleBtn, originalHTML) {
