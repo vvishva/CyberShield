@@ -2,21 +2,20 @@
  * CyberShield — SMS Sender Utility (TextBee Gateway)
  *
  * Integrates with TextBee Android SMS Gateway API.
- * Uses exact TextBee Dashboard dispatch format.
+ * Route: POST https://api.textbee.dev/api/v1/gateway/devices/{deviceId}/send-sms
  */
 
 const { normalizePhoneNumber } = require('./phoneNormalizer');
 
 /**
- * Check TextBee status via GET /gateway/sms-batch/{smsBatchId}
+ * Check TextBee status via GET /gateway/devices/{deviceId}/sms-batch/{smsBatchId}
  */
 const checkTextBeeBatchStatus = async (baseUrl, deviceId, apiKey, batchId) => {
-  const endpoints = [
-    `${baseUrl}/gateway/sms-batch/${batchId}`
-  ];
+  const endpoints = [];
   if (deviceId && deviceId.trim()) {
-    endpoints.unshift(`${baseUrl}/gateway/devices/${deviceId.trim()}/sms-batch/${batchId}`);
+    endpoints.push(`${baseUrl}/gateway/devices/${deviceId.trim()}/sms-batch/${batchId}`);
   }
+  endpoints.push(`${baseUrl}/gateway/sms-batch/${batchId}`);
 
   for (const endpoint of endpoints) {
     try {
@@ -48,32 +47,34 @@ const sendSMS = async (to, message) => {
     const maskedPhone = formattedPhone.replace(/\d(?=\d{4})/g, '*');
 
     // For Indian local SIM card sending via Android SmsManager,
-    // convert +91XXXXXXXXXX to local 10-digit format (e.g. 9876543210) to match Dashboard manual send
+    // prepare local 10-digit format (9876543210)
     let dispatchNumber = formattedPhone;
     if (formattedPhone.startsWith('+91') && formattedPhone.length === 13) {
-      dispatchNumber = formattedPhone.slice(3); // 10 digits: 9876543210
+      dispatchNumber = formattedPhone.slice(3);
     }
 
-    // Build endpoint priority list (Primary: /gateway/send-sms)
-    const endpoints = [
-      {
-        url: `${cleanBaseUrl}/gateway/send-sms`,
-        type: 'account-default'
-      }
-    ];
-
+    // Build endpoint priority list (Prioritize device-scoped URL if deviceId is set)
+    const endpoints = [];
     if (textbeeDeviceId && textbeeDeviceId.trim()) {
       endpoints.push({
         url: `${cleanBaseUrl}/gateway/devices/${textbeeDeviceId.trim()}/send-sms`,
         type: 'device-scoped'
       });
     }
+    endpoints.push({
+      url: `${cleanBaseUrl}/gateway/send-sms`,
+      type: 'account-default'
+    });
 
-    // Build payload matching exact TextBee Dashboard manual send format
+    // Build payload using exact TextBee Dashboard dispatch schema
     const payload = {
       recipients: [dispatchNumber],
       message: message
     };
+
+    if (textbeeDeviceId && textbeeDeviceId.trim()) {
+      payload.deviceId = textbeeDeviceId.trim();
+    }
 
     if (process.env.TEXTBEE_SIM_SUBSCRIPTION_ID !== undefined &&
         process.env.TEXTBEE_SIM_SUBSCRIPTION_ID !== '') {
@@ -83,7 +84,7 @@ const sendSMS = async (to, message) => {
     let lastError = null;
 
     for (const ep of endpoints) {
-      console.log(`[SMS] Dispatching to local recipient: ${dispatchNumber.replace(/\d(?=\d{4})/g, '*')} (Canonical: ${maskedPhone}) via endpoint: ${ep.url}`);
+      console.log(`[SMS] Dispatching to recipient: ${dispatchNumber.replace(/\d(?=\d{4})/g, '*')} via endpoint (${ep.type}): ${ep.url}`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
