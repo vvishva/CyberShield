@@ -34,7 +34,6 @@ async function getDashboardSummary(userId, isAdmin = false) {
   });
 
   const avgSecurityScore = totalScans > 0 ? Math.round(totalScore / totalScans) : 85;
-
   const monitoredSites = await MonitoredSite.find(isAdmin ? {} : { user: userId }).lean();
 
   return {
@@ -195,8 +194,13 @@ STRICT DEFENSIVE RULES:
  */
 async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashboard') {
   const apiKey = process.env.GEMINI_API_KEY;
-  const configuredModel = process.env.AI_MODEL || 'gemini-1.5-flash';
-  const modelName = (configuredModel === 'latest-supported-gemini-flash') ? 'gemini-1.5-flash' : configuredModel;
+  const rawModel = (process.env.AI_MODEL || 'gemini-flash-latest').trim();
+
+  // Smart model alias mapping to active Gemini endpoints
+  let modelName = rawModel;
+  if (['latest-supported-gemini-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'].includes(rawModel)) {
+    modelName = 'gemini-flash-latest';
+  }
 
   const fullPrompt = `
 Current CyberShield Page Context: ${currentPage}
@@ -214,7 +218,7 @@ ${userPrompt}
   }
 
   try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey.trim()}`;
 
     const response = await axios.post(endpoint, {
       contents: [
@@ -244,7 +248,7 @@ ${userPrompt}
 }
 
 /**
- * Deterministic Defensive SOC Analysis Fallback Engine (when Gemini API key is unconfigured or unreachable)
+ * Deterministic Defensive SOC Analysis Fallback Engine
  */
 function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage) {
   const lower = userPrompt.toLowerCase();
@@ -338,7 +342,6 @@ Found **${count}** active vulnerability findings across scanned assets.
     `.trim();
   }
 
-  // Default natural response
   return `
 ### 🤖 CyberShield AI Copilot Analysis
 
