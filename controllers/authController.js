@@ -281,8 +281,8 @@ exports.registerPhone = async (req, res, next) => {
       otpLastSentAt: new Date()
     });
 
-    // 4. Send OTP via TextBee SMS Gateway
-    const smsBody = `CyberShield verification code: ${otp}. Valid for 10 minutes. Do not share.`;
+    // Send OTP via SMS (concise format to comply with carrier DLT SMS rules)
+    const smsBody = `CyberShield code: ${otp}`;
     try {
       const smsResult = await sendSMS(phoneNumber, smsBody);
       pending.smsBatchId = smsResult.smsBatchId || null;
@@ -424,7 +424,7 @@ exports.resendPhoneOTP = async (req, res, next) => {
     pending.otpLastSentAt = new Date();
     await pending.save();
 
-    const smsBody = `CyberShield verification code: ${otp}. Valid for 10 minutes. Do not share.`;
+    const smsBody = `CyberShield code: ${otp}`;
     try {
       const smsResult = await sendSMS(phoneNumber, smsBody);
       pending.smsBatchId = smsResult.smsBatchId || null;
@@ -569,21 +569,19 @@ exports.forgotPassword = async (req, res, next) => {
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 mins
     await user.save();
 
-    const resetMsg = `CyberShield Password Reset Code: ${otp}. Valid for 10 minutes. Do not share.`;
-
     if (user.email) {
       try {
         await sendEmail({
           email: user.email,
           subject: 'CyberShield Password Reset Code',
-          message: resetMsg
+          message: `CyberShield Password Reset Code: ${otp}. Valid for 10 minutes. Do not share.`
         });
       } catch (e) {
         console.error('[Forgot Password Email Error]:', e.message);
       }
     } else if (user.phoneNumber) {
       try {
-        await sendSMS(user.phoneNumber, resetMsg);
+        await sendSMS(user.phoneNumber, `CyberShield reset code: ${otp}`);
       } catch (e) {
         console.error('[Forgot Password SMS Error]:', e.message);
       }
