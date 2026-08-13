@@ -1,11 +1,11 @@
 /**
- * CyberShield — AI Security Copilot & Multi-Provider Conversational AI Engine
+ * CyberShield — AI Security Copilot & Multi-Provider Adaptive AI Engine
  *
  * Integrates:
  *   1. Google Gemini API (Primary)
  *   2. Groq Ultra-Fast Free API (Fallback 1)
  *   3. OpenRouter Free Models API (Fallback 2)
- *   4. CyberShield Conversational Security SOC Engine (Fallback 3)
+ *   4. CyberShield Adaptive Security SOC Engine (Fallback 3)
  */
 
 const axios = require('axios');
@@ -133,18 +133,19 @@ async function getAttackSurfaceData(userId, isAdmin = false) {
 }
 
 // ============================================================
-// SYSTEM PROMPT & NATURAL CONVERSATIONAL AI ENGINE
+// SYSTEM PROMPT & ADAPTIVE ANSWER ENGINE
 // ============================================================
 
 const SYSTEM_SECURITY_PROMPT = `
-You are the CyberShield AI Security Copilot — an intelligent, helpful, and conversational AI assistant like ChatGPT and Google Gemini, specialized in web security and SOC analysis.
+You are the CyberShield AI Security Copilot — an intelligent assistant like ChatGPT and Google Gemini.
 
-HOW TO ANSWER:
-1. Answer the user's question accurately, naturally, and conversationally.
-2. If the user asks about their CyberShield security data (scores, scans, threats, assets), reference the provided CyberShield data accurately.
-3. If the user asks general cybersecurity, web vulnerability, programming, or general questions (e.g. "What is XSS?", "How does SSL work?", "Hi how are you?"), answer thoroughly and naturally like ChatGPT / Gemini.
-4. Format your responses with clean, readable markdown (headings, bold text, code blocks, bullet points) so it is easy to read.
-5. Provide actionable defensive advice whenever security issues are mentioned. Never provide malicious hacking tools or exploit code.
+ADAPTIVE ANSWER LENGTH RULES:
+1. FOR SIMPLE / ROUTINE QUESTIONS (e.g. greetings, simple status, score checks, simple definitions):
+   -> Give a SHORT, SIMPLE, AND DIRECT ANSWER (1-3 concise bullet points or lines). Do NOT write unnecessary long paragraphs.
+2. FOR COMPLICATED / DEEP SECURITY QUESTIONS (e.g. detailed vulnerability investigation, step-by-step code remediation, full security audit report):
+   -> Provide a COMPLETE, DETAILED ANSWER with clear headings, bullet points, and code examples.
+3. Always answer accurately. Reference CyberShield platform data for status/score questions, or general cybersecurity knowledge for technical questions.
+4. Provide actionable defensive advice. Never provide hacking tools or exploit code.
 `;
 
 /**
@@ -161,7 +162,7 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
     modelName = 'gemini-flash-latest';
   }
 
-  const promptText = `User Current Page Context: ${currentPage}\nCyberShield Real Platform Data Context:\n${JSON.stringify(contextData, null, 2)}\n\nUser Question:\n${userPrompt}`;
+  const promptText = `User Current Page Context: ${currentPage}\nCyberShield Real Platform Data Context:\n${JSON.stringify(contextData, null, 2)}\n\nUser Question:\n${userPrompt}\n\n(Follow Adaptive Rules: Short 1-3 lines for simple questions, detailed for complicated questions!)`;
 
   // ── Strategy 1: Google Gemini API ──────────────────────────────────────────
   if (geminiKey && geminiKey.trim() !== '' && !geminiKey.includes('YOUR_GEMINI_API_KEY')) {
@@ -170,8 +171,8 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
       const response = await axios.post(endpoint, {
         contents: [{ role: 'user', parts: [{ text: promptText }] }],
         systemInstruction: { parts: [{ text: SYSTEM_SECURITY_PROMPT }] },
-        generationConfig: { temperature: 0.4, maxOutputTokens: 1500 }
-      }, { timeout: 12000 });
+        generationConfig: { temperature: 0.3, maxOutputTokens: 1000 }
+      }, { timeout: 10000 });
 
       if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         return response.data.candidates[0].content.parts[0].text.trim();
@@ -190,11 +191,11 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
           { role: 'system', content: SYSTEM_SECURITY_PROMPT },
           { role: 'user', content: promptText }
         ],
-        temperature: 0.4,
-        max_tokens: 1500
+        temperature: 0.3,
+        max_tokens: 1000
       }, {
         headers: { Authorization: `Bearer ${groqKey.trim()}` },
-        timeout: 12000
+        timeout: 10000
       });
 
       if (response.data?.choices?.[0]?.message?.content) {
@@ -218,11 +219,11 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
         { role: 'system', content: SYSTEM_SECURITY_PROMPT },
         { role: 'user', content: promptText }
       ],
-      temperature: 0.4,
-      max_tokens: 1500
+      temperature: 0.3,
+      max_tokens: 1000
     }, {
       headers: openrouterHeaders,
-      timeout: 12000
+      timeout: 10000
     });
 
     if (response.data?.choices?.[0]?.message?.content) {
@@ -230,12 +231,12 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
     }
   } catch (openrouterErr) {}
 
-  // ── Strategy 4: Conversational Fallback Engine ─────────────────────────────
+  // ── Strategy 4: Adaptive Fallback Engine ───────────────────────────────────
   return generateFallbackSOCAnalysis(userPrompt, contextData, currentPage);
 }
 
 /**
- * Natural Conversational Fallback Engine
+ * Adaptive Fallback Engine
  */
 function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage) {
   const lower = userPrompt.toLowerCase();
@@ -244,79 +245,41 @@ function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage) {
   if (lower.includes('briefing') || lower.includes('soc briefing') || lower.includes('summary')) {
     const score = summary.avgSecurityScore || 85;
     return `
-### 🛡️ CyberShield AI SOC Security Briefing
-
-Here is your current security posture overview:
-
-- **Average Security Score:** \`${score}/100\` (${score >= 80 ? 'Safe & Healthy' : 'Action Recommended'})
-- **Total Scans Performed:** \`${summary.totalScans || 0}\`
-- **Active Threats Blocked:** \`${summary.threatsDetected || 0}\`
-- **Monitored Endpoints:** \`${summary.monitoredSitesCount || 0}\`
-
-#### 🎯 Top Security Recommendation
-To maintain a high security posture, ensure all web servers enforce **Strict-Transport-Security (HSTS)** and **Content-Security-Policy (CSP)** headers.
+### 🛡️ SOC Briefing
+- **Security Score:** \`${score}/100\` (${score >= 80 ? 'Safe' : 'Action Recommended'})
+- **Active Threats:** \`${summary.threatsDetected || 0}\`
+- **Monitored Assets:** \`${summary.monitoredSitesCount || 0}\`
+- **Top Priority:** Configure missing HSTS & Content-Security-Policy headers.
     `.trim();
   }
 
   if (lower.includes('score') || lower.includes('why is my score')) {
     const score = summary.avgSecurityScore || contextData.securityScore || 85;
     return `
-### 📊 Security Score Analysis
-
-Your current Security Score is **${score}/100**.
-
-#### ✓ Active Protections
-- **HTTPS Encryption:** Valid SSL/TLS connection detected.
-- **Reputation Check:** Domain passed basic threat database checks.
-
-#### ⚠️ Areas to Improve
-- **Content-Security-Policy (CSP):** Add CSP headers to block cross-site scripting (XSS).
-- **Strict-Transport-Security (HSTS):** Enforce HSTS to prevent protocol downgrade attacks.
-
-**Next Step:** Adding these HTTP security headers to your server configuration will raise your score to 100/100.
+### 📊 Security Score: ${score}/100
+- **HTTPS:** Enabled ✓
+- **Missing Controls:** HSTS & Content-Security-Policy headers ⚠️
+- **Fix:** Add HSTS and CSP headers to your server to reach 100/100.
     `.trim();
   }
 
-  if (lower.includes('vulnerability') || lower.includes('vulnerabilities') || lower.includes('xss') || lower.includes('hsts') || lower.includes('csp')) {
+  if (lower.includes('vulnerability') || lower.includes('vulnerabilities')) {
     return `
-### ⚠️ Web Security Vulnerabilities & Remediation
-
-Here are the key web security controls you should verify:
-
-1. **Content-Security-Policy (CSP)**
-   - **Risk:** High (prevents Cross-Site Scripting & Clickjacking)
-   - **Fix:** Add header: \`Content-Security-Policy: default-src 'self'\`
-
-2. **Strict-Transport-Security (HSTS)**
-   - **Risk:** Medium (enforces HTTPS-only connections)
-   - **Fix:** Add header: \`Strict-Transport-Security: max-age=31536000; includeSubDomains\`
-
-3. **Server Information Disclosure**
-   - **Risk:** Low (prevents banner grabbing)
-   - **Fix:** Remove \`X-Powered-By\` headers from server responses.
+### ⚠️ Key Web Vulnerabilities
+1. **Missing CSP:** Add \`Content-Security-Policy: default-src 'self'\` header.
+2. **Missing HSTS:** Add \`Strict-Transport-Security: max-age=31536000\` header.
+3. **Banner Disclosure:** Hide \`X-Powered-By\` server header.
     `.trim();
   }
 
-  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey') || lower.includes('who are you')) {
-    return `
-Hello! 👋 I am your **CyberShield AI Security Copilot**.
-
-I can help you analyze your website security scans, explain security scores, triage vulnerabilities, review threat intelligence, or answer any web security questions. 
-
-How can I assist you today?
-    `.trim();
+  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+    return `Hello! 👋 How can I help you with your CyberShield security analysis today?`;
   }
 
   return `
-### 🤖 CyberShield AI Copilot Analysis
-
-I have evaluated your current CyberShield security data:
-
-- **Analyzed Scans:** \`${summary.totalScans || 0}\`
-- **Average Security Score:** \`${summary.avgSecurityScore || 85}/100\`
-- **Active Threats:** \`${summary.threatsDetected || 0}\`
-
-Feel free to ask me any questions about your security scores, web vulnerabilities, or security recommendations!
+- **Monitored Assets:** \`${summary.totalScans || 0}\` scans
+- **Security Score:** \`${summary.avgSecurityScore || 85}/100\`
+- **Status:** Active & Monitored
   `.trim();
 }
 
