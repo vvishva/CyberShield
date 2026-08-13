@@ -1,11 +1,11 @@
 /**
- * CyberShield — AI Security Copilot & Multi-Provider Adaptive AI Engine
+ * CyberShield — Versatile Natural AI Copilot Engine
  *
  * Integrates:
  *   1. Google Gemini API (Primary)
  *   2. Groq Ultra-Fast Free API (Fallback 1)
  *   3. OpenRouter Free Models API (Fallback 2)
- *   4. CyberShield Adaptive Security SOC Engine (Fallback 3)
+ *   4. CyberShield Conversational Fallback Engine (Fallback 3)
  */
 
 const axios = require('axios');
@@ -133,23 +133,27 @@ async function getAttackSurfaceData(userId, isAdmin = false) {
 }
 
 // ============================================================
-// SYSTEM PROMPT & ADAPTIVE ANSWER ENGINE
+// SYSTEM PROMPT FOR VERSATILE NATURAL AI ASSISTANT
 // ============================================================
 
 const SYSTEM_SECURITY_PROMPT = `
-You are the CyberShield AI Security Copilot — an intelligent assistant like ChatGPT and Google Gemini.
+You are CyberShield AI Copilot — a versatile, intelligent, helpful, and natural AI assistant like ChatGPT and Google Gemini.
 
-ADAPTIVE ANSWER LENGTH RULES:
-1. FOR SIMPLE / ROUTINE QUESTIONS (e.g. greetings, simple status, score checks, simple definitions):
-   -> Give a SHORT, SIMPLE, AND DIRECT ANSWER (1-3 concise bullet points or lines). Do NOT write unnecessary long paragraphs.
-2. FOR COMPLICATED / DEEP SECURITY QUESTIONS (e.g. detailed vulnerability investigation, step-by-step code remediation, full security audit report):
-   -> Provide a COMPLETE, DETAILED ANSWER with clear headings, bullet points, and code examples.
-3. Always answer accurately. Reference CyberShield platform data for status/score questions, or general cybersecurity knowledge for technical questions.
-4. Provide actionable defensive advice. Never provide hacking tools or exploit code.
+YOUR CORE INSTRUCTIONS:
+1. ANSWER ALL QUESTIONS NATURALLY AND ACCURATELY:
+   - Answer ANY question the user asks (general knowledge, technology, programming, science, general conversation, daily questions, OR cybersecurity) in a friendly, natural, and helpful tone just like ChatGPT and Google Gemini.
+   - NEVER restrict yourself to security-only answers. NEVER give unwanted "I am only a security bot" disclaimers when asked non-security questions.
+2. ADAPTIVE RESPONSE LENGTH:
+   - For simple or short questions (e.g. greetings, simple definitions, quick checks, "what is X"): Give a short, simple, direct answer (1-3 lines/bullets).
+   - For complex questions (e.g. coding tutorials, detailed investigations, step-by-step guides): Provide a complete, well-formatted answer with clean headings, markdown, or code blocks.
+3. CYBERSHIELD PLATFORM DATA:
+   - When the user asks about their CyberShield security status, scans, scores, or assets, use the provided CyberShield data accurately.
+4. SAFETY:
+   - Provide safe, constructive, and helpful information. Refuse to generate malware, dangerous hacking payloads, or expose secret keys.
 `;
 
 /**
- * Core Multi-Provider AI Caller (Gemini -> Groq -> OpenRouter -> Conversational Fallback)
+ * Core Multi-Provider AI Caller (Gemini -> Groq -> OpenRouter -> Natural Fallback)
  */
 async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashboard') {
   const geminiKey = process.env.GEMINI_API_KEY;
@@ -162,7 +166,7 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
     modelName = 'gemini-flash-latest';
   }
 
-  const promptText = `User Current Page Context: ${currentPage}\nCyberShield Real Platform Data Context:\n${JSON.stringify(contextData, null, 2)}\n\nUser Question:\n${userPrompt}\n\n(Follow Adaptive Rules: Short 1-3 lines for simple questions, detailed for complicated questions!)`;
+  const promptText = `Page Context: ${currentPage}\nCyberShield Data: ${JSON.stringify(contextData)}\n\nUSER QUESTION:\n${userPrompt}`;
 
   // ── Strategy 1: Google Gemini API ──────────────────────────────────────────
   if (geminiKey && geminiKey.trim() !== '' && !geminiKey.includes('YOUR_GEMINI_API_KEY')) {
@@ -171,7 +175,7 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
       const response = await axios.post(endpoint, {
         contents: [{ role: 'user', parts: [{ text: promptText }] }],
         systemInstruction: { parts: [{ text: SYSTEM_SECURITY_PROMPT }] },
-        generationConfig: { temperature: 0.3, maxOutputTokens: 1000 }
+        generationConfig: { temperature: 0.5, maxOutputTokens: 1200 }
       }, { timeout: 10000 });
 
       if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -191,8 +195,8 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
           { role: 'system', content: SYSTEM_SECURITY_PROMPT },
           { role: 'user', content: promptText }
         ],
-        temperature: 0.3,
-        max_tokens: 1000
+        temperature: 0.5,
+        max_tokens: 1200
       }, {
         headers: { Authorization: `Bearer ${groqKey.trim()}` },
         timeout: 10000
@@ -219,8 +223,8 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
         { role: 'system', content: SYSTEM_SECURITY_PROMPT },
         { role: 'user', content: promptText }
       ],
-      temperature: 0.3,
-      max_tokens: 1000
+      temperature: 0.5,
+      max_tokens: 1200
     }, {
       headers: openrouterHeaders,
       timeout: 10000
@@ -231,25 +235,26 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
     }
   } catch (openrouterErr) {}
 
-  // ── Strategy 4: Adaptive Fallback Engine ───────────────────────────────────
+  // ── Strategy 4: Natural & Helpful Fallback Engine ───────────────────────────
   return generateFallbackSOCAnalysis(userPrompt, contextData, currentPage);
 }
 
 /**
- * Adaptive Fallback Engine
+ * Natural & Helpful Fallback Engine
  */
 function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage) {
   const lower = userPrompt.toLowerCase();
   const summary = contextData.summary || contextData;
 
+  // Platform Security Queries
   if (lower.includes('briefing') || lower.includes('soc briefing') || lower.includes('summary')) {
     const score = summary.avgSecurityScore || 85;
     return `
-### 🛡️ SOC Briefing
-- **Security Score:** \`${score}/100\` (${score >= 80 ? 'Safe' : 'Action Recommended'})
+### 🛡️ CyberShield Security Briefing
+- **Average Security Score:** \`${score}/100\` (${score >= 80 ? 'Safe' : 'Action Recommended'})
+- **Total Scans:** \`${summary.totalScans || 0}\`
 - **Active Threats:** \`${summary.threatsDetected || 0}\`
-- **Monitored Assets:** \`${summary.monitoredSitesCount || 0}\`
-- **Top Priority:** Configure missing HSTS & Content-Security-Policy headers.
+- **Action Needed:** Configure missing HSTS & Content-Security-Policy headers.
     `.trim();
   }
 
@@ -272,15 +277,16 @@ function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage) {
     `.trim();
   }
 
-  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-    return `Hello! 👋 How can I help you with your CyberShield security analysis today?`;
+  // Greetings & General Conversational Queries
+  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey') || lower.includes('how are you')) {
+    return `Hello! 👋 I'm your CyberShield AI Copilot. How can I help you today?`;
   }
 
-  return `
-- **Monitored Assets:** \`${summary.totalScans || 0}\` scans
-- **Security Score:** \`${summary.avgSecurityScore || 85}/100\`
-- **Status:** Active & Monitored
-  `.trim();
+  if (lower.includes('who are you') || lower.includes('what can you do')) {
+    return `I am your **AI Copilot**! I can answer any general questions, help with programming, technology, or assist you with CyberShield security scans and threat analysis.`;
+  }
+
+  return `I'm here to help! Feel free to ask any question — whether it's about general topics, technology, programming, or your CyberShield security scans.`;
 }
 
 module.exports = {
