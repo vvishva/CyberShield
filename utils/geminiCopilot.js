@@ -1,5 +1,5 @@
 /**
- * CyberShield — Versatile Natural AI Copilot Engine
+ * CyberShield — Versatile Natural AI Copilot Engine with Multi-Turn Memory
  *
  * Integrates:
  *   1. Google Gemini API (Primary)
@@ -133,29 +133,31 @@ async function getAttackSurfaceData(userId, isAdmin = false) {
 }
 
 // ============================================================
-// SYSTEM PROMPT FOR VERSATILE NATURAL AI ASSISTANT
+// SYSTEM PROMPT FOR VERSATILE NATURAL AI ASSISTANT WITH MEMORY
 // ============================================================
 
 const SYSTEM_SECURITY_PROMPT = `
 You are CyberShield AI Copilot — a versatile, intelligent, helpful, and natural AI assistant like ChatGPT and Google Gemini.
 
-YOUR CORE INSTRUCTIONS:
-1. ANSWER ALL QUESTIONS NATURALLY AND ACCURATELY:
-   - Answer ANY question the user asks (general knowledge, technology, programming, science, general conversation, daily questions, OR cybersecurity) in a friendly, natural, and helpful tone just like ChatGPT and Google Gemini.
-   - NEVER restrict yourself to security-only answers. NEVER give unwanted "I am only a security bot" disclaimers when asked non-security questions.
-2. ADAPTIVE RESPONSE LENGTH:
-   - For simple or short questions (e.g. greetings, simple definitions, quick checks, "what is X"): Give a short, simple, direct answer (1-3 lines/bullets).
-   - For complex questions (e.g. coding tutorials, detailed investigations, step-by-step guides): Provide a complete, well-formatted answer with clean headings, markdown, or code blocks.
-3. CYBERSHIELD PLATFORM DATA:
-   - When the user asks about their CyberShield security status, scans, scores, or assets, use the provided CyberShield data accurately.
-4. SAFETY:
-   - Provide safe, constructive, and helpful information. Refuse to generate malware, dangerous hacking payloads, or expose secret keys.
+CONVERSATIONAL MEMORY & ANSWER INSTRUCTIONS:
+1. MULTI-TURN CONVERSATION MEMORY:
+   - Remember previous messages in the conversation history. When the user asks follow-up questions (e.g. "How do I fix it?", "Show me an example", "What about that domain?"), answer in the context of the previous messages.
+2. ANSWER ALL QUESTIONS NATURALLY:
+   - Answer ANY topic (general knowledge, technology, programming, daily questions, OR cybersecurity) in a friendly, helpful tone like ChatGPT / Gemini.
+   - NEVER give unwanted "I am only a security bot" disclaimers.
+3. ADAPTIVE LENGTH:
+   - Simple questions: Short, direct answer (1-3 lines/bullets).
+   - Complex questions: Detailed, structured answer with headings, code blocks, or clean lists.
+4. PLATFORM DATA:
+   - Use provided CyberShield data when asked about platform status, scores, or scans.
+5. SAFETY:
+   - Provide safe, constructive assistance. Refuse to generate malware or expose secret keys.
 `;
 
 /**
- * Core Multi-Provider AI Caller (Gemini -> Groq -> OpenRouter -> Natural Fallback)
+ * Core Multi-Provider AI Caller with Conversation Memory (Gemini -> Groq -> OpenRouter -> Natural Fallback)
  */
-async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashboard') {
+async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashboard', history = []) {
   const geminiKey = process.env.GEMINI_API_KEY;
   const groqKey = process.env.GROQ_API_KEY;
   const openrouterKey = process.env.OPENROUTER_API_KEY;
@@ -171,9 +173,22 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
   // ── Strategy 1: Google Gemini API ──────────────────────────────────────────
   if (geminiKey && geminiKey.trim() !== '' && !geminiKey.includes('YOUR_GEMINI_API_KEY')) {
     try {
+      const contents = [];
+      if (Array.isArray(history) && history.length > 0) {
+        history.forEach(msg => {
+          if (msg.content && typeof msg.content === 'string') {
+            contents.push({
+              role: msg.role === 'user' ? 'user' : 'model',
+              parts: [{ text: msg.content }]
+            });
+          }
+        });
+      }
+      contents.push({ role: 'user', parts: [{ text: promptText }] });
+
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey.trim()}`;
       const response = await axios.post(endpoint, {
-        contents: [{ role: 'user', parts: [{ text: promptText }] }],
+        contents,
         systemInstruction: { parts: [{ text: SYSTEM_SECURITY_PROMPT }] },
         generationConfig: { temperature: 0.5, maxOutputTokens: 1200 }
       }, { timeout: 10000 });
@@ -189,12 +204,24 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
   // ── Strategy 2: Groq Ultra-Fast Free API ────────────────────────────────────
   if (groqKey && groqKey.trim() !== '') {
     try {
+      const messages = [
+        { role: 'system', content: SYSTEM_SECURITY_PROMPT }
+      ];
+      if (Array.isArray(history) && history.length > 0) {
+        history.forEach(msg => {
+          if (msg.content && typeof msg.content === 'string') {
+            messages.push({
+              role: msg.role === 'user' ? 'user' : 'assistant',
+              content: msg.content
+            });
+          }
+        });
+      }
+      messages.push({ role: 'user', content: promptText });
+
       const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
         model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: SYSTEM_SECURITY_PROMPT },
-          { role: 'user', content: promptText }
-        ],
+        messages,
         temperature: 0.5,
         max_tokens: 1200
       }, {
@@ -217,12 +244,24 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
       openrouterHeaders['Authorization'] = `Bearer ${openrouterKey.trim()}`;
     }
 
+    const messages = [
+      { role: 'system', content: SYSTEM_SECURITY_PROMPT }
+    ];
+    if (Array.isArray(history) && history.length > 0) {
+      history.forEach(msg => {
+        if (msg.content && typeof msg.content === 'string') {
+          messages.push({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.content
+          });
+        }
+      });
+    }
+    messages.push({ role: 'user', content: promptText });
+
     const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
       model: 'meta-llama/llama-3.3-70b-instruct:free',
-      messages: [
-        { role: 'system', content: SYSTEM_SECURITY_PROMPT },
-        { role: 'user', content: promptText }
-      ],
+      messages,
       temperature: 0.5,
       max_tokens: 1200
     }, {
@@ -236,13 +275,13 @@ async function callGeminiAPI(userPrompt, contextData = {}, currentPage = 'dashbo
   } catch (openrouterErr) {}
 
   // ── Strategy 4: Natural & Helpful Fallback Engine ───────────────────────────
-  return generateFallbackSOCAnalysis(userPrompt, contextData, currentPage);
+  return generateFallbackSOCAnalysis(userPrompt, contextData, currentPage, history);
 }
 
 /**
- * Natural & Helpful Fallback Engine
+ * Natural & Helpful Fallback Engine with Memory Context
  */
-function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage) {
+function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage, history = []) {
   const lower = userPrompt.toLowerCase();
   const summary = contextData.summary || contextData;
 
@@ -283,10 +322,19 @@ function generateFallbackSOCAnalysis(userPrompt, contextData, currentPage) {
   }
 
   if (lower.includes('who are you') || lower.includes('what can you do')) {
-    return `I am your **AI Copilot**! I can answer any general questions, help with programming, technology, or assist you with CyberShield security scans and threat analysis.`;
+    return `I am your **AI Copilot**! I remember our conversation and can answer any questions, help with programming, technology, or assist with CyberShield security scans.`;
   }
 
-  return `I'm here to help! Feel free to ask any question — whether it's about general topics, technology, programming, or your CyberShield security scans.`;
+  // Follow-up context check
+  const lastUserMsg = Array.isArray(history) && history.length > 0
+    ? history.filter(h => h.role === 'user').slice(-1)[0]?.content
+    : null;
+
+  if (lastUserMsg) {
+    return `Regarding your follow-up about "${lastUserMsg.substring(0, 50)}...": Feel free to ask more details or let me know how you'd like to proceed!`;
+  }
+
+  return `I'm here to help! Feel free to ask any question or follow up on your previous questions.`;
 }
 
 module.exports = {

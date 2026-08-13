@@ -167,6 +167,8 @@
     }
   }
 
+  const conversationHistory = [];
+
   async function sendUserMessage() {
     const inputEl = document.getElementById('ai-chat-input');
     const prompt = inputEl?.value?.trim();
@@ -179,11 +181,15 @@
     appendUserMessage(prompt);
     await executeAIRequest('/ai/chat', 'POST', {
       prompt,
+      history: conversationHistory.slice(-10),
       pageContext: getCurrentPageContext()
     });
   }
 
   function appendUserMessage(text) {
+    conversationHistory.push({ role: 'user', content: text });
+    if (conversationHistory.length > 16) conversationHistory.shift();
+
     const list = document.getElementById('ai-messages-list');
     if (!list) return;
 
@@ -232,6 +238,10 @@
 
       if (data.success && data.data) {
         const responseText = data.data.response || data.data.briefing || data.data.analysis || data.data.explanation || data.data.investigation || data.data.report;
+        if (responseText) {
+          conversationHistory.push({ role: 'assistant', content: responseText });
+          if (conversationHistory.length > 16) conversationHistory.shift();
+        }
         appendBotMessage(responseText || "Analysis complete.");
       } else {
         appendBotMessage(data.error || "I don't have enough current CyberShield data to answer this accurately.");

@@ -2,7 +2,7 @@
  * CyberShield — AI Security Copilot Controller
  *
  * Handles rate-limited, authenticated requests for AI Security Copilot features.
- * Connects to controlled data retrieval tools and Gemini API.
+ * Connects to controlled data retrieval tools and Gemini API with conversational memory.
  */
 
 const {
@@ -16,12 +16,12 @@ const {
 } = require('../utils/geminiCopilot');
 const Log = require('../models/Log');
 
-// @desc    Natural Language Security Chat
+// @desc    Natural Language Security Chat with Conversation Memory
 // @route   POST /api/ai/chat
 // @access  Private
 exports.chat = async (req, res, next) => {
   try {
-    const { prompt, pageContext = 'dashboard' } = req.body;
+    const { prompt, history = [], pageContext = 'dashboard' } = req.body;
     const userId = req.user._id;
     const isAdmin = req.user.role === 'admin';
 
@@ -34,7 +34,7 @@ exports.chat = async (req, res, next) => {
 
     const cleanPrompt = prompt.trim();
 
-    // Audit Log (Do not store tokens/passwords)
+    // Audit Log
     try {
       await Log.create({
         user: userId,
@@ -45,7 +45,7 @@ exports.chat = async (req, res, next) => {
       });
     } catch (e) {}
 
-    // Intent Detection & Controlled Tool Selection
+    // Controlled Tool Selection based on query intent
     let contextData = {};
     const lowerPrompt = cleanPrompt.toLowerCase();
 
@@ -64,7 +64,7 @@ exports.chat = async (req, res, next) => {
       contextData.recentScans = await getRecentScans(userId, 3, isAdmin);
     }
 
-    const responseText = await callGeminiAPI(cleanPrompt, contextData, pageContext);
+    const responseText = await callGeminiAPI(cleanPrompt, contextData, pageContext, history);
 
     res.status(200).json({
       success: true,
@@ -98,7 +98,6 @@ exports.getBriefing = async (req, res, next) => {
       success: true,
       data: {
         briefing: briefingText,
-        stats: summary,
         timestamp: new Date()
       }
     });
@@ -107,68 +106,68 @@ exports.getBriefing = async (req, res, next) => {
   }
 };
 
-// @desc    AI Security Score Analysis
+// @desc    AI Security Score Explainer
 // @route   POST /api/ai/explain-score
 // @access  Private
 exports.explainScore = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const isAdmin = req.user.role === 'admin';
-
-    const summary = await getDashboardSummary(userId, isAdmin);
-    const recentScans = await getRecentScans(userId, 5, isAdmin);
-
-    const contextData = { summary, recentScans };
-    const scoreAnalysis = await callGeminiAPI('Explain my Security Score and detailed risk metrics.', contextData, 'scanner');
-
-    res.status(200).json({
-      success: true,
-      data: {
-        analysis: scoreAnalysis,
-        score: summary.avgSecurityScore,
-        timestamp: new Date()
-      }
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Explain Specific Scan Result with AI
-// @route   POST /api/ai/explain-scan
-// @access  Private
-exports.explainScan = async (req, res, next) => {
-  try {
     const { scanId } = req.body;
-    const userId = req.user._id;
-    const isAdmin = req.user.role === 'admin';
 
     let scanData = null;
     if (scanId) {
       scanData = await getScanDetails(scanId, userId, isAdmin);
     }
+    const summary = await getDashboardSummary(userId, isAdmin);
+    const contextData = scanData ? { scan: scanData, summary } : { summary };
 
-    if (!scanData) {
-      const recent = await getRecentScans(userId, 1, isAdmin);
-      if (recent.length > 0) {
-        scanData = await getScanDetails(recent[0].id, userId, isAdmin);
+    const explanationText = await callGeminiAPI('Explain my overall security score, positive security controls, and key risk factors.', contextData, 'scanner');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        explanation: explanationText,
+        timestamp: new Date()
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    AI Scan Explainer
+// @route   POST /api/ai/explain-scan
+// @access  Private
+exports.explainScan = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const isAdmin = req.user.role === 'admin';
+    const { scanId } = req.body;
+
+    let scanData = null;
+    if (scanId) {
+      scanData = await getScanDetails(scanId, userId, isAdmin);
+    } else {
+      const recent = await getRecentScans(userId, 1, isAdmin);
+      if (recent.length > 0) scanData = await getScanDetails(recent[0].id, userId, isAdmin);
     }
 
     if (!scanData) {
       return res.status(404).json({
         success: false,
-        error: "I don't have enough current CyberShield data to analyze."
+        error: 'No scan data found to analyze.'
       });
     }
 
-    const explanation = await callGeminiAPI(`Explain the security scan details for asset ${scanData.target}`, scanData, 'scanner');
+    const explanationText = await callGeminiAPI(`Explain the scan findings for website target: ${scanData.target}.`, { scan: scanData }, 'scanner');
 
     res.status(200).json({
       success: true,
       data: {
-        scan: scanData,
-        explanation,
+        explanation: explanationText,
+        scanId: scanData.id,
+        target: scanData.target,
         timestamp: new Date()
       }
     });
@@ -177,33 +176,22 @@ exports.explainScan = async (req, res, next) => {
   }
 };
 
-// @desc    Explain Specific Vulnerability
+// @desc    AI Vulnerability Explainer
 // @route   POST /api/ai/explain-vulnerability
 // @access  Private
 exports.explainVulnerability = async (req, res, next) => {
   try {
-    const { vulnerabilityTitle, scanId } = req.body;
     const userId = req.user._id;
     const isAdmin = req.user.role === 'admin';
 
-    const vulns = await getVulnerabilities(userId, isAdmin);
-
-    let targetVuln = vulns.find(v => v.title.toLowerCase().includes((vulnerabilityTitle || '').toLowerCase()));
-    if (!targetVuln && vulns.length > 0) {
-      targetVuln = vulns[0];
-    }
-
-    const prompt = targetVuln
-      ? `Explain the vulnerability "${targetVuln.title}" affecting ${targetVuln.target}`
-      : `Explain top security vulnerabilities affecting CyberShield web assets`;
-
-    const explanation = await callGeminiAPI(prompt, { vulnerability: targetVuln, allVulnerabilities: vulns }, 'vulnerabilities');
+    const vulnerabilities = await getVulnerabilities(userId, isAdmin);
+    const explanationText = await callGeminiAPI('Explain active vulnerabilities across my scanned web targets and provide technical remediation advice.', { vulnerabilities }, 'vulnerabilities');
 
     res.status(200).json({
       success: true,
       data: {
-        vulnerability: targetVuln || null,
-        explanation,
+        explanation: explanationText,
+        vulnerabilitiesCount: vulnerabilities.length,
         timestamp: new Date()
       }
     });
@@ -212,31 +200,25 @@ exports.explainVulnerability = async (req, res, next) => {
   }
 };
 
-// @desc    AI Security Investigation
+// @desc    AI Threat Triage & Investigation
 // @route   POST /api/ai/investigate
 // @access  Private
 exports.investigate = async (req, res, next) => {
   try {
-    const { scanId, asset } = req.body;
     const userId = req.user._id;
     const isAdmin = req.user.role === 'admin';
 
-    const summary = await getDashboardSummary(userId, isAdmin);
-    const recentScans = await getRecentScans(userId, 5, isAdmin);
+    const recentScans = await getRecentScans(userId, 10, isAdmin);
+    const vulnerabilities = await getVulnerabilities(userId, isAdmin);
     const attackSurface = await getAttackSurfaceData(userId, isAdmin);
-    const vulns = await getVulnerabilities(userId, isAdmin);
 
-    const contextData = { summary, recentScans, attackSurface, vulnerabilities: vulns };
-    const prompt = asset
-      ? `Perform a full SOC security investigation for asset ${asset}`
-      : `Perform a full SOC security investigation across active CyberShield security data`;
-
-    const investigationReport = await callGeminiAPI(prompt, contextData, 'investigation');
+    const contextData = { recentScans, vulnerabilities, attackSurface };
+    const investigationText = await callGeminiAPI('Perform threat triage and security investigation across my environment. Identify top priorities.', contextData, 'investigation');
 
     res.status(200).json({
       success: true,
       data: {
-        investigation: investigationReport,
+        investigation: investigationText,
         timestamp: new Date()
       }
     });
@@ -245,7 +227,7 @@ exports.investigate = async (req, res, next) => {
   }
 };
 
-// @desc    Generate Full AI Security Audit Report
+// @desc    AI Security Audit Report Generator
 // @route   POST /api/ai/generate-report
 // @access  Private
 exports.generateReport = async (req, res, next) => {
@@ -256,17 +238,16 @@ exports.generateReport = async (req, res, next) => {
     const summary = await getDashboardSummary(userId, isAdmin);
     const recentScans = await getRecentScans(userId, 10, isAdmin);
     const vulnerabilities = await getVulnerabilities(userId, isAdmin);
-    const attackSurface = await getAttackSurfaceData(userId, isAdmin);
+    const monitoring = await getMonitoringStatus(userId, isAdmin);
 
-    const contextData = { summary, recentScans, vulnerabilities, attackSurface };
-    const reportText = await callGeminiAPI('Generate an Executive Security Audit Report summarizing posture, findings, and remediation priority.', contextData, 'reports');
+    const contextData = { summary, recentScans, vulnerabilities, monitoring };
+    const reportText = await callGeminiAPI('Generate an Executive Security Audit Report summarizing posture, findings, and mitigation roadmap.', contextData, 'reports');
 
     res.status(200).json({
       success: true,
       data: {
         report: reportText,
-        summary,
-        generatedAt: new Date()
+        timestamp: new Date()
       }
     });
   } catch (err) {
