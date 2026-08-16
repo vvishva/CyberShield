@@ -1760,19 +1760,339 @@ tr.interactive-row:hover {
   padding: 10px 0;
 }
 
-/* Responsive adjustments */
-@media (max-width: 576px) {
+/* ============================================================
+   COMPLETE ANDROID MOBILE RESPONSIVE & TOUCH OPTIMIZATION ENGINE
+   ============================================================ */
+
+/* ── Global Text Overflow & Touch Targets Safety ───────────── */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  touch-action: manipulation;
+}
+
+body.sidebar-locked {
+  overflow: hidden !important;
+}
+
+/* Universal text wrap protection */
+h1, h2, h3, h4, h5, h6,
+p, span, td, th, label, input, code, pre,
+.stat-info h3, .stat-info p, .event-text, .msg-bubble,
+.vuln-desc, .check-name, .target-url, .rec-item {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Base Mobile Touch Target Optimization */
+button, .btn, input, select, textarea, a, .topbar-icon, .ai-control-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Mobile Sidebar Drawer & Overlay (<= 768px) ────────────── */
+@media (max-width: 768px) {
+  .app-container {
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    width: 280px !important;
+    max-width: 84vw !important;
+    z-index: 1000 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.85) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .sidebar.active {
+    transform: translateX(0) !important;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 7, 15, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Topbar Mobile Layout */
+  .topbar {
+    height: auto !important;
+    min-height: 56px;
+    padding: 8px 14px !important;
+    gap: 8px;
+  }
+
+  .topbar-left {
+    gap: 8px !important;
+    min-width: 0;
+  }
+
+  .mobile-nav-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0 !important;
+    font-size: 16px;
+    margin-right: 4px !important;
+    flex-shrink: 0;
+  }
+
+  .topbar-title h1 {
+    font-size: 14px !important;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-actions {
+    gap: 6px !important;
+  }
+
+  .topbar-actions .btn {
+    padding: 6px 10px !important;
+    font-size: 11.5px !important;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .search-box input, .search-box input.form-control {
+    width: 100% !important;
+    font-size: 12.5px !important;
+    padding: 8px 12px 8px 30px !important;
+  }
+
+  .search-box input:focus {
+    width: 100% !important;
+  }
+
+  /* Content Body & Padding */
+  .content-body {
+    padding: 12px !important;
+    gap: 14px !important;
+  }
+
+  .glass-card {
+    padding: 14px !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  /* Grid Layouts Stacked on Mobile */
+  .grid-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .stat-card {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+
+  .stat-icon {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 16px !important;
+  }
+
+  .stat-info h3 {
+    font-size: 18px !important;
+  }
+
+  .stat-info p {
+    font-size: 10.5px !important;
+  }
+
+  /* Tables Responsive Scroll & Formatting */
+  .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin-bottom: 12px;
+  }
+
+  .cyber-table th, .cyber-table td {
+    padding: 10px 8px !important;
+    font-size: 12px !important;
+  }
+
+  .cyber-table td .btn-sm {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  /* Scanner Hero & URL Input Stack */
+  .scanner-hero {
+    padding: 20px 14px !important;
+  }
+
+  .url-input-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    max-width: 100% !important;
+  }
+
+  .url-input-wrap i {
+    left: 14px !important;
+    top: 20px !important;
+    transform: none !important;
+  }
+
+  .url-input-wrap input {
+    padding: 12px 14px 12px 40px !important;
+    border-radius: var(--radius-md) !important;
+    font-size: 14px !important;
+  }
+
+  .url-input-wrap button {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    border-radius: var(--radius-md) !important;
+    padding: 12px !important;
+    justify-content: center !important;
+  }
+
+  .score-card {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 16px !important;
+    padding: 16px !important;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .target-meta {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  /* Graph Canvas Sizing for Mobile */
+  #network-map, #investigation-graph, .graph-container {
+    height: 300px !important;
+    min-height: 260px !important;
+    touch-action: pan-x pan-y !important;
+  }
+
+  /* Modals & Detail Drawers Fit Mobile Screens */
+  .detail-drawer {
+    width: 100vw !important;
+    max-width: 100% !important;
+    right: -100vw !important;
+  }
+
+  #remove-modal, .modal-box {
+    width: 92vw !important;
+    max-width: 420px !important;
+    padding: 16px !important;
+  }
+
+  /* AI Security Copilot Mobile Drawer */
   .ai-copilot-drawer {
-    width: 100vw;
-    right: -100vw;
+    width: 100vw !important;
+    max-width: 100% !important;
+    right: -100vw !important;
+    border-left: none !important;
   }
+
+  .ai-copilot-drawer.open {
+    right: 0 !important;
+  }
+
   .ai-copilot-fab {
-    bottom: 20px;
-    right: 20px;
-    padding: 10px 16px;
-    font-size: 13px;
+    bottom: 16px !important;
+    right: 16px !important;
+    padding: 10px 14px !important;
+    font-size: 12.5px !important;
+    z-index: 1050 !important;
   }
+
   .ai-fab-text {
-    display: none;
+    display: inline-block !important;
+    font-size: 11.5px !important;
+  }
+
+  .ai-copilot-footer {
+    padding: 12px 14px max(12px, env(safe-area-inset-bottom)) !important;
+    background: rgba(11, 15, 26, 0.98) !important;
+  }
+
+  .ai-message.user-msg .msg-bubble {
+    max-width: 90% !important;
+  }
+
+  .msg-bubble-wrapper {
+    max-width: 92% !important;
   }
 }
+
+/* ── Extra Small Phones (<= 480px) ────────────────────────── */
+@media (max-width: 480px) {
+  .grid-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .topbar-title h1 {
+    font-size: 12.5px !important;
+    max-width: 110px;
+  }
+
+  .system-status-pill {
+    display: none !important;
+  }
+
+  .soc-posture-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .btn {
+    min-height: 40px !important;
+  }
+}
+
+/* ── Android Virtual Keyboard & Safe Area Fix ────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .ai-copilot-footer, .landing-nav, .topbar {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+

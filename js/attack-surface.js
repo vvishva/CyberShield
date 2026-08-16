@@ -1,6 +1,7 @@
 /**
  * CyberShield - Attack Surface Map Logic
  * Uses vis-network to visualize assets
+ * Fully optimized for Desktop and Android Mobile Browsers
  */
 
 // Helper to get the vis-network library
@@ -24,34 +25,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     check();
   });
 
-  generateBtn.addEventListener('click', async () => {
-    const target = targetInput.value.trim();
-    if (!target) return showToast('Enter a target domain', 'warning');
-    
-    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mapping...';
-    generateBtn.disabled = true;
-
-    try {
-      const res = await apiRequest('/scan/website', 'POST', { url: target });
+  if (generateBtn && targetInput) {
+    generateBtn.addEventListener('click', async () => {
+      const target = targetInput.value.trim();
+      if (!target) return showToast('Enter a target domain', 'warning');
       
-      if (res.success && res.data) {
-        await ensureVisLib();
-        drawMap(target, res.data);
-        showToast('Attack surface mapped successfully', 'success');
-      } else {
-        throw new Error(res.error || 'Failed to scan');
-      }
-    } catch(err) {
-      showToast('Using demo map: ' + err.message, 'warning');
-      await ensureVisLib();
-      drawDemoMap(target);
-    } finally {
-      generateBtn.innerHTML = '<i class="fas fa-project-diagram"></i> Generate Map';
-      generateBtn.disabled = false;
-    }
-  });
+      generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mapping...';
+      generateBtn.disabled = true;
 
-  // Initial demo map after ensuring library is loaded
+      try {
+        const res = await apiRequest('/scan/website', 'POST', { url: target });
+        
+        if (res.success && res.data) {
+          await ensureVisLib();
+          drawMap(target, res.data);
+          showToast('Attack surface mapped successfully', 'success');
+        } else {
+          throw new Error(res.error || 'Failed to scan');
+        }
+      } catch(err) {
+        showToast('Using demo map: ' + err.message, 'warning');
+        await ensureVisLib();
+        drawDemoMap(target);
+      } finally {
+        generateBtn.innerHTML = '<i class="fas fa-project-diagram"></i> Generate Map';
+        generateBtn.disabled = false;
+      }
+    });
+  }
+
+  // Initial map render after library load
   await ensureVisLib();
   drawDemoMap('cybershield.io');
 
@@ -72,7 +75,7 @@ function drawMap(domain, scanData) {
   if (!VisLib) { showToast('vis-network library not loaded', 'error'); return; }
   
   const nodes = new VisLib.DataSet([
-    { id: 1, label: domain, shape: 'box', color: { background: '#0d1b2a', border: '#00d4ff' }, font: { color: '#fff', size: 16, face: 'Inter', bold: true }, borderWidth: 3 }
+    { id: 1, label: domain, shape: 'box', color: { background: '#0d1b2a', border: '#00d4ff' }, font: { color: '#fff', size: 15, face: 'Inter', bold: true }, borderWidth: 3 }
   ]);
   const edges = new VisLib.DataSet([]);
   let nodeId = 2;
@@ -133,7 +136,7 @@ function drawDemoMap(domain) {
   if (!VisLib) { showToast('vis-network library not loaded', 'error'); return; }
 
   const nodes = new VisLib.DataSet([
-    { id: 1, label: domain, shape: 'box', color: { background: '#0d1b2a', border: '#00d4ff' }, font: { color: '#fff', size: 16, bold: true }, borderWidth: 3 },
+    { id: 1, label: domain, shape: 'box', color: { background: '#0d1b2a', border: '#00d4ff' }, font: { color: '#fff', size: 15, bold: true }, borderWidth: 3 },
     { id: 2, label: '🔒 SSL: Valid', shape: 'box', color: { background: '#0d1b2a', border: '#00c896' }, font: { color: '#fff' }, borderWidth: 2 },
     { id: 3, label: '⚠️ Headers: Weak', shape: 'box', color: { background: '#0d1b2a', border: '#f59e0b' }, font: { color: '#fff' }, borderWidth: 2 },
     { id: 4, label: '⚠ Missing CSP', shape: 'box', color: { background: 'rgba(245,158,11,0.08)', border: '#f59e0b' }, font: { color: '#ddd', size: 11 } },
@@ -157,20 +160,28 @@ function drawDemoMap(domain) {
 }
 
 function renderVisNetwork(container, nodes, edges) {
+  if (!container) return;
   const VisLib = getVisLib();
   if (!VisLib || !VisLib.Network) {
     console.error('[vis.js Error] vis-network library is not available');
-    if (typeof showToast === 'function') showToast('Network visualizer initializing...', 'info');
     return;
   }
   const data = { nodes, edges };
+  const isMobile = window.innerWidth <= 768;
+
   const options = {
-    nodes: { font: { face: 'Inter', size: 13 }, margin: 10 },
-    edges: { width: 2, smooth: { type: 'continuous' } },
+    nodes: { font: { face: 'Inter', size: isMobile ? 11 : 13 }, margin: isMobile ? 6 : 10 },
+    edges: { width: isMobile ? 1.5 : 2, smooth: { type: 'continuous' } },
     physics: {
-      barnesHut: { gravitationalConstant: -3000, centralGravity: 0.3, springLength: 160 }
+      barnesHut: { gravitationalConstant: isMobile ? -2000 : -3000, centralGravity: 0.3, springLength: isMobile ? 120 : 160 }
     },
-    interaction: { hover: true, tooltipDelay: 200 }
+    interaction: {
+      hover: true,
+      tooltipDelay: 200,
+      dragNodes: true,
+      dragView: true,
+      zoomView: true
+    }
   };
   new VisLib.Network(container, data, options);
 }

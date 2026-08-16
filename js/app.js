@@ -1,6 +1,6 @@
 /**
  * CyberShield - Main Application Core & Global Utilities
- * Optimized for Desktop and Mobile Browsers (iOS / Android / Chrome / Safari).
+ * Optimized for Desktop and Android Mobile Browsers (Chrome / Edge / Firefox / Safari).
  */
 
 // Auto-detect: local development uses /api, production uses full Render URL
@@ -27,7 +27,7 @@ function showToast(message, type = 'info') {
   if (type === 'danger') icon = 'fa-exclamation-triangle';
   if (type === 'warning') icon = 'fa-shield-alt';
 
-  toast.innerHTML = `<i class="fas ${icon}"></i> <span>${message}</span>`;
+  toast.innerHTML = `<i class="fas ${icon}"></i> <span>${escapeHtml(message)}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -108,7 +108,7 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
   }
 }
 
-// Centralized Reusable PDF Report Download Helper
+// Centralized Reusable PDF Report Download Helper (Android Compatible)
 async function downloadReportPDF(params = {}, defaultFilename = 'CyberShield_Security_Report.pdf') {
   try {
     showToast('Generating PDF report...', 'info');
@@ -153,13 +153,15 @@ async function downloadReportPDF(params = {}, defaultFilename = 'CyberShield_Sec
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = filename;
+    link.setAttribute('target', '_blank');
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
 
     setTimeout(() => {
       link.remove();
       window.URL.revokeObjectURL(blobUrl);
-    }, 1000);
+    }, 1500);
 
     showToast('PDF Report downloaded successfully!', 'success');
   } catch (err) {
@@ -183,7 +185,7 @@ window.addEventListener('pageshow', (event) => {
   }
 });
 
-// Initialize Sidebar Active Links & User Info
+// Initialize Sidebar Active Links, User Info & Mobile Drawer Navigation
 document.addEventListener('DOMContentLoaded', () => {
   const currentUser = getUser();
 
@@ -247,21 +249,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (sidebar && toggleBtn && overlay) {
       const newToggle = toggleBtn.cloneNode(true);
-      if(toggleBtn.parentNode) toggleBtn.parentNode.replaceChild(newToggle, toggleBtn);
+      if (toggleBtn.parentNode) toggleBtn.parentNode.replaceChild(newToggle, toggleBtn);
       
+      const closeSidebar = () => {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      };
+
+      const openSidebar = () => {
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+        if (window.innerWidth <= 768) {
+          document.body.style.overflow = 'hidden';
+        }
+      };
+
       const toggleSidebar = () => {
-        const isActive = sidebar.classList.contains('active');
-        if (isActive) {
-          sidebar.classList.remove('active');
-          overlay.classList.remove('active');
+        if (sidebar.classList.contains('active')) {
+          closeSidebar();
         } else {
-          sidebar.classList.add('active');
-          overlay.classList.add('active');
+          openSidebar();
         }
       };
 
       newToggle.addEventListener('click', toggleSidebar);
-      overlay.addEventListener('click', toggleSidebar);
+      overlay.addEventListener('click', closeSidebar);
+
+      // Auto close sidebar on link click on mobile viewports
+      sidebar.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth <= 768) {
+            closeSidebar();
+          }
+        });
+      });
     }
   }
 
