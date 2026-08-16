@@ -479,12 +479,63 @@ exports.login = async (req, res, next) => {
 
     const token = generateToken(user);
 
+    // Record login session and device info
+    const userAgent = req.headers['user-agent'] || '';
+    const reqIp = (req.ip || req.connection.remoteAddress || '127.0.0.1').replace('::ffff:', '');
+    
+    let os = 'Windows 11';
+    if (/android/i.test(userAgent)) os = 'Android';
+    else if (/iphone|ipad|ipod/i.test(userAgent)) os = 'iOS';
+    else if (/macintosh|mac os x/i.test(userAgent)) os = 'macOS';
+    else if (/linux/i.test(userAgent)) os = 'Linux';
+    else if (/windows/i.test(userAgent)) os = 'Windows';
+
+    let browser = 'Chrome';
+    if (/edg/i.test(userAgent)) browser = 'Edge';
+    else if (/firefox/i.test(userAgent)) browser = 'Firefox';
+    else if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) browser = 'Safari';
+    else if (/opera|opr/i.test(userAgent)) browser = 'Opera';
+
+    let device = 'Desktop PC';
+    if (/mobile|android|iphone/i.test(userAgent)) device = 'Mobile Phone';
+    else if (/tablet|ipad/i.test(userAgent)) device = 'Tablet Device';
+
+    user.lastLoginAt = new Date();
+    user.lastLoginIp = reqIp;
+    user.lastLoginDevice = `${os} (${browser})`;
+
+    if (!user.sessions) user.sessions = [];
+    user.sessions.forEach(s => { s.current = false; });
+    user.sessions.unshift({
+      device,
+      os,
+      browser,
+      ip: reqIp,
+      location: reqIp === '127.0.0.1' ? 'Local SOC Sentinel' : 'Authenticated Network',
+      lastActive: new Date(),
+      createdAt: new Date(),
+      current: true
+    });
+    if (user.sessions.length > 10) user.sessions = user.sessions.slice(0, 10);
+
+    if (!user.securityActivity) user.securityActivity = [];
+    user.securityActivity.unshift({
+      event: `Successful Login via ${email ? 'Email' : 'Mobile'}`,
+      ip: reqIp,
+      device: `${os} (${browser})`,
+      status: 'SUCCESS',
+      timestamp: new Date()
+    });
+    if (user.securityActivity.length > 20) user.securityActivity = user.securityActivity.slice(0, 20);
+
+    await user.save();
+
     // Audit Log
     try {
       await Log.create({
         username: user.username,
         action: 'USER_LOGIN',
-        details: `Successful login via ${email ? 'email' : 'phone'}`,
+        details: `Successful login via ${email ? 'email' : 'phone'} from ${os} (${browser})`,
         status: 'SUCCESS'
       });
     } catch (e) {}
@@ -791,7 +842,56 @@ exports.googleAuth = async (req, res, next) => {
       } catch (e) {}
     }
 
-    // 3. Create Secure Session Token
+    // 3. Update Session & Telemetry
+    const userAgent = req.headers['user-agent'] || '';
+    const reqIp = (req.ip || req.connection.remoteAddress || '127.0.0.1').replace('::ffff:', '');
+    
+    let os = 'Windows 11';
+    if (/android/i.test(userAgent)) os = 'Android';
+    else if (/iphone|ipad|ipod/i.test(userAgent)) os = 'iOS';
+    else if (/macintosh|mac os x/i.test(userAgent)) os = 'macOS';
+    else if (/linux/i.test(userAgent)) os = 'Linux';
+    else if (/windows/i.test(userAgent)) os = 'Windows';
+
+    let browser = 'Chrome';
+    if (/edg/i.test(userAgent)) browser = 'Edge';
+    else if (/firefox/i.test(userAgent)) browser = 'Firefox';
+    else if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) browser = 'Safari';
+
+    let device = 'Desktop PC';
+    if (/mobile|android|iphone/i.test(userAgent)) device = 'Mobile Phone';
+
+    user.lastLoginAt = new Date();
+    user.lastLoginIp = reqIp;
+    user.lastLoginDevice = `${os} (${browser})`;
+
+    if (!user.sessions) user.sessions = [];
+    user.sessions.forEach(s => { s.current = false; });
+    user.sessions.unshift({
+      device,
+      os,
+      browser,
+      ip: reqIp,
+      location: reqIp === '127.0.0.1' ? 'Local SOC Sentinel' : 'Authenticated Network',
+      lastActive: new Date(),
+      createdAt: new Date(),
+      current: true
+    });
+    if (user.sessions.length > 10) user.sessions = user.sessions.slice(0, 10);
+
+    if (!user.securityActivity) user.securityActivity = [];
+    user.securityActivity.unshift({
+      event: 'Authenticated via Google Single Sign-On',
+      ip: reqIp,
+      device: `${os} (${browser})`,
+      status: 'SUCCESS',
+      timestamp: new Date()
+    });
+    if (user.securityActivity.length > 20) user.securityActivity = user.securityActivity.slice(0, 20);
+
+    await user.save();
+
+    // 4. Create Secure Session Token
     const jwtToken = generateToken(user);
 
     res.status(200).json({

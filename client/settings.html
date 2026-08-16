@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Security Settings & Controls — CyberShield AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=6.0">
+</head>
+<body>
+<div class="app-container">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="main-sidebar">
+    <div class="sidebar-logo">
+      <i class="fas fa-shield-halved"></i>
+      <h2>CyberShield AI</h2>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">MONITORING</li>
+      <li><a href="dashboard.html"><i class="fas fa-gauge-high"></i> <span>Dashboard</span></a></li>
+      <li><a href="monitor.html"><i class="fas fa-radar"></i> <span>Auto Monitoring</span></a></li>
+      
+      <li class="nav-section-label">SECURITY TOOLS</li>
+      <li><a href="scanner.html"><i class="fas fa-shield-virus"></i> <span>Security Scanners</span></a></li>
+      <li><a href="attack-surface.html"><i class="fas fa-project-diagram"></i> <span>Attack Surface Map</span></a></li>
+      <li><a href="threat-intelligence.html"><i class="fas fa-crosshairs"></i> <span>Threat Intelligence</span></a></li>
+      <li><a href="vulnerabilities.html"><i class="fas fa-bug"></i> <span>Vulnerabilities</span></a></li>
+      <li><a href="password.html"><i class="fas fa-key"></i> <span>Password Analyzer</span></a></li>
+      
+      <li class="nav-section-label">REPORTS</li>
+      <li><a href="history.html"><i class="fas fa-clock-rotate-left"></i> <span>Scan History</span></a></li>
+      <li><a href="reports.html"><i class="fas fa-file-lines"></i> <span>Audit Reports</span></a></li>
+      
+      <li class="nav-section-label">ACCOUNT</li>
+      <li><a href="notifications.html"><i class="fas fa-bell"></i> <span>Notifications</span> <span class="nav-badge notif-badge-count" id="notif-count" style="display:none;">0</span></a></li>
+      <li><a href="profile.html"><i class="fas fa-id-card"></i> <span>Security Profile</span></a></li>
+      <li class="active"><a href="settings.html"><i class="fas fa-sliders"></i> <span>Security Settings</span></a></li>
+      
+      <li class="admin-only" id="admin-nav-item" style="display: none;">
+        <a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a>
+      </li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><i class="fas fa-user"></i></div>
+        <div class="user-info">
+          <div class="name" id="user-display-name">Analyst</div>
+          <div class="role" id="user-display-role">USER</div>
+        </div>
+        <a href="#" id="logout-btn" title="Logout"><i class="fas fa-power-off"></i></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-wrapper">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title">
+          <h1>Enterprise Security Control Center</h1>
+          <div class="system-status-pill"><span class="pulse-dot"></span> Sentinel Active</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" id="btn-save-all-settings"><i class="fas fa-floppy-disk"></i> Save Changes</button>
+      </div>
+    </header>
+
+    <main class="content-body" style="max-width:1100px; margin:0 auto; width:100%;">
+      
+      <div class="settings-layout">
+        <!-- Settings Category Navigation -->
+        <nav class="settings-nav" id="settings-nav-bar">
+          <button class="settings-nav-btn active" data-tab="tab-account"><i class="fas fa-user-gear"></i> Account</button>
+          <button class="settings-nav-btn" data-tab="tab-security"><i class="fas fa-shield-halved"></i> Security Controls</button>
+          <button class="settings-nav-btn" data-tab="tab-notifications"><i class="fas fa-bell"></i> Notification Matrix</button>
+          <button class="settings-nav-btn" data-tab="tab-monitoring"><i class="fas fa-radar"></i> Monitoring</button>
+          <button class="settings-nav-btn" data-tab="tab-copilot"><i class="fas fa-robot"></i> AI Security Copilot</button>
+          <button class="settings-nav-btn" data-tab="tab-appearance"><i class="fas fa-palette"></i> Appearance</button>
+          <button class="settings-nav-btn" data-tab="tab-privacy"><i class="fas fa-lock"></i> Privacy & Data</button>
+          <button class="settings-nav-btn" data-tab="tab-danger" style="color:var(--red);"><i class="fas fa-triangle-exclamation"></i> Danger Zone</button>
+        </nav>
+
+        <!-- Settings Content Panes -->
+        <div class="settings-content-wrap" style="min-width:0;">
+          
+          <!-- TAB 1: ACCOUNT -->
+          <div class="settings-pane active" id="tab-account">
+            <div class="settings-section-card">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title"><i class="fas fa-id-badge text-cyan"></i> Account & Profile Parameters</h3>
+                <span class="badge badge-info">Identity Baseline</span>
+              </div>
+
+              <form id="form-account-settings">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+                  <div class="form-group" style="margin:0;">
+                    <label>Full Name</label>
+                    <input type="text" class="form-control" id="acc-fullname" placeholder="Security Analyst">
+                  </div>
+                  <div class="form-group" style="margin:0;">
+                    <label>Username (System Handle)</label>
+                    <input type="text" class="form-control" id="acc-username" disabled>
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+                  <div class="form-group" style="margin:0;">
+                    <label>Primary Email</label>
+                    <input type="email" class="form-control" id="acc-email" disabled>
+                  </div>
+                  <div class="form-group" style="margin:0;">
+                    <label>Mobile Number</label>
+                    <input type="tel" class="form-control" id="acc-phone" placeholder="+1234567890">
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:20px;">
+                  <div class="form-group" style="margin:0;">
+                    <label>Timezone</label>
+                    <select class="form-control" id="acc-timezone">
+                      <option value="UTC-08:00 (PST)">UTC-08:00 (Pacific Time)</option>
+                      <option value="UTC-05:00 (EST)">UTC-05:00 (Eastern Time)</option>
+                      <option value="UTC+00:00 (GMT)">UTC+00:00 (London / UTC)</option>
+                      <option value="UTC+01:00 (CET)">UTC+01:00 (Central Europe)</option>
+                      <option value="UTC+05:30 (IST)">UTC+05:30 (India Standard Time)</option>
+                      <option value="UTC+08:00 (SGT)">UTC+08:00 (Singapore / HK)</option>
+                      <option value="UTC+09:00 (JST)">UTC+09:00 (Tokyo)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin:0;">
+                    <label>Preferred Language</label>
+                    <select class="form-control" id="acc-language">
+                      <option value="English (US)">English (US)</option>
+                      <option value="English (UK)">English (UK)</option>
+                      <option value="German">German (Deutsch)</option>
+                      <option value="French">French (Français)</option>
+                      <option value="Spanish">Spanish (Español)</option>
+                      <option value="Japanese">Japanese (日本語)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end;">
+                  <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Save Account Details</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- TAB 2: SECURITY CONTROLS -->
+          <div class="settings-pane" id="tab-security">
+            <div class="settings-section-card">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title"><i class="fas fa-shield-halved text-cyan"></i> Authentication & Threat Heuristics</h3>
+                <span class="badge badge-safe"><i class="fas fa-lock"></i> Hardened</span>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Two-Factor Authentication (2FA)</h4>
+                  <p>Require secondary verification code during sensitive operations</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="sec-toggle-2fa">
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Login Security Alerts</h4>
+                  <p>Receive notifications whenever your account is accessed from an IP</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="sec-toggle-login-alerts" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>New Device & Browser Verification</h4>
+                  <p>Flag unauthorized access attempts from unrecognized hardware fingerprints</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="sec-toggle-new-device" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Heuristic Suspicious-Login Detection</h4>
+                  <p>AI defense engine analyzes impossible travel and abnormal session velocity</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="sec-toggle-suspicious" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Session Inactivity Timeout</h4>
+                  <p>Automatically invalidate inactive session tokens</p>
+                </div>
+                <select class="form-control" style="width:140px;" id="sec-session-timeout">
+                  <option value="15">15 Minutes</option>
+                  <option value="30">30 Minutes</option>
+                  <option value="60" selected>1 Hour</option>
+                  <option value="240">4 Hours</option>
+                  <option value="1440">24 Hours</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: NOTIFICATION MATRIX -->
+          <div class="settings-pane" id="tab-notifications">
+            <div class="settings-section-card">
+              <div class="settings-section-header">
+                <div>
+                  <h3 class="settings-section-title"><i class="fas fa-bell text-cyan"></i> Real-time Notification Delivery Matrix</h3>
+                  <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0;">Control telemetry delivery channels for each security event classification</p>
+                </div>
+                <span class="badge badge-info">Granular Routing</span>
+              </div>
+
+              <div class="table-responsive">
+                <table class="settings-matrix-table">
+                  <thead>
+                    <tr>
+                      <th>Event Classification</th>
+                      <th style="text-align:center; width:100px;">In-App Center</th>
+                      <th style="text-align:center; width:100px;">Email Stream</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <strong>Critical Vulnerabilities Discovered</strong>
+                        <div style="font-size:11px; color:var(--text-muted);">High-severity CVEs, zero-days, or missing cryptographic headers</div>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-crit-inapp" checked><span class="cyber-slider"></span></label>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-crit-email" checked><span class="cyber-slider"></span></label>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>High-Risk Threats & Phishing</strong>
+                        <div style="font-size:11px; color:var(--text-muted);">Malicious host reputation, deceptive domain clones, or IP blacklisting</div>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-high-inapp" checked><span class="cyber-slider"></span></label>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-high-email" checked><span class="cyber-slider"></span></label>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Medium & Low Severity Findings</strong>
+                        <div style="font-size:11px; color:var(--text-muted);">Minor posture drifts, header advisory notices, or certificate warnings</div>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-med-inapp" checked><span class="cyber-slider"></span></label>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-med-email"><span class="cyber-slider"></span></label>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Security Scan Completed</strong>
+                        <div style="font-size:11px; color:var(--text-muted);">Immediate notification when background URL or website sweep finishes</div>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-scan-inapp" checked><span class="cyber-slider"></span></label>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-scan-email"><span class="cyber-slider"></span></label>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Continuous Monitoring Health Drift</strong>
+                        <div style="font-size:11px; color:var(--text-muted);">Score drops or configuration change detected on monitored domains</div>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-mon-inapp" checked><span class="cyber-slider"></span></label>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-mon-email" checked><span class="cyber-slider"></span></label>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>AI Security Copilot Advisory Alerts</strong>
+                        <div style="font-size:11px; color:var(--text-muted);">Proactive remediation suggestions and automated threat briefings</div>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-copilot-inapp" checked><span class="cyber-slider"></span></label>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-copilot-email"><span class="cyber-slider"></span></label>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Security Setting & Authentication Changes</strong>
+                        <div style="font-size:11px; color:var(--text-muted);">Password updates, 2FA modifications, or session resets</div>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-auth-inapp" checked><span class="cyber-slider"></span></label>
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="cyber-switch"><input type="checkbox" id="notif-auth-email" checked><span class="cyber-slider"></span></label>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: MONITORING PREFERENCES -->
+          <div class="settings-pane" id="tab-monitoring">
+            <div class="settings-section-card">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title"><i class="fas fa-radar text-cyan"></i> Continuous Monitoring Sentinel</h3>
+                <span class="badge badge-safe">Active Sentinel</span>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Automated Background Monitoring</h4>
+                  <p>Execute scheduled security scans against all monitored web assets</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="mon-toggle-continuous" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Vulnerability Sweep & Drift Detection</h4>
+                  <p>Compare historical header snapshots and track posture degradation</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="mon-toggle-vuln" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Attack Surface Reconnaissance</h4>
+                  <p>Periodically discover subdomains, exposed ports, and TLS renewals</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="mon-toggle-attack-surface" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Automated Sweep Interval</h4>
+                  <p>Frequency of full background security audits</p>
+                </div>
+                <select class="form-control" style="width:160px;" id="mon-scan-interval">
+                  <option value="6">Every 6 Hours</option>
+                  <option value="12">Every 12 Hours</option>
+                  <option value="24" selected>Every 24 Hours</option>
+                  <option value="48">Every 48 Hours</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: AI SECURITY COPILOT -->
+          <div class="settings-pane" id="tab-copilot">
+            <div class="settings-section-card">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title"><i class="fas fa-robot text-cyan"></i> AI Security Copilot Settings</h3>
+                <span class="badge badge-cyan"><i class="fas fa-brain"></i> Gemini Flash</span>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Enable AI Security Copilot</h4>
+                  <p>Floating assistant available across all SOC pages for threat triage</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="copilot-toggle-master" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Automated Security Briefings</h4>
+                  <p>Generate human-readable AI analysis summaries after scanning websites</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="copilot-toggle-summaries" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Threat Vector Explanations</h4>
+                  <p>Provide deep contextual explanations of CVEs, phishing indicators, and exploits</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="copilot-toggle-explanations" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Investigation Remediation Recommendations</h4>
+                  <p>Produce actionable copy-paste remediation commands and configuration headers</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="copilot-toggle-remediation" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 6: APPEARANCE & THEME -->
+          <div class="settings-pane" id="tab-appearance">
+            <div class="settings-section-card">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title"><i class="fas fa-palette text-cyan"></i> Visual Theme & UI Density</h3>
+                <span class="badge badge-info">Persistent UI</span>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Application Color Theme</h4>
+                  <p>Switch between dark SOC mode, high-contrast light mode, or system default</p>
+                </div>
+                <select class="form-control" style="width:160px;" id="theme-selector">
+                  <option value="dark" selected>Dark SOC (Default)</option>
+                  <option value="light">Light Mode</option>
+                  <option value="system">System Preference</option>
+                </select>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Information Layout Density</h4>
+                  <p>Adjust padding and whitespace across tables and cards</p>
+                </div>
+                <select class="form-control" style="width:160px;" id="density-selector">
+                  <option value="comfortable" selected>Comfortable</option>
+                  <option value="compact">Compact Density</option>
+                </select>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Micro-Animations & Smooth Motion</h4>
+                  <p>Enable radar pulses, smooth transitions, and glowing visual cues</p>
+                </div>
+                <label class="cyber-switch">
+                  <input type="checkbox" id="theme-toggle-animations" checked>
+                  <span class="cyber-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 7: PRIVACY & DATA EXPORT -->
+          <div class="settings-pane" id="tab-privacy">
+            <div class="settings-section-card">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title"><i class="fas fa-lock text-cyan"></i> Privacy & Account Data Portability</h3>
+                <span class="badge badge-safe"><i class="fas fa-file-shield"></i> GDPR / SOC2</span>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Session History Retention</h4>
+                  <p>Automatically purge old login session and audit telemetry records</p>
+                </div>
+                <select class="form-control" style="width:140px;" id="privacy-retention">
+                  <option value="7">7 Days</option>
+                  <option value="30" selected>30 Days</option>
+                  <option value="90">90 Days</option>
+                  <option value="365">1 Year</option>
+                </select>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-info">
+                  <h4>Download Complete Account Data Archive</h4>
+                  <p>Export all profile data, scan history, audit logs, and monitored site records as a JSON bundle</p>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-download-my-data"><i class="fas fa-download"></i> Download My Data</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 8: DANGER ZONE -->
+          <div class="settings-pane" id="tab-danger">
+            <div class="settings-section-card danger-zone-card">
+              <div class="settings-section-header" style="border-color:rgba(239,68,68,0.3);">
+                <h3 class="settings-section-title" style="color:var(--red);"><i class="fas fa-triangle-exclamation"></i> Danger Zone</h3>
+                <span class="badge badge-danger">Irreversible Actions</span>
+              </div>
+
+              <div class="settings-row" style="border-color:rgba(239,68,68,0.2);">
+                <div class="settings-info">
+                  <h4>Terminate All Active Sessions</h4>
+                  <p>Invalidate all authenticated tokens and force logout across every device</p>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-danger-logout-all"><i class="fas fa-arrow-right-from-bracket"></i> Logout All Devices</button>
+              </div>
+
+              <div class="settings-row" style="border-color:rgba(239,68,68,0.2);">
+                <div class="settings-info">
+                  <h4>Disable Account Access</h4>
+                  <p>Temporarily deactivate your account and suspend automated monitoring</p>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-danger-disable-account"><i class="fas fa-user-slash"></i> Disable Account</button>
+              </div>
+
+              <div class="settings-row" style="border-bottom:none;">
+                <div class="settings-info">
+                  <h4>Permanently Delete Account</h4>
+                  <p>Permanently remove your identity, all scan logs, monitoring targets, and reports</p>
+                </div>
+                <button class="btn btn-danger btn-sm" id="btn-danger-delete-account"><i class="fas fa-trash"></i> Delete Account</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODALS
+     ============================================================ -->
+
+<!-- Delete Account Confirmation Modal -->
+<div id="delete-modal-backdrop" class="drawer-backdrop"></div>
+<div id="delete-modal" class="detail-drawer" style="height:auto; top:50%; left:50%; right:auto; transform:translate(-50%, -50%); border-radius:var(--radius-lg); padding:24px; display:none; max-width:440px; width:92vw;">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+    <div style="width:42px; height:42px; border-radius:50%; background:var(--red-dim); color:var(--red); display:flex; align-items:center; justify-content:center; font-size:18px;"><i class="fas fa-triangle-exclamation"></i></div>
+    <div>
+      <h3 style="font-size:16px; font-weight:700; margin:0; color:var(--red);">Delete CyberShield Account</h3>
+      <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0;">Permanent and irreversible action</p>
+    </div>
+  </div>
+  <p style="font-size:13px; color:var(--text-secondary); line-height:1.5; margin-bottom:16px;">Please confirm your account password to delete your profile, scan histories, automated monitoring schedules, and security telemetries.</p>
+  
+  <form id="form-confirm-delete-account">
+    <div class="form-group">
+      <label>Confirm Your Password</label>
+      <input type="password" class="form-control" id="modal-delete-password" required placeholder="Enter password to confirm">
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button type="button" class="btn btn-secondary" id="btn-cancel-delete">Cancel</button>
+      <button type="submit" class="btn btn-danger" id="btn-confirm-delete-submit"><i class="fas fa-trash"></i> Delete Forever</button>
+    </div>
+  </form>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/settings.js"></script>
+<script src="/js/aiCopilot.js"></script>
+</body>
+</html>

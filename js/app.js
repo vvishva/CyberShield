@@ -3,6 +3,26 @@
  * Optimized for Desktop and Android Mobile Browsers (Chrome / Edge / Firefox / Safari).
  */
 
+// Immediate Theme & Density Engine (prevents flash of unstyled content)
+(function initGlobalTheme() {
+  const savedTheme = localStorage.getItem('cybershield_theme') || 'dark';
+  const savedDensity = localStorage.getItem('cybershield_density') || 'comfortable';
+  if (savedTheme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else if (savedTheme === 'system') {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (!isDark) document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+
+  if (savedDensity === 'compact') {
+    document.documentElement.setAttribute('data-density', 'compact');
+  } else {
+    document.documentElement.removeAttribute('data-density');
+  }
+})();
+
 // Auto-detect: local development uses /api, production uses full Render URL
 const API_BASE = (window.location.hostname === 'localhost' || 
                   window.location.hostname === '127.0.0.1' || 
@@ -172,7 +192,29 @@ async function downloadReportPDF(params = {}, defaultFilename = 'CyberShield_Sec
 
 window.downloadReportPDF = downloadReportPDF;
 
-// Mobile BFCache & History State Handler (Ensures auto-load on back/forward/logout)
+// Fetch and sync unread notification count across topbar and sidebar
+async function updateUnreadNotifBadge() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const res = await apiRequest('/notifications/count');
+    if (res.success) {
+      const count = res.unreadCount || 0;
+      document.querySelectorAll('#notif-count, .notif-badge-count').forEach(el => {
+        if (count > 0) {
+          el.textContent = count > 99 ? '99+' : count;
+          el.style.display = 'inline-block';
+        } else {
+          el.style.display = 'none';
+        }
+      });
+    }
+  } catch (e) {}
+}
+
+window.updateUnreadNotifBadge = updateUnreadNotifBadge;
+
+// Mobile BFCache & History State Handler
 window.addEventListener('pageshow', (event) => {
   const currentPath = window.location.pathname.split('/').pop() || 'index.html';
   const isAuthPage = currentPath === 'login.html' || currentPath === 'register.html';
@@ -185,7 +227,7 @@ window.addEventListener('pageshow', (event) => {
   }
 });
 
-// Initialize Sidebar Active Links, User Info & Mobile Drawer Navigation
+// Initialize Sidebar, User Profile Info & Mobile Navigation
 document.addEventListener('DOMContentLoaded', () => {
   const currentUser = getUser();
 
@@ -200,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update sidebar user details & developer credit badge
   const nameEl = document.getElementById('user-display-name');
   const roleEl = document.getElementById('user-display-role');
-  if (nameEl) nameEl.textContent = currentUser.username || 'SecAnalyst';
+  if (nameEl) nameEl.textContent = currentUser.fullName || currentUser.username || 'SecAnalyst';
   if (roleEl) roleEl.textContent = (currentUser.role || 'user').toUpperCase();
 
   const sidebarUser = document.querySelector('.sidebar-user');
@@ -287,7 +329,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Logout button binder (Mobile & Desktop Anti-Cache Handler)
+  // Update notification badges
+  updateUnreadNotifBadge();
+
+  // Logout button binder
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', (e) => {
