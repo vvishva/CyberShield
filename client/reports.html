@@ -2,46 +2,115 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Audit Report — CyberShield AI</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Security Audit & Compliance Reports — CyberShield AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=5.0">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="/css/style.css?v=6.0">
   <style>
-    /* Report specific styles */
-    .report-page { max-width: 900px; margin: 0 auto; background: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 40px 60px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-    .report-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--cyan); padding-bottom: 24px; margin-bottom: 32px; }
-    .report-title h1 { font-size: 28px; font-weight: 900; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-primary); }
-    .report-title p { color: var(--text-muted); font-size: 14px; }
-    .report-meta { text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
-    .report-meta div { margin-bottom: 4px; }
-    
-    .report-section { margin-bottom: 40px; }
-    .report-section h2 { font-size: 18px; font-weight: 700; color: var(--cyan); border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
-    
-    .exec-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .summary-box { background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); padding: 20px; border-radius: 8px; }
-    .summary-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px; }
-    .summary-box .value { font-size: 24px; font-weight: 800; }
-
-    .pdf-actions { max-width: 900px; margin: 24px auto; display: flex; justify-content: flex-end; gap: 12px; }
-
-    @media print {
-      body { background: #fff !important; color: #000 !important; }
-      .pdf-actions, .sidebar, .topbar, .mobile-nav-toggle { display: none !important; }
-      .main-wrapper { margin: 0 !important; padding: 0 !important; }
-      .report-page { box-shadow: none; border: none; padding: 0; max-width: 100%; margin: 0; }
-      .report-header { border-bottom-color: #333; }
-      .report-section h2 { color: #333; border-bottom-color: #eee; }
-      .summary-box { border: 1px solid #ccc; break-inside: avoid; }
-      .badge { border: 1px solid #333; color: #000 !important; background: transparent !important; }
-      .text-cyan { color: #000 !important; }
+    .report-page {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      max-width: 900px;
+      margin: 0 auto 30px auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--border-glass);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .report-title h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 0 0 4px 0;
+    }
+    .report-title p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    .report-meta {
+      text-align: right;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .report-section {
+      margin-bottom: 28px;
+    }
+    .report-section h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--cyan);
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .exec-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .summary-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+    .summary-box .label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .summary-box .value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .pdf-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 900px;
+      margin: 0 auto 20px auto;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .period-tab-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-glass);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .period-tab-btn.active {
+      background: var(--cyan-dim);
+      border-color: var(--cyan);
+      color: var(--cyan);
     }
   </style>
 </head>
 <body>
 <div class="app-container">
+  <!-- Sidebar -->
   <aside class="sidebar" id="main-sidebar">
     <div class="sidebar-logo"><i class="fas fa-shield-halved"></i><h2>CyberShield AI</h2></div>
     <ul class="sidebar-nav">
@@ -63,96 +132,133 @@
       <li><a href="settings.html"><i class="fas fa-sliders"></i> <span>Security Settings</span></a></li>
       <li><a href="admin.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
     </ul>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><i class="fas fa-user"></i></div>
+        <div class="user-info"><div class="name" id="user-display-name">Analyst</div><div class="role" id="user-display-role">USER</div></div>
+        <a href="#" id="logout-btn" title="Logout"><i class="fas fa-power-off"></i></a>
+      </div>
+    </div>
   </aside>
 
   <div class="main-wrapper">
     <header class="topbar">
       <div class="topbar-left">
         <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h1>Audit Reports</h1></div>
+        <div class="topbar-title"><h1>Audit & Compliance Reports</h1></div>
       </div>
     </header>
 
     <main class="content-body" style="background:var(--bg-base);">
       
+      <!-- Report Scope & Period Toolbar -->
       <div class="pdf-actions">
-        <button class="btn btn-secondary" id="btn-back-reports"><i class="fas fa-arrow-left"></i> Back</button>
-        <button class="btn btn-primary" id="btn-generate-pdf" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> Save as PDF</button>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;" id="report-period-switcher">
+          <button class="period-tab-btn active" data-period="ondemand"><i class="fas fa-crosshairs"></i> Latest Scan</button>
+          <button class="period-tab-btn" data-period="daily"><i class="fas fa-calendar-day"></i> Daily SOC Digest</button>
+          <button class="period-tab-btn" data-period="weekly"><i class="fas fa-calendar-week"></i> Weekly Risk Summary</button>
+          <button class="period-tab-btn" data-period="monthly"><i class="fas fa-file-contract"></i> Monthly Audit</button>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" id="btn-back-reports"><i class="fas fa-arrow-left"></i> Back</button>
+          <button class="btn btn-primary" id="btn-generate-pdf"><i class="fas fa-file-pdf"></i> Save as PDF</button>
+        </div>
       </div>
 
       <div id="report-page-container">
         <div class="report-page" id="report-content">
-        <div class="report-header">
-          <div class="report-title">
-            <h1>Security Audit Report</h1>
-            <p>Generated by CyberShield AI Operations Center</p>
-          </div>
-          <div class="report-meta">
-            <div><strong>Report ID:</strong> <span id="rpt-id">...</span></div>
-            <div><strong>Date:</strong> <span id="rpt-date">...</span></div>
-            <div><strong>Analyst:</strong> <span id="rpt-user">...</span></div>
-          </div>
-        </div>
-
-        <!-- No Data State -->
-        <div id="rpt-empty" class="empty-state" style="padding: 100px 0;">
-          <i class="fas fa-file-pdf"></i>
-          <p>No scan data available. Please run a security scan first to generate a report.</p>
-          <a href="scanner.html" class="btn btn-primary">Go to Scanner</a>
-        </div>
-
-        <!-- Report Data -->
-        <div id="rpt-data" style="display:none;">
-          <div class="report-section">
-            <h2>1. Executive Summary</h2>
-            <div class="exec-summary">
-              <div class="summary-box">
-                <div class="label">Target Domain</div>
-                <div class="value" id="rpt-target" style="word-break:break-all; font-size:18px;">example.com</div>
-              </div>
-              <div class="summary-box">
-                <div class="label">Overall Security Verdict</div>
-                <div class="value" id="rpt-verdict">Evaluating</div>
-              </div>
-              <div class="summary-box">
-                <div class="label">Security Score</div>
-                <div class="value" id="rpt-score">0 / 100</div>
-              </div>
-              <div class="summary-box">
-                <div class="label">AI Confidence Level</div>
-                <div class="value" id="rpt-conf">0%</div>
-              </div>
+          
+          <div class="report-header">
+            <div class="report-title">
+              <h1 id="rpt-title-heading">Security Audit & Risk Report</h1>
+              <p>Generated by CyberShield AI Operations Center</p>
+            </div>
+            <div class="report-meta">
+              <div><strong>Report ID:</strong> <span id="rpt-id" style="font-family:var(--font-mono); color:var(--cyan);">...</span></div>
+              <div><strong>Generated:</strong> <span id="rpt-date">...</span></div>
+              <div><strong>Security Analyst:</strong> <span id="rpt-user">...</span></div>
             </div>
           </div>
 
-          <div class="report-section">
-            <h2>2. Network & Transport Layer</h2>
-            <table class="cyber-table" style="border:1px solid var(--border-subtle);">
-              <tbody id="rpt-network">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
+          <!-- Report Data Body -->
+          <div id="rpt-data">
+            
+            <!-- 1. Executive Summary -->
+            <div class="report-section">
+              <h2>1. Executive Summary & Security Posture</h2>
+              <div class="exec-summary">
+                <div class="summary-box">
+                  <div class="label">Scope / Target</div>
+                  <div class="value" id="rpt-target" style="word-break:break-all; font-size:16px;">All Monitored Assets</div>
+                </div>
+                <div class="summary-box">
+                  <div class="label">Risk Level</div>
+                  <div class="value" id="rpt-verdict">Evaluating</div>
+                </div>
+                <div class="summary-box">
+                  <div class="label">Security Score</div>
+                  <div class="value" id="rpt-score">0 / 100</div>
+                </div>
+                <div class="summary-box">
+                  <div class="label">Total Scans Audited</div>
+                  <div class="value" id="rpt-scans-count">0</div>
+                </div>
+              </div>
+            </div>
 
-          <div class="report-section">
-            <h2>3. HTTP Security Headers</h2>
-            <table class="cyber-table" style="border:1px solid var(--border-subtle);">
-              <tbody id="rpt-headers">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
+            <!-- 2. Dynamic Risk Factor Breakdown -->
+            <div class="report-section">
+              <h2>2. Dynamic Risk Weighting Breakdown</h2>
+              <table class="cyber-table" style="border:1px solid var(--border-subtle); font-size:13px;">
+                <thead>
+                  <tr>
+                    <th>Security Factor Category</th>
+                    <th>Risk Contribution %</th>
+                    <th>Status / Posture</th>
+                  </tr>
+                </thead>
+                <tbody id="rpt-risk-breakdown-body">
+                  <tr><td>Vulnerabilities</td><td>30%</td><td><span class="badge badge-info">Audited</span></td></tr>
+                  <tr><td>Threat Activity</td><td>25%</td><td><span class="badge badge-warning">Active Monitoring</span></td></tr>
+                  <tr><td>Attack Surface Exposure</td><td>20%</td><td><span class="badge badge-info">Encrypted</span></td></tr>
+                  <tr><td>Configuration Controls</td><td>15%</td><td><span class="badge badge-safe">Protected</span></td></tr>
+                  <tr><td>Continuous Monitoring</td><td>10%</td><td><span class="badge badge-safe">Active</span></td></tr>
+                </tbody>
+              </table>
+            </div>
 
-          <div class="report-section">
-            <h2>4. Remediation Recommendations</h2>
-            <ul id="rpt-recs" style="padding-left:20px; line-height:1.8; color:var(--text-secondary); font-size:14px;">
-              <!-- Injected via JS -->
-            </ul>
-          </div>
-          
-          <div style="text-align:center; margin-top:80px; padding-top:20px; border-top:1px solid var(--border-subtle); font-size:12px; color:var(--text-muted);">
-            <i class="fas fa-shield-halved"></i> <strong>CyberShield AI</strong> — End of Report
-          </div>
+            <!-- 3. Network & Transport Layer -->
+            <div class="report-section">
+              <h2>3. Network & Cryptographic Verification</h2>
+              <table class="cyber-table" style="border:1px solid var(--border-subtle);">
+                <tbody id="rpt-network">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 4. HTTP Security Headers -->
+            <div class="report-section">
+              <h2>4. HTTP Security Defense Headers</h2>
+              <table class="cyber-table" style="border:1px solid var(--border-subtle);">
+                <tbody id="rpt-headers">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 5. Active Remediation Recommendations -->
+            <div class="report-section">
+              <h2>5. Prioritized Remediation Roadmap</h2>
+              <ul id="rpt-recs" style="padding-left:20px; line-height:1.8; color:var(--text-secondary); font-size:13.5px;">
+                <!-- Injected via JS -->
+              </ul>
+            </div>
+            
+            <div style="text-align:center; margin-top:50px; padding-top:20px; border-top:1px solid var(--border-subtle); font-size:12px; color:var(--text-muted);">
+              <i class="fas fa-shield-halved text-cyan"></i> <strong>CyberShield AI Security Operations Platform</strong> — End of Audit Report
+            </div>
+
           </div>
         </div>
       </div>
@@ -162,20 +268,6 @@
 
 <script src="/js/app.js"></script>
 <script src="/js/reports.js"></script>
-<script>
-  function downloadPDF() {
-    const scanStr = localStorage.getItem('lastScanData');
-    let params = {};
-    if (scanStr) {
-      try {
-        const scan = JSON.parse(scanStr);
-        params = { scanId: scan._id || scan.scanId, target: scan.target || scan.url, scanType: scan.scanType };
-      } catch(e) {}
-    }
-    downloadReportPDF(params, 'CyberShield_Audit_Report.pdf');
-  }
-</script>
-<script src="/js/cursor.js"></script>
 <script src="/js/aiCopilot.js"></script>
 </body>
 </html>

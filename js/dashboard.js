@@ -83,6 +83,9 @@ async function fetchDashboardData() {
     if (res.success && res.data) {
       dashboardSummaryData = res.data;
       renderPosture(res.data.posture);
+      renderRiskBreakdown(res.data.posture?.riskBreakdown, res.data.posture?.riskScore);
+      renderActiveIncidents(res.data.incidents);
+      renderAssetHealth(res.data.assetsHealth);
       renderPriorities(res.data.priorities);
       renderHealth(res.data.health);
       renderChanges(res.data.changes);
@@ -103,7 +106,9 @@ async function fetchDashboardData() {
 
   // Fallback if summary endpoint unavailable
   const fallbackData = {
-    posture: { overallScore: 100, riskLevel: 'Safe', scoreDelta: 0, activeThreats: 0, vulnerabilities: 0, monitoredAssets: 0, safeAssets: 0 },
+    posture: { overallScore: 100, riskScore: 10, riskLevel: 'Safe', scoreDelta: 0, activeThreats: 0, vulnerabilities: 0, monitoredAssets: 0, safeAssets: 0 },
+    incidents: { total: 0, open: 0, critical: 0, list: [] },
+    assetsHealth: { total: 0, healthy: 0, warning: 0, critical: 0 },
     priorities: [],
     health: { webSecurity: 100, sslTls: 100, securityHeaders: 100, threatIntelligence: 100, dns: 100, configuration: 100, vulnerabilities: 100 },
     activity: { '7d': { labels: [], total: [], threats: [], safe: [], failed: [] } },
@@ -119,6 +124,82 @@ async function fetchDashboardData() {
   renderChanges([]);
   renderRecentOperations([]);
   return fallbackData;
+}
+
+// ── Render Dynamic Risk Score Breakdown ────────────────────────────────────
+function renderRiskBreakdown(breakdown, riskScore) {
+  if (!breakdown) return;
+
+  const evalLabel = document.getElementById('risk-score-eval-label');
+  if (evalLabel) {
+    evalLabel.textContent = `Risk Factor: ${riskScore ?? 15}/100`;
+  }
+
+  const setFactor = (id, label, pct, icon) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<i class="fas ${icon}"></i> ${label}: <strong>${pct || 0}%</strong>`;
+  };
+
+  setFactor('factor-vuln', 'Vulns', breakdown.vulnerabilities, 'fa-bug');
+  setFactor('factor-threat', 'Threats', breakdown.threatActivity, 'fa-crosshairs');
+  setFactor('factor-surface', 'Attack Surface', breakdown.attackSurface, 'fa-project-diagram');
+  setFactor('factor-config', 'Config', breakdown.configuration, 'fa-lock');
+  setFactor('factor-mon', 'Monitoring', breakdown.monitoring, 'fa-radar');
+}
+
+// ── Render Active Incidents Triage ──────────────────────────────────────────
+function renderActiveIncidents(incidents) {
+  const container = document.getElementById('active-incidents-list');
+  if (!container) return;
+
+  const list = incidents?.list || [];
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding:18px 0; text-align:center;">
+        <i class="fas fa-shield-check" style="color:var(--green); font-size:24px; margin-bottom:8px;"></i>
+        <p style="margin:0; font-size:13px; color:var(--text-secondary);">No open security incidents. All monitored assets contained.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.slice(0, 4).map(inc => {
+    const sev = inc.severity || 'MEDIUM';
+    const statusColor = inc.status === 'New' ? 'var(--cyan)' : inc.status === 'Investigating' ? 'var(--amber)' : inc.status === 'Contained' ? 'var(--purple)' : 'var(--green)';
+
+    return `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); gap:12px; transition:var(--transition);" class="hover-card">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          ${getSeverityBadge(sev)}
+          <div style="min-width:0;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <strong style="font-size:13px; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(inc.title)}</strong>
+              <span class="badge" style="font-size:10px; color:${statusColor}; border-color:${statusColor}; padding:1px 6px;">${escapeHtml(inc.status)}</span>
+            </div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
+              <span><i class="fas fa-server"></i> ${escapeHtml(inc.relatedAsset || 'Core')}</span> • 
+              <span>ID: <code style="color:var(--cyan);">${escapeHtml(inc.incidentId)}</code></span>
+            </div>
+          </div>
+        </div>
+        <a href="investigation.html?incidentId=${encodeURIComponent(inc.incidentId)}" class="btn btn-secondary btn-sm" style="flex-shrink:0;">
+          <i class="fas fa-magnifying-glass"></i> Triage
+        </a>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Render Asset Health Telemetry ───────────────────────────────────────────
+function renderAssetHealth(assetsHealth) {
+  if (!assetsHealth) return;
+  const setEl = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val || 0;
+  };
+  setEl('asset-healthy-count', assetsHealth.healthy);
+  setEl('asset-warning-count', assetsHealth.warning);
+  setEl('asset-critical-count', assetsHealth.critical);
 }
 
 // ── Render Security Posture ─────────────────────────────────────────────────

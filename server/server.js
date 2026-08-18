@@ -109,6 +109,7 @@ app.use('/api/ai', require('../routes/ai'));
 app.use('/api/events', require('../routes/events').router);
 app.use('/api/monitor', require('../routes/monitor'));
 app.use('/api/notifications', require('../routes/notification'));
+app.use('/api/incidents', require('../routes/incident'));
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

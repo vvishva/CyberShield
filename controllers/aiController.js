@@ -12,6 +12,7 @@ const {
   getVulnerabilities,
   getMonitoringStatus,
   getAttackSurfaceData,
+  getIncidentsData,
   callGeminiAPI
 } = require('../utils/geminiCopilot');
 const Log = require('../models/Log');
@@ -49,12 +50,24 @@ exports.chat = async (req, res, next) => {
     let contextData = {};
     const lowerPrompt = cleanPrompt.toLowerCase();
 
-    if (lowerPrompt.includes('score') || lowerPrompt.includes('why is my score')) {
+    if (lowerPrompt.includes('incident') || lowerPrompt.includes('unresolved') || lowerPrompt.includes('containment') || lowerPrompt.includes('triage')) {
+      contextData.incidents = await getIncidentsData(userId, isAdmin);
       contextData.summary = await getDashboardSummary(userId, isAdmin);
-    } else if (lowerPrompt.includes('vulnerability') || lowerPrompt.includes('vulnerabilities')) {
+    } else if (lowerPrompt.includes('score') || lowerPrompt.includes('why is my score') || lowerPrompt.includes('risk score') || lowerPrompt.includes('risk level')) {
+      contextData.summary = await getDashboardSummary(userId, isAdmin);
       contextData.vulnerabilities = await getVulnerabilities(userId, isAdmin);
-    } else if (lowerPrompt.includes('attack surface') || lowerPrompt.includes('asset')) {
+      contextData.incidents = await getIncidentsData(userId, isAdmin);
+    } else if (lowerPrompt.includes('vulnerability') || lowerPrompt.includes('vulnerabilities') || lowerPrompt.includes('fix first') || lowerPrompt.includes('cve')) {
+      contextData.vulnerabilities = await getVulnerabilities(userId, isAdmin);
+      contextData.recentScans = await getRecentScans(userId, 5, isAdmin);
+    } else if (lowerPrompt.includes('dangerous asset') || lowerPrompt.includes('attack surface') || lowerPrompt.includes('asset') || lowerPrompt.includes('exposure')) {
       contextData.attackSurface = await getAttackSurfaceData(userId, isAdmin);
+      contextData.monitoring = await getMonitoringStatus(userId, isAdmin);
+      contextData.recentScans = await getRecentScans(userId, 5, isAdmin);
+    } else if (lowerPrompt.includes('threat') || lowerPrompt.includes('phishing') || lowerPrompt.includes('summarize today')) {
+      contextData.recentScans = await getRecentScans(userId, 5, isAdmin);
+      contextData.incidents = await getIncidentsData(userId, isAdmin);
+      contextData.summary = await getDashboardSummary(userId, isAdmin);
     } else if (lowerPrompt.includes('monitoring') || lowerPrompt.includes('monitored')) {
       contextData.monitoring = await getMonitoringStatus(userId, isAdmin);
     } else if (lowerPrompt.includes('scan') || lowerPrompt.includes('latest scan')) {
@@ -62,6 +75,7 @@ exports.chat = async (req, res, next) => {
     } else {
       contextData.summary = await getDashboardSummary(userId, isAdmin);
       contextData.recentScans = await getRecentScans(userId, 3, isAdmin);
+      contextData.incidents = await getIncidentsData(userId, isAdmin);
     }
 
     const responseText = await callGeminiAPI(cleanPrompt, contextData, pageContext, history);
@@ -176,22 +190,38 @@ exports.explainScan = async (req, res, next) => {
   }
 };
 
-// @desc    AI Vulnerability Explainer
+// @desc    AI Vulnerability Explainer & Remediation Generator
 // @route   POST /api/ai/explain-vulnerability
 // @access  Private
 exports.explainVulnerability = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const isAdmin = req.user.role === 'admin';
+    const { vulnerabilityTitle, vulnerabilityDesc, severity, target } = req.body;
 
-    const vulnerabilities = await getVulnerabilities(userId, isAdmin);
-    const explanationText = await callGeminiAPI('Explain active vulnerabilities across my scanned web targets and provide technical remediation advice.', { vulnerabilities }, 'vulnerabilities');
+    let explanationText;
+    if (vulnerabilityTitle) {
+      const prompt = `Analyze and provide a complete technical remediation plan for this vulnerability:
+- Title: ${vulnerabilityTitle}
+- Severity: ${severity || 'HIGH'}
+- Target Asset: ${target || 'Web Application'}
+- Details: ${vulnerabilityDesc || 'Security vulnerability'}
+
+Provide:
+1. Root Cause Explanation
+2. Exploit Scenario & Threat Impact
+3. Step-by-Step Technical Fix & Exact Configuration / Code snippet (e.g. Nginx, Apache, Node.js headers)`;
+
+      explanationText = await callGeminiAPI(prompt, { vulnerability: { title: vulnerabilityTitle, severity, target } }, 'vulnerabilities');
+    } else {
+      const vulnerabilities = await getVulnerabilities(userId, isAdmin);
+      explanationText = await callGeminiAPI('Explain active vulnerabilities across my scanned web targets and provide technical remediation advice.', { vulnerabilities }, 'vulnerabilities');
+    }
 
     res.status(200).json({
       success: true,
       data: {
         explanation: explanationText,
-        vulnerabilitiesCount: vulnerabilities.length,
         timestamp: new Date()
       }
     });

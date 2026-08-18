@@ -2,14 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vulnerability Center — CyberShield AI</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Vulnerability Management & Intelligence — CyberShield AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=5.0">
+  <link rel="stylesheet" href="/css/style.css?v=6.0">
+  <style>
+    .vuln-stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .vuln-stat-pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .vuln-drawer {
+      position: fixed;
+      top: 0;
+      right: -550px;
+      width: 520px;
+      max-width: 95vw;
+      height: 100vh;
+      background: #0d1222;
+      border-left: 1px solid var(--border-glass);
+      z-index: 1001;
+      transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+    }
+    .vuln-drawer.open {
+      right: 0;
+    }
+  </style>
 </head>
 <body>
 <div class="app-container">
+  <!-- Sidebar -->
   <aside class="sidebar" id="main-sidebar">
     <div class="sidebar-logo"><i class="fas fa-shield-halved"></i><h2>CyberShield AI</h2></div>
     <ul class="sidebar-nav">
@@ -45,36 +82,62 @@
       <div class="topbar-left">
         <button class="mobile-nav-toggle" id="mobile-nav-toggle"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
-          <h1>Vulnerability Management</h1>
+          <h1>Vulnerability Management & Intelligence</h1>
         </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" id="btn-explain-all-ai"><i class="fas fa-brain text-cyan"></i> AI Environment Summary</button>
+        <button class="btn btn-primary" id="btn-export-vuln-pdf"><i class="fas fa-file-pdf"></i> Export PDF Report</button>
       </div>
     </header>
 
     <main class="content-body">
+      
+      <!-- Vulnerability Posture Summary Bar -->
+      <div class="vuln-stats-bar">
+        <div class="vuln-stat-pill">
+          <i class="fas fa-skull text-danger" style="font-size:20px;"></i>
+          <div><div style="font-size:18px; font-weight:800; color:var(--red);" id="stat-crit-count">0</div><span style="font-size:11px; color:var(--text-muted);">Critical</span></div>
+        </div>
+        <div class="vuln-stat-pill">
+          <i class="fas fa-triangle-exclamation text-warning" style="font-size:20px;"></i>
+          <div><div style="font-size:18px; font-weight:800; color:var(--amber);" id="stat-high-count">0</div><span style="font-size:11px; color:var(--text-muted);">High</span></div>
+        </div>
+        <div class="vuln-stat-pill">
+          <i class="fas fa-shield-halved text-cyan" style="font-size:20px;"></i>
+          <div><div style="font-size:18px; font-weight:800; color:var(--cyan);" id="stat-med-count">0</div><span style="font-size:11px; color:var(--text-muted);">Medium</span></div>
+        </div>
+        <div class="vuln-stat-pill">
+          <i class="fas fa-circle-check text-safe" style="font-size:20px;"></i>
+          <div><div style="font-size:18px; font-weight:800; color:var(--green);" id="stat-resolved-count">0</div><span style="font-size:11px; color:var(--text-muted);">Resolved</span></div>
+        </div>
+      </div>
+
       <!-- Filter controls -->
-      <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
-        <div style="display:flex; gap:12px; align-items:center;">
-          <h3 style="font-size:15px; margin:0; margin-right:16px;"><i class="fas fa-filter" style="color:var(--cyan); margin-right:8px;"></i> Filters</h3>
-          <select class="form-control" id="filter-severity" style="width:auto; padding:6px 12px; border-radius:4px;">
+      <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <h3 style="font-size:14px; font-weight:700; margin:0; margin-right:8px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">
+            <i class="fas fa-filter text-cyan"></i> Filters
+          </h3>
+          <select class="form-control" id="filter-severity" style="width:auto; min-width:140px; padding:6px 12px;">
             <option value="all">All Severities</option>
             <option value="Critical">Critical</option>
             <option value="High">High</option>
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
           </select>
-          <select class="form-control" id="filter-status" style="width:auto; padding:6px 12px; border-radius:4px;">
+          <select class="form-control" id="filter-status" style="width:auto; min-width:130px; padding:6px 12px;">
             <option value="all">All Statuses</option>
             <option value="Open">Open</option>
             <option value="Investigating">Investigating</option>
             <option value="Resolved">Resolved</option>
           </select>
         </div>
-        <div style="display:flex; gap:12px; align-items:center;">
-          <div class="search-box">
+        <div style="display:flex; gap:12px; align-items:center; flex:1; max-width:340px;">
+          <div class="search-box" style="width:100%;">
             <i class="fas fa-search"></i>
-            <input type="text" id="vuln-search" placeholder="Search vulnerabilities...">
+            <input type="text" id="vuln-search" placeholder="Search CVE, title, target...">
           </div>
-          <button class="btn btn-secondary" id="btn-export-vuln-pdf"><i class="fas fa-file-pdf"></i> Export PDF Report</button>
         </div>
       </div>
 
@@ -85,19 +148,20 @@
             <thead style="background:rgba(255,255,255,0.02);">
               <tr>
                 <th style="width:40px;"></th>
-                <th>Title / Description</th>
+                <th>Vulnerability / Title</th>
                 <th>Severity</th>
-                <th>Target Domain</th>
-                <th>Detected Time</th>
+                <th>Target Asset</th>
+                <th>CVE / CVSS</th>
+                <th>Detected</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style="text-align:right;">Actions</th>
               </tr>
             </thead>
             <tbody id="vuln-table-body">
               <tr>
-                <td colspan="7" class="empty-state">
+                <td colspan="8" class="empty-state">
                   <i class="fas fa-spinner fa-spin"></i>
-                  <p>Loading vulnerabilities...</p>
+                  <p>Loading security vulnerabilities...</p>
                 </td>
               </tr>
             </tbody>
@@ -108,9 +172,47 @@
   </div>
 </div>
 
+<!-- Remediation & AI Explanation Drawer -->
+<div class="drawer-backdrop" id="vuln-drawer-backdrop"></div>
+<div class="vuln-drawer" id="vuln-remediation-drawer">
+  <div style="padding:18px 24px; border-bottom:1px solid var(--border-glass); display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <span class="badge badge-critical" id="drawer-vuln-sev">CRITICAL</span>
+      <h3 style="font-size:16px; font-weight:800; margin:6px 0 0 0;" id="drawer-vuln-title">Vulnerability Details</h3>
+    </div>
+    <button class="btn btn-secondary btn-sm" id="btn-close-vuln-drawer" style="padding:4px 8px;"><i class="fas fa-times"></i></button>
+  </div>
+
+  <div style="flex:1; overflow-y:auto; padding:20px 24px; display:flex; flex-direction:column; gap:16px;">
+    <div>
+      <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">Affected Target Asset</div>
+      <div style="font-size:13px; font-weight:700; color:var(--cyan); font-family:var(--font-mono);" id="drawer-vuln-target">https://example.com</div>
+    </div>
+
+    <div>
+      <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">Technical Impact & Description</div>
+      <p style="font-size:13px; color:var(--text-secondary); line-height:1.5; margin:0;" id="drawer-vuln-desc">Description</p>
+    </div>
+
+    <div style="background:rgba(0,212,255,0.04); border:1px solid var(--border-glass); border-left:4px solid var(--cyan); border-radius:var(--radius-sm); padding:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong style="color:var(--cyan); font-size:13px;"><i class="fas fa-brain"></i> AI Remediation Blueprint</strong>
+        <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">SOC Verified</span>
+      </div>
+      <div id="drawer-vuln-ai-plan" style="font-size:13px; color:var(--text-primary); line-height:1.6;">
+        <i class="fas fa-spinner fa-spin"></i> Generating actionable remediation plan...
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:16px 24px; border-top:1px solid var(--border-glass); display:flex; justify-content:space-between; align-items:center;">
+    <button class="btn btn-secondary btn-sm" id="btn-escalate-from-vuln"><i class="fas fa-triangle-exclamation text-danger"></i> Escalate to Incident</button>
+    <button class="btn btn-primary btn-sm" id="btn-mark-vuln-resolved"><i class="fas fa-check"></i> Mark Resolved</button>
+  </div>
+</div>
+
 <script src="/js/app.js"></script>
 <script src="/js/vulnerabilities.js"></script>
-<script src="/js/cursor.js"></script>
 <script src="/js/aiCopilot.js"></script>
 </body>
 </html>

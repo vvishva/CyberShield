@@ -371,10 +371,17 @@ exports.getDashboardSummary = async (req, res) => {
 
     let scans = [];
     let monitoredCount = 0;
+    let monitoredSitesList = [];
+    let incidentsList = [];
+
     try {
       scans = await Scan.find(query).sort({ createdAt: -1 }).lean();
       const MonitoredSite = require('../models/MonitoredSite');
-      monitoredCount = await MonitoredSite.countDocuments(query);
+      monitoredSitesList = await MonitoredSite.find(query).lean();
+      monitoredCount = monitoredSitesList.length;
+
+      const Incident = require('../models/Incident');
+      incidentsList = await Incident.find(query).sort({ lastUpdated: -1 }).limit(10).lean();
     } catch(e) {}
 
     const totalScans = scans.length;
@@ -383,25 +390,70 @@ exports.getDashboardSummary = async (req, res) => {
     
     // Total vulnerabilities count across scans
     let totalVulns = 0;
+    let critVulns = 0;
+    let highVulns = 0;
+    let medVulns = 0;
+
     scans.forEach(s => {
       if (s.details && Array.isArray(s.details.vulnerabilities)) {
         totalVulns += s.details.vulnerabilities.length;
+        s.details.vulnerabilities.forEach(v => {
+          const sev = (v.severity || 'MEDIUM').toUpperCase();
+          if (sev === 'CRITICAL') critVulns++;
+          else if (sev === 'HIGH') highVulns++;
+          else medVulns++;
+        });
       }
     });
 
-    // Compute average security score
-    let overallScore = 100;
-    if (totalScans > 0) {
-      const sum = scans.reduce((acc, s) => acc + (100 - (s.riskScore || 0)), 0);
-      overallScore = Math.round(sum / totalScans);
-    }
+    // ── Dynamic Multi-Factor Risk Score Engine ──────────────────────────────
+    // 1. Vulnerability Penalty (Max 35 pts)
+    const vulnRiskPoints = Math.min(35, (critVulns * 12) + (highVulns * 6) + (medVulns * 2));
+
+    // 2. Threat Activity Penalty (Max 30 pts)
+    const threatRiskPoints = Math.min(30, (activeThreats * 10) + (incidentsList.filter(i => ['New','Investigating'].includes(i.status) && i.severity === 'CRITICAL').length * 8));
+
+    // 3. Attack Surface & Header Exposure Penalty (Max 20 pts)
+    const webSecurityScans = scans.filter(s => s.scanType === 'website_security');
+    let missingHeadersCount = 0;
+    let insecureSslCount = 0;
+    webSecurityScans.forEach(s => {
+      if (s.details) {
+        if (!s.details.hasHttps) insecureSslCount++;
+        if (s.details.missingHeaders) missingHeadersCount += s.details.missingHeaders.length;
+      }
+    });
+    const surfaceRiskPoints = Math.min(20, (insecureSslCount * 8) + Math.round(missingHeadersCount * 1.5));
+
+    // 4. Configuration & Security Defense (Max 10 pts risk mitigation)
+    const twoFactorActive = req.user?.twoFactorEnabled ? 10 : 0;
+    const configRiskPoints = Math.max(0, 10 - twoFactorActive);
+
+    // 5. Monitoring Coverage (Max 5 pts)
+    const inactiveMonitors = monitoredSitesList.filter(m => !m.active).length;
+    const monitoringRiskPoints = Math.min(5, inactiveMonitors * 2);
+
+    // Total Risk Score (0 = Clean/Safe, 100 = Max Risk)
+    const rawTotalRisk = vulnRiskPoints + threatRiskPoints + surfaceRiskPoints + configRiskPoints + monitoringRiskPoints;
+    const calculatedRiskScore = Math.min(100, Math.max(5, rawTotalRisk));
+    const calculatedSecurityScore = 100 - calculatedRiskScore;
+
+    // Category percentage contribution to the overall risk posture
+    const totalFactorPoints = (vulnRiskPoints + threatRiskPoints + surfaceRiskPoints + configRiskPoints + monitoringRiskPoints) || 1;
+    const riskBreakdown = {
+      vulnerabilities: Math.round((vulnRiskPoints / totalFactorPoints) * 100) || 30,
+      threatActivity:  Math.round((threatRiskPoints / totalFactorPoints) * 100) || 25,
+      attackSurface:   Math.round((surfaceRiskPoints / totalFactorPoints) * 100) || 20,
+      configuration:   Math.round((configRiskPoints / totalFactorPoints) * 100) || 15,
+      monitoring:      Math.round((monitoringRiskPoints / totalFactorPoints) * 100) || 10
+    };
 
     // Determine Risk Level
     let riskLevel = 'Safe';
-    if (overallScore < 25) riskLevel = 'Critical';
-    else if (overallScore < 50) riskLevel = 'High Risk';
-    else if (overallScore < 75) riskLevel = 'Medium Risk';
-    else if (overallScore < 90) riskLevel = 'Low Risk';
+    if (calculatedRiskScore >= 75) riskLevel = 'Critical';
+    else if (calculatedRiskScore >= 50) riskLevel = 'High Risk';
+    else if (calculatedRiskScore >= 25) riskLevel = 'Medium Risk';
+    else if (calculatedRiskScore >= 10) riskLevel = 'Low Risk';
 
     // Compute 7-day score change delta
     const now = Date.now();
@@ -416,7 +468,7 @@ exports.getDashboardSummary = async (req, res) => {
       scoreDelta = recentAvg - olderAvg;
     }
 
-    // Top Priorities (scans with highest risk or specific vulnerabilities)
+    // Top Priorities
     const priorities = [];
     const highRiskScans = scans.filter(s => (s.riskScore || 0) >= 40).slice(0, 5);
     highRiskScans.forEach(s => {
@@ -442,7 +494,6 @@ exports.getDashboardSummary = async (req, res) => {
     });
 
     // Security Health Breakdown (calculate component scores)
-    const webSecurityScans = scans.filter(s => s.scanType === 'website_security');
     const sslScores = webSecurityScans.map(s => (s.details && s.details.hasHttps) ? 100 : 30);
     const avgSsl = sslScores.length ? Math.round(sslScores.reduce((a, b) => a + b, 0) / sslScores.length) : (totalScans > 0 ? 85 : 100);
 
@@ -457,12 +508,12 @@ exports.getDashboardSummary = async (req, res) => {
     const avgThreat = threatScores.length ? Math.round(threatScores.reduce((a, b) => a + b, 0) / threatScores.length) : (totalScans > 0 ? 90 : 100);
 
     const health = {
-      webSecurity: overallScore,
+      webSecurity: calculatedSecurityScore,
       sslTls: avgSsl,
       securityHeaders: avgHeaders,
       threatIntelligence: avgThreat,
       dns: 95,
-      configuration: Math.min(100, overallScore + 5),
+      configuration: Math.min(100, calculatedSecurityScore + 5),
       vulnerabilities: Math.max(0, 100 - (totalVulns * 10))
     };
 
@@ -502,7 +553,7 @@ exports.getDashboardSummary = async (req, res) => {
           const dayAvgScore = Math.round(dayScans.reduce((a, s) => a + (100 - (s.riskScore || 0)), 0) / dayTotal);
           scores.push(dayAvgScore);
         } else {
-          scores.push(overallScore);
+          scores.push(calculatedSecurityScore);
         }
       }
 
@@ -521,37 +572,75 @@ exports.getDashboardSummary = async (req, res) => {
       '90d': { labels: activity['90d'].labels, scores: activity['90d'].scores }
     };
 
-    // Security Changes feed (derived from recent scans)
-    const changes = [];
-    scans.slice(0, 6).forEach(s => {
+    // Unified Attack Activity Timeline feed (combining scans and incidents)
+    const unifiedTimeline = [];
+    
+    // Add scans
+    scans.slice(0, 10).forEach(s => {
       const isThreat = (s.riskScore || 0) >= 50;
-      changes.push({
-        id: s._id,
+      unifiedTimeline.push({
+        id: `scan-${s._id}`,
+        type: 'scan',
+        title: isThreat ? `Threat Flagged: ${s.status}` : `Security Scan Complete`,
+        detail: `${s.scanType ? s.scanType.replace('_', ' ') : 'Scan'} on ${s.target}`,
         target: s.target,
-        change: isThreat ? `Threat status flagged as ${s.status}` : `Security score evaluated: ${100 - (s.riskScore || 0)}/100`,
         severity: isThreat ? ((s.riskScore || 0) >= 75 ? 'CRITICAL' : 'HIGH') : 'SAFE',
         timestamp: s.createdAt,
-        details: s.status
+        linkUrl: `investigation.html?scanId=${s._id}`
       });
     });
+
+    // Add incidents
+    incidentsList.slice(0, 5).forEach(inc => {
+      unifiedTimeline.push({
+        id: `inc-${inc._id}`,
+        type: 'incident',
+        title: `Incident: ${inc.title}`,
+        detail: `Status: ${inc.status} | Asset: ${inc.relatedAsset}`,
+        target: inc.relatedAsset,
+        severity: inc.severity,
+        timestamp: inc.lastUpdated || inc.createdAt,
+        linkUrl: `investigation.html?incidentId=${inc.incidentId}`
+      });
+    });
+
+    // Sort timeline chronologically descending
+    unifiedTimeline.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     res.status(200).json({
       success: true,
       data: {
         posture: {
-          overallScore,
+          overallScore: calculatedSecurityScore,
+          riskScore: calculatedRiskScore,
           riskLevel,
           scoreDelta,
           activeThreats,
           vulnerabilities: totalVulns,
+          critVulns,
+          highVulns,
           monitoredAssets: monitoredCount,
-          safeAssets
+          safeAssets,
+          riskBreakdown
+        },
+        incidents: {
+          total: incidentsList.length,
+          open: incidentsList.filter(i => ['New', 'Investigating'].includes(i.status)).length,
+          critical: incidentsList.filter(i => i.severity === 'CRITICAL').length,
+          list: incidentsList.slice(0, 5)
+        },
+        assetsHealth: {
+          total: monitoredCount,
+          healthy: monitoredSitesList.filter(m => (m.lastScore || 80) >= 75).length,
+          warning: monitoredSitesList.filter(m => (m.lastScore || 80) < 75 && (m.lastScore || 80) >= 50).length,
+          critical: monitoredSitesList.filter(m => (m.lastScore || 80) < 50).length
         },
         priorities,
         health,
         activity,
         trend,
-        changes,
+        timeline: unifiedTimeline.slice(0, 12),
+        changes: unifiedTimeline.slice(0, 6),
         recentOperations: scans.slice(0, 15)
       }
     });

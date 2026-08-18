@@ -132,6 +132,24 @@ async function getAttackSurfaceData(userId, isAdmin = false) {
   };
 }
 
+async function getIncidentsData(userId, isAdmin = false) {
+  try {
+    const Incident = require('../models/Incident');
+    const query = isAdmin ? {} : { user: userId };
+    const incidents = await Incident.find(query).sort({ lastUpdated: -1 }).limit(10).lean();
+    return incidents.map(i => ({
+      incidentId: i.incidentId,
+      title: i.title,
+      severity: i.severity,
+      status: i.status,
+      relatedAsset: i.relatedAsset,
+      description: i.description
+    }));
+  } catch (e) {
+    return [];
+  }
+}
+
 // ============================================================
 // SYSTEM PROMPT FOR VERSATILE NATURAL AI ASSISTANT WITH MEMORY
 // ============================================================
@@ -344,5 +362,6 @@ module.exports = {
   getVulnerabilities,
   getMonitoringStatus,
   getAttackSurfaceData,
+  getIncidentsData,
   callGeminiAPI
 };

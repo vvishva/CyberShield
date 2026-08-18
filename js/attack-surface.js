@@ -183,5 +183,19 @@ function renderVisNetwork(container, nodes, edges) {
       zoomView: true
     }
   };
-  new VisLib.Network(container, data, options);
+  const network = new VisLib.Network(container, data, options);
+  
+  // Click node to investigate
+  network.on('click', (params) => {
+    if (params.nodes && params.nodes.length > 0) {
+      const clickedId = params.nodes[0];
+      const clickedNode = nodes.get(clickedId);
+      if (clickedNode && clickedNode.label) {
+        const cleanLabel = clickedNode.label.replace(/[^a-zA-Z0-9.-]/g, '').trim();
+        if (cleanLabel.includes('.')) {
+          showToast(`Inspecting Asset: ${cleanLabel}`, 'info');
+        }
+      }
+    }
+  });
 }

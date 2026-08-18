@@ -1,8 +1,12 @@
 /**
- * CyberShield - Security Investigation Mode Logic
+ * CyberShield — Incident Response & Security Investigation Logic
+ * Handles real-time incident lifecycle management, triage workflows, analyst notes, topology graphs, and AI remediation.
  */
 
-let currentInvestigationData = null;
+let activeIncident = null;
+let currentScanData = null;
+let currentGraphNetwork = null;
+let allIncidentsList = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   requireAuth();
@@ -15,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (window.history.length > 1) {
         window.history.back();
       } else {
-        window.location.href = 'history.html';
+        window.location.href = 'dashboard.html';
       }
     });
   }
@@ -25,226 +29,449 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (pdfBtn) {
     pdfBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      const params = currentInvestigationData ? {
-        scanId: currentInvestigationData._id || currentInvestigationData.id,
-        target: currentInvestigationData.target || currentInvestigationData.url,
-        scanType: currentInvestigationData.scanType || 'website_security'
-      } : {};
-      downloadReportPDF(params, 'CyberShield_Investigation_Report.pdf');
+      const targetName = activeIncident ? activeIncident.title : (currentScanData?.target || 'Incident_Report');
+      downloadReportPDF({
+        type: 'investigation',
+        incidentId: activeIncident?.incidentId,
+        scanId: currentScanData?._id
+      }, `CyberShield_${activeIncident ? activeIncident.incidentId : 'Investigation'}.pdf`);
     });
   }
 
-  // Resolve scan data from URL query params or localStorage
-  const urlParams = new URLSearchParams(window.location.search);
-  const scanId = urlParams.get('scanId') || urlParams.get('id');
-
-  let scanData = null;
-
-  if (scanId) {
-    try {
-      const res = await apiRequest('/scan/history');
-      if (res.success && res.data) {
-        scanData = res.data.find(s => s._id === scanId || s.id === scanId);
-      }
-    } catch (e) {}
+  // Bind AI Re-Analyze Button
+  const reanalyzeBtn = document.getElementById('btn-reanalyze-ai');
+  if (reanalyzeBtn) {
+    reanalyzeBtn.addEventListener('click', handleAIReanalyze);
   }
 
-  if (!scanData) {
+  // Bind Add Note Form
+  const noteForm = document.getElementById('add-note-form');
+  if (noteForm) {
+    noteForm.addEventListener('submit', handleAddNote);
+  }
+
+  // Bind Status Step Buttons
+  const stepsContainer = document.getElementById('status-steps-container');
+  if (stepsContainer) {
+    stepsContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.status-step-pill');
+      if (btn && btn.dataset.status) {
+        handleStatusChange(btn.dataset.status);
+      }
+    });
+  }
+
+  // Bind Manual Create Incident Modal
+  bindCreateIncidentModal();
+
+  // Check URL parameters for incidentId or scanId
+  const urlParams = new URLSearchParams(window.location.search);
+  const incidentIdParam = urlParams.get('incidentId') || urlParams.get('id');
+  const scanIdParam = urlParams.get('scanId');
+
+  // Load Incidents Queue for Selector
+  await loadIncidentsQueue(incidentIdParam);
+
+  if (incidentIdParam) {
+    await loadIncident(incidentIdParam);
+  } else if (scanIdParam) {
+    await loadScanData(scanIdParam);
+  } else if (allIncidentsList.length > 0) {
+    await loadIncident(allIncidentsList[0].incidentId);
+  } else {
+    // Fallback: Check local storage
     const scanStr = localStorage.getItem('lastScanData');
     if (scanStr) {
       try {
-        scanData = JSON.parse(scanStr);
+        const parsed = JSON.parse(scanStr);
+        renderScanMode(parsed);
       } catch (e) {}
     }
   }
 
-  if (!scanData) {
-    showToast('No investigation data found. Redirecting to Scanner...', 'warning');
-    setTimeout(() => { window.location.href = 'scanner.html'; }, 2000);
-    return;
-  }
-
-  currentInvestigationData = scanData;
-  renderInvestigation(scanData);
-});
-
-function renderInvestigation(data) {
-  const details = data.details || data;
-  const target = data.target || data.url || details.domain || 'Unknown Target';
-  const status = data.status || data.riskLevel || details.riskLevel || 'Unknown';
-  const riskScore = data.riskScore != null ? data.riskScore : (details.securityScore != null ? (100 - details.securityScore) : 0);
-  const secScore = details.securityScore != null ? details.securityScore : (100 - (riskScore || 0));
-
-  // Populate Meta
-  document.getElementById('inv-target').textContent = target;
-  document.getElementById('inv-date').textContent = new Date().toLocaleString();
-  document.getElementById('inv-score').textContent = secScore + '/100';
-  document.getElementById('inv-ip').textContent = details.resolvedIp || 'N/A';
-  document.getElementById('inv-proto').textContent = details.hasHttps ? 'HTTPS (Secure)' : 'HTTP (Insecure)';
-  document.getElementById('inv-conf').textContent = (data.confidenceScore || details.confidenceScore || 95) + '%';
-  
-  const badge = document.getElementById('inv-badge');
-  badge.textContent = status;
-  if (['Safe','Clean','Low Risk'].includes(status)) badge.className = 'badge badge-safe';
-  else if (['Medium Risk'].includes(status)) badge.className = 'badge badge-warning';
-  else badge.className = 'badge badge-critical';
-
-  // Populate Timelines (mocked based on current time for effect)
-  const now = Date.now();
-  document.getElementById('time-1').textContent = new Date(now - 120000).toLocaleTimeString();
-  document.getElementById('time-2').textContent = new Date(now - 90000).toLocaleTimeString();
-  document.getElementById('time-3').textContent = new Date(now - 45000).toLocaleTimeString();
-  document.getElementById('time-4').textContent = new Date(now).toLocaleTimeString();
-
-  // Populate Findings
-  const findingsList = document.getElementById('inv-findings');
-  let findingsHtml = '';
-  
-  if (!details.hasHttps) {
-    findingsHtml += `<li><span class="text-red"><i class="fas fa-lock-open"></i> No SSL/TLS encryption</span> <span class="badge badge-critical">Critical</span></li>`;
-  } else {
-    findingsHtml += `<li><span class="text-green"><i class="fas fa-lock"></i> Valid SSL/TLS</span> <span class="badge badge-safe">Pass</span></li>`;
-  }
-
-  const h = details.headerChecks || {};
-  let missingHeadersCount = 0;
-  if (!h.hsts) missingHeadersCount++;
-  if (!h.csp) missingHeadersCount++;
-  if (!h.xFrameOptions) missingHeadersCount++;
-
-  if (missingHeadersCount > 0) {
-    findingsHtml += `<li><span class="text-amber"><i class="fas fa-shield-halved"></i> ${missingHeadersCount} Missing Security Headers</span> <span class="badge badge-warning">Medium</span></li>`;
-  }
-
-  const vulns = details.vulnerabilities || [];
-  if (vulns.length > 0) {
-    findingsHtml += `<li><span class="text-red"><i class="fas fa-bug"></i> ${vulns.length} Vulnerabilities Detected</span> <span class="badge badge-critical">High</span></li>`;
-  }
-
-  if (details.suspiciousPatterns) {
-    findingsHtml += `<li><span class="text-red"><i class="fas fa-search-location"></i> Suspicious URL Patterns</span> <span class="badge badge-critical">High</span></li>`;
-  }
-
-  findingsList.innerHTML = findingsHtml || `<li><span class="text-green"><i class="fas fa-check"></i> No significant risks found</span></li>`;
-
-  // Populate Recommendations
-  const recList = document.getElementById('inv-recs');
-  const recs = data.recommendations || details.recommendations || [];
-  if (recs.length === 0) {
-    recList.innerHTML = `<li><span class="text-green">No immediate action required. Monitor standard alerts.</span></li>`;
-  } else {
-    recList.innerHTML = recs.map(r => `<li style="margin-bottom:8px;">${escapeHtml(r)}</li>`).join('');
-  }
-
-  // Draw Graph
-  drawInvestigationGraph(target, details, status, secScore);
-
-  // Generate AI Summary
-  generateAiSummary(target, details, status, secScore, vulns, missingHeadersCount);
-}
-
-function drawInvestigationGraph(domain, details, status, secScore) {
-  const container = document.getElementById('investigation-graph');
-  
-  const nodes = new vis.DataSet([]);
-  const edges = new vis.DataSet([]);
-  
-  let nodeId = 1;
-  const rootId = nodeId++;
-  
-  // 1. Domain
-  nodes.add({ id: rootId, label: '🌐 Target:\n' + domain, shape: 'box', color: { background: '#0d1b2a', border: '#00d4ff' }, font: { color: '#fff', face: 'Inter' }, borderWidth: 2 });
-
-  // 2. DNS
-  const dnsId = nodeId++;
-  nodes.add({ id: dnsId, label: '📡 DNS: ' + (details.resolvedIp || 'Unknown'), shape: 'box', color: { background: '#0d1b2a', border: '#8b5cf6' }, font: { color: '#fff', face: 'Inter' }, borderWidth: 1 });
-  edges.add({ from: rootId, to: dnsId, color: { color: '#8b5cf6' } });
-
-  // 3. SSL
-  const sslId = nodeId++;
-  const sslColor = details.hasHttps ? '#00c896' : '#ef4444';
-  nodes.add({ id: sslId, label: details.hasHttps ? '🔒 SSL: Valid' : '🔓 SSL: Missing', shape: 'box', color: { background: '#0d1b2a', border: sslColor }, font: { color: '#fff', face: 'Inter' }, borderWidth: 1 });
-  edges.add({ from: rootId, to: sslId, color: { color: sslColor } });
-
-  // 4. Headers
-  const hdrId = nodeId++;
-  const h = details.headerChecks || {};
-  const hdrOk = h.hsts && h.csp;
-  const hdrColor = hdrOk ? '#00c896' : '#f59e0b';
-  nodes.add({ id: hdrId, label: hdrOk ? '🛡️ Headers: Strong' : '⚠️ Headers: Weak', shape: 'box', color: { background: '#0d1b2a', border: hdrColor }, font: { color: '#fff', face: 'Inter' }, borderWidth: 1 });
-  edges.add({ from: rootId, to: hdrId, color: { color: hdrColor } });
-
-  // 5. Threat Intel / AI Analysis
-  const aiId = nodeId++;
-  const isThreat = ['Phishing', 'Critical', 'High Risk'].includes(status);
-  const aiColor = isThreat ? '#ef4444' : '#00d4ff';
-  nodes.add({ id: aiId, label: '🧠 AI Analysis:\n' + status, shape: 'box', color: { background: isThreat ? 'rgba(239,68,68,0.1)' : 'rgba(0,212,255,0.1)', border: aiColor }, font: { color: '#fff', face: 'Inter' }, borderWidth: 2 });
-  
-  edges.add({ from: dnsId, to: aiId, color: { color: '#333' }, dashes: true });
-  edges.add({ from: sslId, to: aiId, color: { color: '#333' }, dashes: true });
-  edges.add({ from: hdrId, to: aiId, color: { color: '#333' }, dashes: true });
-
-  // 6. Final Risk Score
-  const scoreId = nodeId++;
-  const scoreColor = secScore >= 90 ? '#00c896' : secScore >= 70 ? '#00d4ff' : secScore >= 50 ? '#f59e0b' : '#ef4444';
-  nodes.add({ id: scoreId, label: '📊 Risk Score:\n' + secScore + '/100', shape: 'circle', color: { background: scoreColor, border: '#fff' }, font: { color: '#fff', face: 'Inter', bold: true }, borderWidth: 3 });
-  edges.add({ from: aiId, to: scoreId, color: { color: scoreColor }, width: 3 });
-
-  // Add specific vulnerabilities branching from Headers or AI
-  if (details.vulnerabilities) {
-    details.vulnerabilities.forEach(v => {
-      const vId = nodeId++;
-      nodes.add({ id: vId, label: '🚨 ' + v.title, shape: 'box', color: { background: 'rgba(239,68,68,0.1)', border: '#ef4444' }, font: { color: '#fff', size: 10 } });
-      edges.add({ from: hdrId, to: vId, color: { color: '#ef4444' }, dashes: true });
+  // Bind Incident Selector Change
+  const selector = document.getElementById('incident-selector');
+  if (selector) {
+    selector.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val) loadIncident(val);
     });
   }
 
-  const data = { nodes, edges };
-  const options = {
-    layout: {
-      hierarchical: {
-        direction: 'LR',
-        sortMethod: 'directed',
-        levelSeparation: 150,
-        nodeSpacing: 100
+  // Bind Switch View Button
+  const switchBtn = document.getElementById('btn-switch-scan-view');
+  if (switchBtn) {
+    switchBtn.addEventListener('click', () => {
+      window.location.href = 'scanner.html';
+    });
+  }
+});
+
+// ── Load Incidents Queue ───────────────────────────────────────────────────
+async function loadIncidentsQueue(selectId) {
+  const selector = document.getElementById('incident-selector');
+  try {
+    const res = await apiRequest('/incidents');
+    if (res.success && Array.isArray(res.data)) {
+      allIncidentsList = res.data;
+      if (selector) {
+        selector.innerHTML = res.data.map(inc => `
+          <option value="${escapeHtml(inc.incidentId)}" ${selectId === inc.incidentId ? 'selected' : ''}>
+            [${inc.severity}] ${escapeHtml(inc.incidentId)} — ${escapeHtml(inc.title.substring(0, 35))}...
+          </option>
+        `).join('');
       }
-    },
-    physics: false,
-    interaction: { dragNodes: true, zoomView: true, dragView: true }
-  };
-  
-  new vis.Network(container, data, options);
+    }
+  } catch (err) {
+    if (selector) selector.innerHTML = '<option value="">Default Sentinel Incident</option>';
+  }
 }
 
-function generateAiSummary(domain, details, status, secScore, vulns, missingHeadersCount) {
-  const summaryBox = document.getElementById('ai-summary');
-  let summary = `<strong>CyberShield AI Engine Analysis:</strong><br><br>`;
-  
-  if (['Safe', 'Clean', 'Low Risk'].includes(status)) {
-    summary += `The target domain (<strong>${escapeHtml(domain)}</strong>) exhibits a strong security posture with a score of ${secScore}/100. `;
-    if (details.hasHttps) summary += `Traffic is properly encrypted via SSL/TLS. `;
-    if (missingHeadersCount === 0) summary += `All critical security headers are enforced. `;
-    summary += `No immediate threats or phishing indicators were detected by the heuristic engine.`;
-  } else {
-    summary += `The target domain (<strong>${escapeHtml(domain)}</strong>) has been flagged as <strong>${escapeHtml(status)}</strong> with a depressed security score of ${secScore}/100. This indicates significant risk to users and systems interacting with this endpoint.<br><br>`;
-    
-    summary += `<strong>Key Risk Factors:</strong><ul>`;
-    if (!details.hasHttps) {
-      summary += `<li><strong>Missing SSL/TLS:</strong> The connection is unencrypted, exposing all transmitted data to Man-in-the-Middle (MitM) attacks.</li>`;
+// ── Load Single Incident by ID ─────────────────────────────────────────────
+async function loadIncident(id) {
+  try {
+    const res = await apiRequest(`/incidents/${id}`);
+    if (res.success && res.data) {
+      activeIncident = res.data;
+      renderIncident(res.data);
     }
-    if (missingHeadersCount > 0) {
-      summary += `<li><strong>Weak Security Headers:</strong> ${missingHeadersCount} critical headers (such as HSTS or CSP) are missing, leaving the site vulnerable to XSS and protocol downgrade attacks.</li>`;
-    }
-    if (vulns.length > 0) {
-      summary += `<li><strong>Detected Vulnerabilities:</strong> Found ${vulns.length} specific CVEs or misconfigurations that could be actively exploited.</li>`;
-    }
-    if (details.suspiciousPatterns) {
-      summary += `<li><strong>Phishing Indicators:</strong> The URL structure strongly resembles known credential-harvesting attacks.</li>`;
-    }
-    summary += `</ul>`;
-    
-    summary += `<strong>Conclusion:</strong> Interaction with this domain should be strictly blocked or heavily monitored. See the recommended actions below for remediation steps.`;
+  } catch (err) {
+    showToast(`Unable to load incident: ${err.message}`, 'danger');
+  }
+}
+
+// ── Render Incident UI ─────────────────────────────────────────────────────
+function renderIncident(incident) {
+  // Update Header Elements
+  const titleEl = document.getElementById('inv-title');
+  if (titleEl) titleEl.textContent = incident.title;
+
+  const idLabel = document.getElementById('inv-id-label');
+  if (idLabel) idLabel.textContent = incident.incidentId;
+
+  const sevBadge = document.getElementById('inv-severity-badge');
+  if (sevBadge) {
+    sevBadge.textContent = incident.severity;
+    sevBadge.className = `badge badge-${incident.severity === 'CRITICAL' ? 'critical' : incident.severity === 'HIGH' ? 'danger' : incident.severity === 'MEDIUM' ? 'warning' : 'info'}`;
   }
 
-  summaryBox.innerHTML = summary;
+  const statBadge = document.getElementById('inv-status-badge');
+  if (statBadge) {
+    statBadge.textContent = incident.status;
+    statBadge.className = `badge badge-${incident.status === 'Resolved' || incident.status === 'Closed' ? 'safe' : incident.status === 'Contained' ? 'info' : 'warning'}`;
+  }
+
+  const assetEl = document.getElementById('inv-asset');
+  if (assetEl) assetEl.textContent = incident.relatedAsset || 'Core Infrastructure';
+
+  const analystEl = document.getElementById('inv-analyst');
+  if (analystEl) analystEl.textContent = incident.assignedAnalyst || 'SOC Analyst';
+
+  const timeEl = document.getElementById('inv-detection-time');
+  if (timeEl) timeEl.textContent = new Date(incident.detectionTime || incident.createdAt).toLocaleString();
+
+  // Score
+  const scoreEl = document.getElementById('inv-score');
+  if (scoreEl) {
+    const score = incident.severity === 'CRITICAL' ? 25 : incident.severity === 'HIGH' ? 45 : incident.severity === 'MEDIUM' ? 68 : 88;
+    scoreEl.textContent = `${score}/100`;
+    scoreEl.style.color = score < 50 ? 'var(--red)' : score < 75 ? 'var(--amber)' : 'var(--green)';
+  }
+
+  // Update Status Step Bar
+  updateStatusStepPills(incident.status);
+
+  // Render AI Summary & Recommendations
+  const aiBox = document.getElementById('ai-summary');
+  if (aiBox) {
+    if (incident.aiAnalysis) {
+      aiBox.innerHTML = window.formatMarkdownResponse ? window.formatMarkdownResponse(incident.aiAnalysis) : `<p>${escapeHtml(incident.aiAnalysis)}</p>`;
+      if (incident.recommendedResponse) {
+        aiBox.innerHTML += `
+          <div style="margin-top:14px; padding-top:10px; border-top:1px solid var(--border-subtle);">
+            <strong style="color:var(--cyan);"><i class="fas fa-shield-check"></i> Recommended Containment Actions:</strong>
+            <pre style="background:rgba(0,0,0,0.3); padding:10px; border-radius:4px; margin-top:6px; font-size:12px; white-space:pre-wrap; font-family:var(--font-mono);">${escapeHtml(incident.recommendedResponse)}</pre>
+          </div>
+        `;
+      }
+    } else {
+      aiBox.innerHTML = `
+        <p style="color:var(--text-muted);"><i class="fas fa-info-circle"></i> No AI analysis generated yet.</p>
+        <button class="btn btn-primary btn-sm" onclick="handleAIReanalyze()"><i class="fas fa-brain"></i> Generate AI Root-Cause Analysis</button>
+      `;
+    }
+  }
+
+  // Render Evidence List
+  const evidenceList = document.getElementById('inv-evidence-list');
+  if (evidenceList) {
+    const evidence = incident.evidence || [];
+    if (evidence.length === 0) {
+      evidenceList.innerHTML = '<li><span class="text-muted">No evidence artifacts attached</span></li>';
+    } else {
+      evidenceList.innerHTML = evidence.map(ev => `
+        <li style="padding:10px 0; border-bottom:1px solid var(--border-subtle);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:var(--cyan); font-size:12.5px;">${escapeHtml(ev.key || 'Artifact')}</strong>
+            <span class="badge badge-info" style="font-size:11px;">${escapeHtml(ev.value || '')}</span>
+          </div>
+          ${ev.detail ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">${escapeHtml(ev.detail)}</div>` : ''}
+        </li>
+      `).join('');
+    }
+  }
+
+  // Render Analyst Notes
+  renderAnalystNotes(incident.investigationNotes);
+
+  // Render Timeline
+  renderTimeline(incident.timeline);
+
+  // Render Topology Graph
+  renderInvestigationGraph(incident);
+}
+
+// ── Status Progression Controls ────────────────────────────────────────────
+function updateStatusStepPills(currentStatus) {
+  const statuses = ['New', 'Investigating', 'Contained', 'Resolved', 'Closed'];
+  const currentIndex = statuses.indexOf(currentStatus);
+
+  document.querySelectorAll('.status-step-pill').forEach((pill, idx) => {
+    pill.classList.remove('active', 'completed');
+    if (idx < currentIndex) {
+      pill.classList.add('completed');
+      pill.innerHTML = `<i class="fas fa-check"></i> ${statuses[idx]}`;
+    } else if (idx === currentIndex) {
+      pill.classList.add('active');
+      pill.innerHTML = `● ${statuses[idx]}`;
+    } else {
+      pill.innerHTML = `${idx + 1}. ${statuses[idx]}`;
+    }
+  });
+}
+
+async function handleStatusChange(newStatus) {
+  if (!activeIncident) return;
+  try {
+    const res = await apiRequest(`/incidents/${activeIncident.incidentId}/status`, 'PATCH', {
+      status: newStatus,
+      note: `Analyst updated phase to ${newStatus}`
+    });
+    if (res.success && res.data) {
+      activeIncident = res.data;
+      renderIncident(res.data);
+      showToast(`Incident status updated to ${newStatus}`, 'success');
+      loadIncidentsQueue(activeIncident.incidentId);
+    }
+  } catch (err) {
+    showToast(`Status update failed: ${err.message}`, 'danger');
+  }
+}
+
+// ── Analyst Notes Handler ──────────────────────────────────────────────────
+function renderAnalystNotes(notes) {
+  const container = document.getElementById('analyst-notes-list');
+  const countBadge = document.getElementById('notes-count-badge');
+  if (!container) return;
+
+  const list = notes || [];
+  if (countBadge) countBadge.textContent = `${list.length} Notes`;
+
+  if (list.length === 0) {
+    container.innerHTML = `<div class="empty-state" style="padding:15px 0;"><p style="font-size:12px; margin:0;">No analyst notes logged yet.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = list.map(n => {
+    const time = new Date(n.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `
+      <div class="analyst-note-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <strong style="font-size:12px; color:var(--cyan);"><i class="fas fa-user-circle"></i> ${escapeHtml(n.author || 'Analyst')}</strong>
+          <span style="font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);">${time}</span>
+        </div>
+        <div style="font-size:12.5px; color:var(--text-primary); line-height:1.4;">${escapeHtml(n.note)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function handleAddNote(e) {
+  e.preventDefault();
+  const input = document.getElementById('analyst-note-input');
+  if (!input || !input.value.trim() || !activeIncident) return;
+
+  const noteText = input.value.trim();
+  input.value = '';
+
+  try {
+    const res = await apiRequest(`/incidents/${activeIncident.incidentId}/notes`, 'POST', { note: noteText });
+    if (res.success && res.data) {
+      activeIncident = res.data;
+      renderAnalystNotes(res.data.investigationNotes);
+      renderTimeline(res.data.timeline);
+      showToast('Investigation note saved.', 'success');
+    }
+  } catch (err) {
+    showToast(`Failed to save note: ${err.message}`, 'danger');
+  }
+}
+
+// ── AI Re-Analyze Handler ──────────────────────────────────────────────────
+async function handleAIReanalyze() {
+  if (!activeIncident) return;
+  const aiBox = document.getElementById('ai-summary');
+  const btn = document.getElementById('btn-reanalyze-ai');
+  
+  if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+  if (aiBox) aiBox.innerHTML = '<i class="fas fa-brain fa-spin"></i> Running Deep AI Sentinel Root-Cause Analysis...';
+
+  try {
+    const res = await apiRequest(`/incidents/${activeIncident.incidentId}/ai-analyze`, 'POST');
+    if (res.success && res.data) {
+      activeIncident.aiAnalysis = res.data.aiAnalysis;
+      renderIncident(activeIncident);
+      showToast('AI Incident Analysis complete.', 'success');
+    }
+  } catch (err) {
+    if (aiBox) aiBox.innerHTML = `<p class="text-danger"><i class="fas fa-triangle-exclamation"></i> AI Analysis error: ${err.message}</p>`;
+    showToast(`AI Analysis failed: ${err.message}`, 'danger');
+  } finally {
+    if (btn) btn.innerHTML = '<i class="fas fa-rotate"></i> AI Re-Analyze';
+  }
+}
+
+// ── Render Timeline ────────────────────────────────────────────────────────
+function renderTimeline(timeline) {
+  const list = document.getElementById('inv-timeline-list');
+  if (!list) return;
+
+  const events = timeline || [];
+  if (events.length === 0) {
+    list.innerHTML = '<li><span class="text-muted">No timeline records</span></li>';
+    return;
+  }
+
+  list.innerHTML = events.map(ev => {
+    const time = new Date(ev.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `
+      <li style="padding:8px 0; border-bottom:1px solid var(--border-subtle);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong style="font-size:12px; color:var(--text-primary);">${escapeHtml(ev.action)}</strong>
+          <span style="font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);">${time}</span>
+        </div>
+        ${ev.detail ? `<div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">${escapeHtml(ev.detail)}</div>` : ''}
+      </li>
+    `;
+  }).join('');
+}
+
+// ── Interactive Threat & Asset Topology Graph ──────────────────────────────
+function renderInvestigationGraph(data) {
+  const container = document.getElementById('investigation-graph');
+  if (!container || typeof vis === 'undefined') return;
+
+  const target = data.relatedAsset || data.target || 'Target Asset';
+  const nodes = [
+    { id: 1, label: target, color: '#00d4ff', font: { color: '#ffffff', face: 'Inter' }, shape: 'diamond', size: 28 },
+    { id: 2, label: data.relatedThreat || 'Threat Vector', color: '#ef4444', font: { color: '#ffffff', face: 'Inter' }, shape: 'dot', size: 20 },
+    { id: 3, label: data.relatedVulnerability || 'Vulnerability', color: '#f59e0b', font: { color: '#ffffff', face: 'Inter' }, shape: 'dot', size: 18 },
+    { id: 4, label: 'SSL / TLS Layer', color: '#00c896', font: { color: '#ffffff', face: 'Inter' }, shape: 'dot', size: 16 },
+    { id: 5, label: 'HTTP Security Headers', color: '#8b5cf6', font: { color: '#ffffff', face: 'Inter' }, shape: 'dot', size: 16 }
+  ];
+
+  const edges = [
+    { from: 1, to: 2, label: 'targeted by', color: { color: '#ef4444' }, arrows: 'to' },
+    { from: 1, to: 3, label: 'exposed via', color: { color: '#f59e0b' } },
+    { from: 1, to: 4, label: 'encrypted', color: { color: '#00c896' } },
+    { from: 1, to: 5, label: 'defenses', color: { color: '#8b5cf6' } }
+  ];
+
+  const graphData = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+  const options = {
+    physics: { stabilization: true, barnesHut: { springLength: 120, springConstant: 0.04 } },
+    interaction: { hover: true, zoomView: true }
+  };
+
+  if (currentGraphNetwork) currentGraphNetwork.destroy();
+  currentGraphNetwork = new vis.Network(container, graphData, options);
+}
+
+// ── Create Incident Modal ──────────────────────────────────────────────────
+function bindCreateIncidentModal() {
+  const modal = document.getElementById('modal-create-incident');
+  const backdrop = document.getElementById('modal-create-backdrop');
+  const openBtn = document.getElementById('btn-create-manual-incident');
+  const closeBtn = document.getElementById('btn-close-create-modal');
+  const cancelBtn = document.getElementById('btn-cancel-create-modal');
+  const form = document.getElementById('form-new-incident');
+
+  const showModal = () => {
+    if (modal) modal.style.display = 'block';
+    if (backdrop) backdrop.style.display = 'block';
+  };
+  const hideModal = () => {
+    if (modal) modal.style.display = 'none';
+    if (backdrop) backdrop.style.display = 'none';
+  };
+
+  if (openBtn) openBtn.addEventListener('click', showModal);
+  if (closeBtn) closeBtn.addEventListener('click', hideModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', hideModal);
+  if (backdrop) backdrop.addEventListener('click', hideModal);
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('modal-inc-title').value.trim();
+      const severity = document.getElementById('modal-inc-severity').value;
+      const asset = document.getElementById('modal-inc-asset').value.trim();
+      const desc = document.getElementById('modal-inc-desc').value.trim();
+
+      try {
+        const res = await apiRequest('/incidents', 'POST', {
+          title,
+          severity,
+          relatedAsset: asset || 'Web Application',
+          description: desc
+        });
+        if (res.success && res.data) {
+          hideModal();
+          showToast('Security incident escalated successfully.', 'success');
+          await loadIncidentsQueue(res.data.incidentId);
+          await loadIncident(res.data.incidentId);
+        }
+      } catch (err) {
+        showToast(`Failed to create incident: ${err.message}`, 'danger');
+      }
+    });
+  }
+}
+
+// ── Scan Investigation Fallback / Mode ─────────────────────────────────────
+async function loadScanData(scanId) {
+  try {
+    const res = await apiRequest('/scan/history');
+    if (res.success && Array.isArray(res.data)) {
+      const scan = res.data.find(s => s._id === scanId || s.id === scanId);
+      if (scan) renderScanMode(scan);
+    }
+  } catch (e) {}
+}
+
+function renderScanMode(scan) {
+  currentScanData = scan;
+  const target = scan.target || 'Target Scan';
+  const score = scan.details?.securityScore ?? (100 - (scan.riskScore || 0));
+
+  const titleEl = document.getElementById('inv-title');
+  if (titleEl) titleEl.textContent = `Security Scan Investigation: ${target}`;
+
+  const scoreEl = document.getElementById('inv-score');
+  if (scoreEl) scoreEl.textContent = `${score}/100`;
+
+  const assetEl = document.getElementById('inv-asset');
+  if (assetEl) assetEl.textContent = target;
+
+  renderInvestigationGraph({ relatedAsset: target, relatedThreat: scan.status, relatedVulnerability: 'Header / SSL Checks' });
 }
