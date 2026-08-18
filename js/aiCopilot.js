@@ -10,7 +10,8 @@
   let chatHistory = [];
 
   function getCurrentPageContext() {
-    const path = window.location.pathname.split('/').pop() || 'index.html';
+    const path = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    if (path === 'dashboard.html' || path === 'dashboard' || path === '') return 'dashboard';
     if (path.includes('scanner')) return 'scanner';
     if (path.includes('history')) return 'scan_history';
     if (path.includes('reports')) return 'audit_reports';
@@ -18,7 +19,13 @@
     if (path.includes('threat')) return 'threat_intelligence';
     if (path.includes('admin')) return 'admin_panel';
     if (path.includes('profile')) return 'user_profile';
-    return 'dashboard';
+    if (path.includes('settings')) return 'settings';
+    if (path.includes('notifications')) return 'notifications';
+    if (path.includes('monitor')) return 'continuous_monitoring';
+    if (path.includes('attack-surface')) return 'attack_surface';
+    if (path.includes('vulnerabilit')) return 'vulnerabilities';
+    if (path.includes('investigation')) return 'investigation';
+    return 'general';
   }
 
   function initAICopilotUI() {
@@ -101,9 +108,6 @@
     drawer.querySelectorAll('.ai-quick-btn').forEach(btn => {
       btn.addEventListener('click', () => handleQuickAction(btn.dataset.action));
     });
-
-    // Page-specific Context integrations
-    integratePageContextAI();
   }
 
   function toggleCopilot() {
@@ -318,51 +322,8 @@
     if (body) body.scrollTop = body.scrollHeight;
   }
 
-  // Page Context Integrations
-  function integratePageContextAI() {
-    const page = getCurrentPageContext();
-
-    // 1. Dashboard AI Briefing Card Insertion
-    if (page === 'dashboard') {
-      const contentBody = document.querySelector('.content-body');
-      if (contentBody && !document.getElementById('dashboard-ai-briefing-card')) {
-        const briefingCard = document.createElement('div');
-        briefingCard.id = 'dashboard-ai-briefing-card';
-        briefingCard.className = 'glass-card ai-dashboard-banner';
-        briefingCard.innerHTML = `
-          <div class="ai-banner-header">
-            <div class="ai-banner-title"><i class="fas fa-brain text-cyan"></i> CyberShield AI SOC Security Briefing</div>
-            <button class="btn btn-secondary btn-sm" id="btn-refresh-briefing"><i class="fas fa-rotate"></i> Refresh AI Briefing</button>
-          </div>
-          <div class="ai-banner-content" id="ai-briefing-text">
-            <div class="ai-inline-loading"><i class="fas fa-spinner fa-spin"></i> Generating real-time AI security briefing...</div>
-          </div>
-        `;
-        contentBody.prepend(briefingCard);
-
-        document.getElementById('btn-refresh-briefing')?.addEventListener('click', loadDashboardAIBriefing);
-        loadDashboardAIBriefing();
-      }
-    }
-  }
-
-  async function loadDashboardAIBriefing() {
-    const target = document.getElementById('ai-briefing-text');
-    if (!target) return;
-
-    target.innerHTML = '<div class="ai-inline-loading"><i class="fas fa-spinner fa-spin"></i> Analyzing live CyberShield SOC telemetry...</div>';
-
-    try {
-      const data = await apiRequest('/ai/briefing', 'GET');
-      if (data.success && data.data?.briefing) {
-        target.innerHTML = formatMarkdownResponse(data.data.briefing);
-      } else {
-        target.innerHTML = '<p class="text-muted">AI Briefing telemetry loaded. Click <strong>AI Security Copilot</strong> for full breakdown.</p>';
-      }
-    } catch (e) {
-      target.innerHTML = '<p class="text-muted"><i class="fas fa-shield-halved text-cyan"></i> AI Shield Active. All endpoints monitored continuously.</p>';
-    }
-  }
+  // Expose global formatting helper
+  window.formatMarkdownResponse = formatMarkdownResponse;
 
   // Expose global methods
   window.CyberShieldAI = {

@@ -470,12 +470,61 @@ function initPeriodSwitchers() {
   }
 }
 
+// ── AI SOC Security Briefing (Dashboard Only) ──────────────────────────────
+async function loadDashboardAIBriefing() {
+  const target = document.getElementById('ai-briefing-text');
+  if (!target) return;
+
+  target.innerHTML = '<div class="ai-inline-loading"><i class="fas fa-spinner fa-spin"></i> Analyzing live CyberShield SOC telemetry...</div>';
+
+  try {
+    const data = await apiRequest('/ai/briefing', 'GET');
+    if (data.success && data.data?.briefing) {
+      if (typeof window.formatMarkdownResponse === 'function') {
+        target.innerHTML = window.formatMarkdownResponse(data.data.briefing);
+      } else {
+        target.innerHTML = formatBriefingMarkdown(data.data.briefing);
+      }
+    } else {
+      target.innerHTML = '<p class="text-muted">AI Briefing telemetry loaded. Click <strong>AI Security Copilot</strong> for full breakdown.</p>';
+    }
+  } catch (e) {
+    target.innerHTML = '<p class="text-muted"><i class="fas fa-shield-halved text-cyan"></i> AI Shield Active. All endpoints monitored continuously.</p>';
+  }
+}
+
+function formatBriefingMarkdown(text) {
+  if (!text) return '';
+  let html = escapeHtml(text);
+  html = html.replace(/### (.*?)\n/g, '<h4 class="ai-res-h3">$1</h4>');
+  html = html.replace(/## (.*?)\n/g, '<h3 class="ai-res-h2">$1</h3>');
+  html = html.replace(/# (.*?)\n/g, '<h2 class="ai-res-h1">$1</h2>');
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/^- (.*?)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
+  html = html.replace(/SECURITY SCORE:\s*`?(\d+\/\d+)`?/gi, '<div class="ai-score-pill"><i class="fas fa-shield-cat"></i> SECURITY SCORE: <strong>$1</strong></div>');
+  html = html.replace(/Risk Level:\s*`?([^`\n]+)`?/gi, '<span class="badge badge-warning">Risk Level: $1</span>');
+  html = html.replace(/\n\n/g, '<br><br>');
+  return html;
+}
+
+function initDashboardBriefing() {
+  const briefingCard = document.getElementById('dashboard-ai-briefing-card');
+  const refreshBtn = document.getElementById('btn-refresh-briefing');
+  if (briefingCard && refreshBtn) {
+    refreshBtn.addEventListener('click', loadDashboardAIBriefing);
+    loadDashboardAIBriefing();
+  }
+}
+
 // ── DOM Content Loaded Initialization ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   requireAuth();
   checkAdminAccess();
   initPeriodSwitchers();
   connectLiveFeed();
+  initDashboardBriefing();
 
   const backdrop = document.getElementById('drawer-backdrop');
   const closeBtn = document.getElementById('drawer-close');
@@ -496,3 +545,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await fetchDashboardData();
 });
+

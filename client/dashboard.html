@@ -74,6 +74,17 @@
     </header>
 
     <main class="content-body">
+      <!-- 0. CyberShield AI SOC Security Briefing Card (Dashboard Only) -->
+      <section class="glass-card ai-dashboard-banner" id="dashboard-ai-briefing-card">
+        <div class="ai-banner-header">
+          <div class="ai-banner-title"><i class="fas fa-brain text-cyan"></i> CyberShield AI SOC Security Briefing</div>
+          <button class="btn btn-secondary btn-sm" id="btn-refresh-briefing"><i class="fas fa-rotate"></i> Refresh AI Briefing</button>
+        </div>
+        <div class="ai-banner-content" id="ai-briefing-text">
+          <div class="ai-inline-loading"><i class="fas fa-spinner fa-spin"></i> Generating real-time AI security briefing...</div>
+        </div>
+      </section>
+
       <!-- Live Command Ticker -->
       <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:10px 18px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); flex-wrap:wrap; gap:10px;">
         <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
