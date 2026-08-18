@@ -1395,16 +1395,18 @@ tr.interactive-row:hover {
 .ai-copilot-drawer {
   position: fixed;
   top: 0;
-  right: -480px;
-  width: 440px;
+  right: -500px;
+  width: 450px;
   height: 100vh;
-  z-index: 1000;
-  background: rgba(11, 15, 26, 0.96);
+  height: 100dvh;
+  z-index: 10000;
+  background: rgba(11, 15, 26, 0.98);
   border-left: 1px solid rgba(0, 212, 255, 0.25);
-  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.8);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1728,31 +1730,53 @@ tr.interactive-row:hover {
 
 /* Footer Input Area */
 .ai-copilot-footer {
-  padding: 16px 20px;
-  background: rgba(15, 22, 40, 0.95);
+  flex: 0 0 auto;
+  padding: 14px 18px;
+  background: rgba(15, 22, 40, 0.98);
   border-top: 1px solid rgba(0, 212, 255, 0.15);
 }
 
 .ai-input-wrapper {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  align-items: flex-end;
+  width: 100%;
 }
 
-.ai-input-wrapper input {
+.ai-input-wrapper textarea {
   flex: 1;
-  background: rgba(11, 15, 26, 0.9);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 8px;
+  background: rgba(11, 15, 26, 0.95);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 10px;
   padding: 10px 14px;
   color: #ffffff;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.45;
   outline: none;
-  transition: border-color 0.2s;
+  resize: none;
+  min-height: 44px;
+  max-height: 120px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.ai-input-wrapper input:focus {
+.ai-input-wrapper textarea:focus {
   border-color: #00d4ff;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.15);
+}
+
+.ai-input-wrapper button#ai-send-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  flex-shrink: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
 .ai-footer-note {
@@ -1760,6 +1784,57 @@ tr.interactive-row:hover {
   color: #6b7280;
   text-align: center;
   margin-top: 8px;
+}
+
+/* Confirmation Overlay */
+.ai-confirm-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(5px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.ai-confirm-box {
+  background: rgba(15, 22, 40, 0.98);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 14px;
+  padding: 22px;
+  text-align: center;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+}
+
+.ai-confirm-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.ai-confirm-box h4 {
+  font-size: 16px;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.ai-confirm-box p {
+  font-size: 12.5px;
+  color: #9ca3af;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+.ai-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 }
 
 /* Dashboard AI Briefing Banner */
@@ -2060,15 +2135,40 @@ button, .btn, input, select, textarea, a, .topbar-icon, .ai-control-btn {
   }
 
   /* AI Security Copilot Mobile Drawer */
+  body.ai-copilot-open {
+    overflow: hidden !important;
+    touch-action: none !important;
+  }
+
   .ai-copilot-drawer {
     width: 100vw !important;
     max-width: 100% !important;
+    height: 100dvh !important;
     right: -100vw !important;
-    border-left: none !important;
+    top: 0 !important;
+    left: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
   .ai-copilot-drawer.open {
     right: 0 !important;
+  }
+
+  .ai-copilot-header {
+    padding: 12px 14px !important;
+  }
+
+  .ai-copilot-body {
+    padding: 14px 12px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .ai-input-wrapper textarea {
+    font-size: 16px !important;
   }
 
   .ai-copilot-fab {
@@ -2085,16 +2185,31 @@ button, .btn, input, select, textarea, a, .topbar-icon, .ai-control-btn {
   }
 
   .ai-copilot-footer {
-    padding: 12px 14px max(12px, env(safe-area-inset-bottom)) !important;
+    padding: 10px 12px max(10px, env(safe-area-inset-bottom)) !important;
     background: rgba(11, 15, 26, 0.98) !important;
   }
 
   .ai-message.user-msg .msg-bubble {
-    max-width: 90% !important;
+    max-width: 88% !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .ai-message.bot-msg {
+    max-width: 100% !important;
   }
 
   .msg-bubble-wrapper {
-    max-width: 92% !important;
+    max-width: 95% !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .markdown-body table {
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
   }
 }
 
