@@ -131,12 +131,17 @@ async function loadNotificationsFeed() {
     }
   } catch (err) {
     console.error('[Notification Load Error]', err);
+    const isAuth = err.message?.includes('token') || err.message?.includes('authorized') || err.message?.includes('expired');
+    const actionBtn = isAuth
+      ? `<a href="login.html" class="btn btn-primary btn-sm"><i class="fas fa-arrow-right-to-bracket"></i> Log In Again</a>`
+      : `<button class="btn btn-secondary btn-sm" onclick="loadNotificationsFeed()"><i class="fas fa-rotate"></i> Retry</button>`;
+
     container.innerHTML = `
       <div class="glass-card" style="text-align:center; padding:40px; color:var(--text-muted);">
         <i class="fas fa-triangle-exclamation" style="font-size:28px; color:var(--amber); margin-bottom:12px;"></i>
         <p style="color:var(--text-primary); font-weight:600; margin-bottom:6px;">Unable to load notifications</p>
         <p style="font-size:13px; margin-bottom:16px;">${escapeHtml(err.message || 'Please check server connection.')}</p>
-        <button class="btn btn-secondary btn-sm" onclick="loadNotificationsFeed()"><i class="fas fa-rotate"></i> Retry</button>
+        ${actionBtn}
       </div>
     `;
   }

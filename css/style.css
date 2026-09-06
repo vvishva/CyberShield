@@ -91,7 +91,13 @@
 
 /* ── Reset & Base ──────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+html {
+  height: 100%;
+  height: 100dvh;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  overflow: hidden;
+}
 
 body {
   font-family: var(--font-sans);
@@ -99,8 +105,21 @@ body {
   color: var(--text-primary);
   font-size: 14px;
   line-height: 1.6;
-  min-height: 100vh;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Allow public non-app pages (like landing page index.html and auth pages) to scroll normally if needed */
+body.landing-page,
+body:not(:has(.app-container)) {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 a { color: var(--cyan); text-decoration: none; transition: var(--transition); }
@@ -115,27 +134,38 @@ input, select, textarea { font-family: var(--font-sans); }
 ::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.4); }
 
-/* ── App Layout ─────────────────────────────────────────────── */
+/* ── App Layout (Fixed Viewport Architecture) ───────────────── */
 .app-container {
   display: flex;
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow: hidden;
+  position: relative;
   background: var(--bg-base);
+  box-sizing: border-box;
 }
 
-/* ── Sidebar ─────────────────────────────────────────────────── */
+/* ── Sidebar (Fixed Left Navigation Menu) ────────────────────── */
 .sidebar {
   width: var(--sidebar-w);
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
   background: var(--bg-surface);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  position: sticky;
+  position: relative;
   top: 0;
-  height: 100vh;
+  left: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   z-index: 50;
   transition: transform 0.3s var(--ease);
   box-sizing: border-box;
@@ -289,29 +319,41 @@ input, select, textarea { font-family: var(--font-sans); }
 #logout-btn { color: var(--text-muted); font-size: 14px; padding: 4px; border-radius: 4px; transition: var(--transition); }
 #logout-btn:hover { color: var(--red); }
 
-/* ── Main Wrapper ────────────────────────────────────────────── */
+/* ── Main Wrapper (Right Screen Area) ────────────────────────── */
 .main-wrapper {
-  flex: 1;
+  flex: 1 1 0%;
+  width: 0;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
-  min-width: 0;
   overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
 }
 
-/* ── Topbar ──────────────────────────────────────────────────── */
+/* ── Topbar (Fixed Header Menu) ──────────────────────────────── */
 .topbar {
   height: 60px;
+  min-height: 60px;
+  max-height: 60px;
+  flex: 0 0 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  background: rgba(13, 17, 23, 0.9);
+  background: rgba(13, 17, 23, 0.95);
   border-bottom: 1px solid var(--border-subtle);
   backdrop-filter: blur(12px);
-  position: sticky;
+  -webkit-backdrop-filter: blur(12px);
+  position: relative;
   top: 0;
   z-index: 40;
   gap: 16px;
+  box-sizing: border-box;
 }
 
 .topbar-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
@@ -400,14 +442,20 @@ input, select, textarea { font-family: var(--font-sans); }
   box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
 }
 
-/* ── Content Body ────────────────────────────────────────────── */
+/* ── Content Body (Scrollable Content Area) ──────────────────── */
 .content-body {
-  flex: 1;
+  flex: 1 1 0%;
+  height: calc(100vh - 60px);
+  height: calc(100dvh - 60px);
   padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  box-sizing: border-box;
 }
 
 /* ── Glass Cards ─────────────────────────────────────────────── */
@@ -1901,9 +1949,26 @@ button, .btn, input, select, textarea, a, .topbar-icon, .ai-control-btn {
 /* ── Mobile Sidebar Drawer & Overlay (<= 768px) ────────────── */
 @media (max-width: 768px) {
   .app-container {
-    overflow-x: hidden;
-    position: relative;
-    width: 100%;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  .main-wrapper {
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    flex: 1 1 0% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    position: relative !important;
   }
 
   .sidebar {
@@ -1946,10 +2011,15 @@ button, .btn, input, select, textarea, a, .topbar-icon, .ai-control-btn {
 
   /* Topbar Mobile Layout */
   .topbar {
-    height: auto !important;
-    min-height: 56px;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    flex: 0 0 56px !important;
     padding: 8px 14px !important;
-    gap: 8px;
+    gap: 8px !important;
+    position: relative !important;
+    top: 0 !important;
+    z-index: 40 !important;
   }
 
   .topbar-left {
@@ -2003,8 +2073,15 @@ button, .btn, input, select, textarea, a, .topbar-icon, .ai-control-btn {
 
   /* Content Body & Padding */
   .content-body {
+    flex: 1 1 0% !important;
+    height: calc(100vh - 56px) !important;
+    height: calc(100dvh - 56px) !important;
     padding: 12px !important;
     gap: 14px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
   }
 
   .glass-card {

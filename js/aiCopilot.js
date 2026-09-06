@@ -365,10 +365,13 @@
       }
     } catch (err) {
       removeTypingIndicator(typingId);
-      const errMsg = err.message?.includes('429')
+      const isAuthError = err.message?.includes('401') || err.message?.includes('token') || err.message?.includes('authorized') || err.message?.includes('expired');
+      const errMsg = isAuthError
+        ? "Your security session has expired. Please log in again to continue."
+        : err.message?.includes('429')
         ? "AI Copilot rate limit reached. Please wait a few moments before making another request."
-        : "I couldn't reach the AI engine right now. Please check your connection and try again.";
-      appendBotErrorMessage(errMsg);
+        : (err.message || "I couldn't reach the AI engine right now. Please check your connection and try again.");
+      appendBotErrorMessage(errMsg, isAuthError);
     } finally {
       isSending = false;
       if (sendBtn) {
@@ -378,21 +381,24 @@
     }
   }
 
-  function appendBotErrorMessage(errorText) {
+  function appendBotErrorMessage(errorText, isAuthError = false) {
     const list = document.getElementById('ai-messages-list');
     if (!list) return;
 
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const msgEl = document.createElement('div');
     msgEl.className = 'ai-message bot-msg error-msg';
+    
+    const actionBtnHTML = isAuthError
+      ? `<a href="login.html" class="btn btn-primary btn-sm" style="font-size:11.5px; padding:4px 10px; display:inline-flex; align-items:center; gap:6px; text-decoration:none;"><i class="fas fa-arrow-right-to-bracket"></i> Log In Again</a>`
+      : `<button class="btn btn-secondary btn-sm btn-retry-ai" style="font-size:11px; padding:3px 8px;"><i class="fas fa-rotate"></i> Retry</button>`;
+
     msgEl.innerHTML = `
       <div class="msg-avatar"><i class="fas fa-triangle-exclamation text-danger"></i></div>
       <div class="msg-bubble-wrapper">
         <div class="msg-bubble" style="border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.06);">
           <p style="margin:0 0 8px 0; color:#fca5a5;">${escapeHtml(errorText)}</p>
-          <button class="btn btn-secondary btn-sm btn-retry-ai" style="font-size:11px; padding:3px 8px;">
-            <i class="fas fa-rotate"></i> Retry
-          </button>
+          ${actionBtnHTML}
         </div>
         <div class="msg-actions"><span class="msg-time">${time}</span></div>
       </div>

@@ -119,12 +119,29 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
     const res = await fetch(`${API_BASE}${endpoint}`, opts);
     const data = await res.json();
     if (!res.ok) {
+      if (res.status === 401 && (data.error?.includes('token') || data.error?.includes('authorized') || data.error?.includes('expired'))) {
+        handleSessionExpired();
+      }
       throw new Error(data.error || 'API Request Failed');
     }
     return data;
   } catch (err) {
     console.warn(`[API Notice] ${endpoint}: ${err.message}. Using fallback engine.`);
     throw err;
+  }
+}
+
+let isRedirectingToLogin = false;
+function handleSessionExpired() {
+  const currentPage = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  const publicPages = ['login.html', 'register.html', 'index.html', ''];
+  if (!publicPages.includes(currentPage) && !isRedirectingToLogin) {
+    isRedirectingToLogin = true;
+    removeToken();
+    showToast('Your session has expired. Please log in again.', 'warning');
+    setTimeout(() => {
+      window.location.replace('login.html?expired=1');
+    }, 1800);
   }
 }
 
