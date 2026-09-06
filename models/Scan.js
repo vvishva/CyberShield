@@ -8,7 +8,7 @@ const ScanSchema = new mongoose.Schema({
   },
   scanType: {
     type: String,
-    enum: ['url_phishing', 'website_security', 'ip_reputation', 'file_hash', 'password_check'],
+    enum: ['url_phishing', 'website_security', 'ip_reputation', 'file_hash', 'password_check', 'browser_reputation'],
     required: true
   },
   target: {

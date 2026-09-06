@@ -45,7 +45,17 @@ app.use(helmet({
   } : false // Disable CSP in development for easier debugging
 }));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: (origin, callback) => {
+    // Allow Chrome extension origins, same-origin, and configured CORS_ORIGIN
+    if (!origin || origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
+      return callback(null, true);
+    }
+    const allowed = process.env.CORS_ORIGIN || '*';
+    if (allowed === '*' || allowed.split(',').map(s => s.trim()).includes(origin)) {
+      return callback(null, true);
+    }
+    callback(null, true); // permissive fallback — tighten in production as needed
+  },
   credentials: true
 }));
 
@@ -110,6 +120,8 @@ app.use('/api/events', require('../routes/events').router);
 app.use('/api/monitor', require('../routes/monitor'));
 app.use('/api/notifications', require('../routes/notification'));
 app.use('/api/incidents', require('../routes/incident'));
+app.use('/api/extension', require('../routes/extension'));
+
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

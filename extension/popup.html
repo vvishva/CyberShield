@@ -1,55 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberShield AI Security</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+
+  <!-- Header -->
   <div class="header">
-    <div class="logo"></div>
-    <div class="brand">CyberShield AI</div>
-    <div class="status-dot"></div>
+    <div class="logo-wrap">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M11 1L2 5v6c0 5.25 3.75 10.15 9 11.35C16.25 21.15 20 16.25 20 11V5L11 1z" fill="#00d4ff" opacity="0.2" stroke="#00d4ff" stroke-width="1.5"/>
+        <path d="M8 11l2 2 4-4" stroke="#00d4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="brand">CyberShield AI</span>
+    <button class="pause-btn" id="btn-pause" title="Toggle protection">
+      <span id="pause-icon">⏸</span>
+    </button>
   </div>
 
+  <!-- Paused banner -->
+  <div class="paused-banner" id="paused-banner" style="display:none">
+    ⏸ Protection paused — browsing unprotected
+  </div>
+
+  <!-- Main -->
   <div class="main-content">
-    <div class="url-display" id="current-url">Loading...</div>
-    
-    <div class="score-card" id="score-card">
-      <div class="score-circle">
-        <svg viewBox="0 0 100 100">
-          <circle class="bg" cx="50" cy="50" r="40"></circle>
-          <circle class="progress" id="score-progress" cx="50" cy="50" r="40"></circle>
-        </svg>
-        <div class="score-text" id="score-text">--</div>
-      </div>
-      <div class="verdict" id="verdict-text">Analyzing</div>
+
+    <!-- Domain -->
+    <div class="domain-row">
+      <span class="domain-icon" id="domain-protocol-icon">🔒</span>
+      <span class="domain-text" id="domain-text">Loading…</span>
     </div>
 
-    <div class="checks">
-      <div class="check-row">
-        <span>HTTPS Connection</span>
-        <span id="chk-https" class="chk-pending">...</span>
+    <!-- Outcome Card -->
+    <div class="outcome-card" id="outcome-card">
+      <!-- Loading state -->
+      <div id="state-loading" class="state-loading">
+        <div class="spinner"></div>
+        <span>Checking…</span>
       </div>
-      <div class="check-row">
-        <span>AI Threat Analysis</span>
-        <span id="chk-ai" class="chk-pending">...</span>
+
+      <!-- Result state -->
+      <div id="state-result" class="state-result" style="display:none">
+        <div class="outcome-icon" id="outcome-icon">✓</div>
+        <div class="outcome-label" id="outcome-label">No Threat Found</div>
+        <div class="outcome-reason" id="outcome-reason"></div>
+        <div class="outcome-meta">
+          <span class="meta-source" id="meta-source"></span>
+          <span class="meta-time" id="meta-time"></span>
+        </div>
       </div>
-      <div class="check-row">
-        <span>Confidence</span>
-        <span id="chk-conf" class="chk-pending">...</span>
+
+      <!-- System page state -->
+      <div id="state-system" class="state-system" style="display:none">
+        <div class="outcome-icon neutral">🔵</div>
+        <div class="outcome-label neutral">System Page</div>
+        <div class="outcome-reason">Internal browser page — no check needed.</div>
       </div>
     </div>
-    
-    <div class="loading-overlay" id="loading-overlay">
-      <div class="spinner"></div>
+
+  </div>
+
+  <!-- Footer actions -->
+  <div class="footer" id="footer-actions" style="display:none">
+    <button class="btn btn-primary" id="btn-full-scan">🔍 Run Full Scan</button>
+    <div class="footer-row2">
+      <button class="btn btn-secondary" id="btn-save-alert" style="display:none">💾 Save Alert</button>
+      <button class="btn btn-ghost" id="btn-report">⚑ Report Incorrect</button>
+      <button class="btn btn-ghost" id="btn-refresh">↻ Recheck</button>
     </div>
   </div>
 
-  <div class="footer">
-    <button id="btn-report" class="btn">View Full Report</button>
-  </div>
-  
   <script src="popup.js"></script>
 </body>
 </html>
