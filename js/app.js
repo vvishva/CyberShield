@@ -23,6 +23,24 @@
   }
 })();
 
+// Runtime Layout Lock: Ensures only .content-body scrolls and menu/topbar remain 100% stationary
+(function lockAppLayout() {
+  function applyLock() {
+    const container = document.querySelector('.app-container');
+    if (container) {
+      document.documentElement.style.setProperty('height', '100%', 'important');
+      document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+      document.body.style.setProperty('height', '100%', 'important');
+      document.body.style.setProperty('overflow', 'hidden', 'important');
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyLock);
+  } else {
+    applyLock();
+  }
+})();
+
 // Auto-detect: local development uses /api, production uses full Render URL
 const API_BASE = (window.location.hostname === 'localhost' || 
                   window.location.hostname === '127.0.0.1' || 
