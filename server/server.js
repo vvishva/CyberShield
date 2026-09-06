@@ -46,8 +46,14 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow Chrome extension origins, same-origin, and configured CORS_ORIGIN
-    if (!origin || origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
+    // Allow Edge, Chrome, and Firefox extension origins, same-origin, and configured CORS_ORIGIN
+    if (
+      !origin ||
+      origin.startsWith('chrome-extension://') ||
+      origin.startsWith('moz-extension://') ||
+      origin.startsWith('extension://') ||
+      origin.startsWith('ms-browser-extension://')
+    ) {
       return callback(null, true);
     }
     const allowed = process.env.CORS_ORIGIN || '*';

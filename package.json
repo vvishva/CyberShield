@@ -14,7 +14,8 @@
     "start-ai": "python python-ai/app.py",
     "test": "jest --coverage",
     "lint": "eslint . --ext .js",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "build:extensions": "node scripts/build-extensions.js"
   },
   "keywords": [
     "cybersecurity",

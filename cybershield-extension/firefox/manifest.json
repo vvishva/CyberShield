@@ -24,7 +24,18 @@
     }
   },
   "background": {
-    "service_worker": "background/background.js"
+    "scripts": [
+      "config/config.js",
+      "utils/browser-compat.js",
+      "utils/error-handler.js",
+      "background/background.js"
+    ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "cybershield-security@cybershield.io",
+      "strict_min_version": "109.0"
+    }
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberShield AI Security</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo-wrap">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-label="CyberShield Logo">
+        <path d="M11 1L2 5v6c0 5.25 3.75 10.15 9 11.35C16.25 21.15 20 16.25 20 11V5L11 1z" fill="#00d4ff" opacity="0.2" stroke="#00d4ff" stroke-width="1.5"/>
+        <path d="M8 11l2 2 4-4" stroke="#00d4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="brand">CyberShield AI</span>
+    <button class="pause-btn" id="btn-pause" title="Toggle protection" aria-label="Pause or Resume Protection">
+      <span id="pause-icon">⏸</span>
+    </button>
+  </header>
+
+  <!-- Paused Notice Banner -->
+  <div class="paused-banner" id="paused-banner" style="display:none">
+    ⏸ Protection paused — browsing unprotected
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Active Target Domain -->
+    <div class="domain-row">
+      <span class="domain-icon" id="domain-protocol-icon" aria-hidden="true">🔒</span>
+      <span class="domain-text" id="domain-text">Detecting active tab...</span>
+    </div>
+
+    <!-- Security Assessment Card -->
+    <div class="outcome-card" id="outcome-card">
+      <!-- Loading State -->
+      <div id="state-loading" class="state-loading">
+        <div class="spinner" aria-label="Analyzing security posture"></div>
+        <span id="loading-text">Analyzing site safety...</span>
+      </div>
+
+      <!-- Result State -->
+      <div id="state-result" class="state-result" style="display:none">
+        <div class="outcome-icon" id="outcome-icon">✓</div>
+        <div class="outcome-label" id="outcome-label">No Threat Found</div>
+        <div class="outcome-reason" id="outcome-reason"></div>
+        <div class="outcome-meta">
+          <span class="meta-source" id="meta-source"></span>
+          <span class="meta-time" id="meta-time"></span>
+        </div>
+      </div>
+
+      <!-- System / Local Address State -->
+      <div id="state-system" class="state-system" style="display:none">
+        <div class="outcome-icon neutral">🔵</div>
+        <div class="outcome-label neutral">Internal / System Page</div>
+        <div class="outcome-reason">Internal browser URL — private network addresses are not scanned.</div>
+      </div>
+    </div>
+
+    <!-- Friendly Error Message Container -->
+    <div class="error-notice" id="error-notice" style="display:none">
+      <span class="error-icon">ℹ️</span>
+      <span class="error-text" id="error-text"></span>
+    </div>
+
+  </main>
+
+  <!-- Action Controls -->
+  <footer class="footer" id="footer-actions" style="display:none">
+    <button class="btn btn-primary" id="btn-full-scan">🔍 Run Full Security Scan</button>
+    <div class="footer-row2">
+      <button class="btn btn-secondary" id="btn-save-alert" style="display:none">💾 Save Alert</button>
+      <button class="btn btn-ghost" id="btn-report">⚑ Report False Positive</button>
+      <button class="btn btn-ghost" id="btn-refresh" title="Recheck website">↻ Recheck</button>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="../config/config.js"></script>
+  <script src="../utils/browser-compat.js"></script>
+  <script src="../utils/error-handler.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
