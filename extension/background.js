@@ -1,6 +1,6 @@
 /**
  * CyberShield Extension – Background Service Worker (MV3)
- * Handles auto-scan on navigation, result caching, badge updates, and pause/resume.
+ * Handles auto-scan on navigation, tab switches, result caching, badge updates, and pause/resume.
  * Privacy: sends domain ONLY — never full URL path, query strings, or page content.
  */
 
@@ -38,20 +38,16 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 // ---------------------------------------------------------------------------
-// Navigation listener — fires on every new committed navigation (http/https only)
+// Core check & scan logic (shared across navigation, tab update, and tab switch)
 // ---------------------------------------------------------------------------
-chrome.webNavigation.onCommitted.addListener(async (details) => {
-  // Only top-level frames, skip iframes
-  if (details.frameId !== 0) return;
-
-  const url = details.url;
-  if (!url || !url.startsWith('http')) return; // skip chrome://, file://, etc.
+async function checkAndScanUrl(url, tabId) {
+  if (!url || !url.startsWith('http')) return; // skip chrome://, edge://, file://, etc.
 
   // Check pause state
   const prefs = await chrome.storage.local.get('protectionPaused');
   if (prefs.protectionPaused) {
-    chrome.action.setBadgeText({ text: '⏸', tabId: details.tabId });
-    chrome.action.setBadgeBackgroundColor({ color: '#555555', tabId: details.tabId });
+    chrome.action.setBadgeText({ text: '⏸', tabId });
+    chrome.action.setBadgeBackgroundColor({ color: '#555555', tabId });
     return;
   }
 
@@ -66,31 +62,30 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
   // Skip private/local addresses (client-side guard)
   if (isPrivateDomain(domain)) return;
 
-  // In-memory dedup: same domain checked < 60s ago
   const memKey = domain;
+  const cacheKey = 'cs_' + domain;
+
+  // In-memory dedup: same domain checked < 60s ago
   const lastCheck = recentChecks.get(memKey);
   if (lastCheck && Date.now() - lastCheck < MEM_CACHE_TTL) {
-    // Use stored result for badge
-    const cacheKey = 'cs_' + domain;
     const cached = await chrome.storage.local.get(cacheKey);
     if (cached[cacheKey]) {
-      updateBadge(cached[cacheKey].result.outcome, details.tabId);
+      updateBadge(cached[cacheKey].result.outcome, tabId);
     }
     return;
   }
 
   // Check chrome.storage.local cache (10 min TTL)
-  const cacheKey = 'cs_' + domain;
   const cached = await chrome.storage.local.get(cacheKey);
   if (cached[cacheKey] && Date.now() - cached[cacheKey].ts < CACHE_TTL_MS) {
     recentChecks.set(memKey, Date.now());
-    updateBadge(cached[cacheKey].result.outcome, details.tabId);
+    updateBadge(cached[cacheKey].result.outcome, tabId);
     return;
   }
 
   // Perform check
   recentChecks.set(memKey, Date.now());
-  updateBadge('CHECKING', details.tabId); // show spinner-like indicator
+  updateBadge('CHECKING', tabId);
 
   try {
     const res = await fetch(`${API_BASE}/extension/check`, {
@@ -102,15 +97,44 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 
     if (json.success && json.data) {
       const result = json.data;
-      // Cache in storage
       await chrome.storage.local.set({ [cacheKey]: { result, ts: Date.now() } });
-      updateBadge(result.outcome, details.tabId);
+      updateBadge(result.outcome, tabId);
     } else {
-      updateBadge('CHECK_FAILED', details.tabId);
+      updateBadge('CHECK_FAILED', tabId);
     }
   } catch (err) {
-    updateBadge('CHECK_FAILED', details.tabId);
+    updateBadge('CHECK_FAILED', tabId);
   }
+}
+
+// ---------------------------------------------------------------------------
+// 1. Navigation listener — fires immediately when top-level frame commits
+// ---------------------------------------------------------------------------
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId === 0) {
+    checkAndScanUrl(details.url, details.tabId);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 2. Tab update listener — catches client-side routing & completed page loads
+// ---------------------------------------------------------------------------
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab && tab.url) {
+    checkAndScanUrl(tab.url, tabId);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 3. Tab switch listener — ensures badge is fresh when user switches tabs
+// ---------------------------------------------------------------------------
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    if (tab && tab.url && tab.url.startsWith('http')) {
+      checkAndScanUrl(tab.url, activeInfo.tabId);
+    }
+  } catch (_) {}
 });
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CyberShield AI Security",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Automatic website threat detection. Warns you about phishing, malware, and suspicious sites as you browse.",
   "permissions": [
     "activeTab",
@@ -11,7 +11,7 @@
     "webNavigation"
   ],
   "host_permissions": [
-    "https://cybershield-backend-uhwn.onrender.com/*"
+    "<all_urls>"
   ],
   "action": {
     "default_popup": "popup.html",
