@@ -13,6 +13,7 @@ const {
   getMonitoringStatus,
   getAttackSurfaceData,
   getIncidentsData,
+  getNetworkRiskContext,
   callGeminiAPI
 } = require('../utils/geminiCopilot');
 const Log = require('../models/Log');
@@ -52,6 +53,9 @@ exports.chat = async (req, res, next) => {
 
     if (lowerPrompt.includes('incident') || lowerPrompt.includes('unresolved') || lowerPrompt.includes('containment') || lowerPrompt.includes('triage')) {
       contextData.incidents = await getIncidentsData(userId, isAdmin);
+      contextData.summary = await getDashboardSummary(userId, isAdmin);
+    } else if (lowerPrompt.includes('anonymous') || lowerPrompt.includes('vpn') || lowerPrompt.includes('proxy') || lowerPrompt.includes('tor') || lowerPrompt.includes('session risk') || lowerPrompt.includes('network risk')) {
+      contextData.networkRisk = await getNetworkRiskContext(userId, isAdmin);
       contextData.summary = await getDashboardSummary(userId, isAdmin);
     } else if (lowerPrompt.includes('score') || lowerPrompt.includes('why is my score') || lowerPrompt.includes('risk score') || lowerPrompt.includes('risk level')) {
       contextData.summary = await getDashboardSummary(userId, isAdmin);

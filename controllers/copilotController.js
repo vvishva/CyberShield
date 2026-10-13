@@ -9,6 +9,7 @@ const { scanWebsiteSecurity } = require('../utils/securityScanner');
 const { analyzePassword, generateStrongPassword } = require('../utils/passwordAnalyzer');
 const { checkIpReputation } = require('../utils/ipChecker');
 const { extractDomainInfo } = require('../utils/domainInfo');
+const NetworkRiskEvent = require('../models/NetworkRiskEvent');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -111,6 +112,10 @@ function isDnsIntent(text) {
 
 function isJokeIntent(text) {
   return /\b(joke|funny|laugh|humor)\b/i.test(text);
+}
+
+function isNetworkRiskIntent(text) {
+  return /\b(anonymous network|vpn risk|proxy risk|tor risk|tor exit|high risk session|session risk|network risk|signals caused this risk score|defensive investigation steps)\b/i.test(text);
 }
 
 // Simple knowledge base for security Q&A
@@ -271,6 +276,36 @@ function runIpCheck(ip) {
   };
 }
 
+async function runNetworkRiskQuery(userId, ip = null) {
+  try {
+    let query = {};
+    if (ip) {
+      query.ipAddress = ip;
+    } else if (userId) {
+      query.$or = [{ userId }, { userId: null }];
+    }
+    const event = await NetworkRiskEvent.findOne(query).sort({ createdAt: -1 }).lean();
+    if (event) {
+      const icon = event.riskLevel === 'Low' ? '🟢' : event.riskLevel === 'Medium' ? '🟡' : '🔴';
+      const signalsList = (event.signals || []).map(s => `<li><b>${escapeHtml(s.name)}</b> (+${s.weight}) — ${escapeHtml(s.detail)}</li>`).join('');
+      return {
+        reply: `${icon} <b>Anonymous Network Risk — ${escapeHtml(event.ipAddress)}</b><br>` +
+          `Network Type: <b>${escapeHtml(event.networkType)}</b> · Risk Score: <b>${event.riskScore}/100</b> (${escapeHtml(event.riskLevel)})<br>` +
+          `Country: <b>${escapeHtml(event.country)}</b> · Failed Logins: <b>${event.failedLoginCount}</b><br>` +
+          `<b>Explanation:</b> ${escapeHtml(event.explanation)}<br>` +
+          (signalsList ? `<b>Signals:</b><ul style="margin:4px 0 0 18px;">${signalsList}</ul>` : '') +
+          `<b>Recommended SOC Action:</b> ${escapeHtml(event.recommendedAction)}`,
+        data: { type: 'network_risk', event }
+      };
+    }
+  } catch (err) {}
+
+  return {
+    reply: '🌐 <b>Anonymous Network Risk Detection:</b> CyberShield correlates VPN, proxy, Tor, and hosting infrastructure with behavioral indicators (e.g. repeated failed logins).<br><br><b>Key Rule:</b> VPN/proxy alone is rated <b>Low Risk (0–30)</b>. Risk only escalates to High/Critical with corroborating behavioral indicators. Check the <b>Dashboard</b> for live events!',
+    data: { type: 'network_risk', empty: true }
+  };
+}
+
 function runPasswordGenerate() {
   const pwd = generateStrongPassword(16);
   return {
@@ -397,13 +432,20 @@ exports.processChat = async (req, res) => {
         reply = run.reply;
         data = run.data;
       }
-      // 4. Task: IP check
+      // 4. Task: Network Risk Intent
+      else if (isNetworkRiskIntent(text)) {
+        const ip = extractIp(text);
+        const run = await runNetworkRiskQuery(userId, ip);
+        reply = run.reply;
+        data = run.data;
+      }
+      // 5. Task: IP check
       else if (isIpIntent(text) && extractIp(text)) {
         const run = runIpCheck(extractIp(text));
         reply = run.reply;
         data = run.data;
       }
-      // 5. Task: recent scans
+      // 6. Task: recent scans
       else if (isRecentScansIntent(text)) {
         const run = await runRecentScans(userId);
         reply = run.reply;

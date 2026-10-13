@@ -41,7 +41,7 @@ function broadcast(event) {
 }
 
 // Clean up dead connections periodically
-setInterval(() => {
+const keepaliveTimer = setInterval(() => {
   clients = clients.filter(client => {
     try {
       client.response.write(`:keepalive\n\n`);
@@ -51,5 +51,6 @@ setInterval(() => {
     }
   });
 }, 30000);
+if (keepaliveTimer.unref) keepaliveTimer.unref();
 
 module.exports = { router, broadcast };

@@ -497,6 +497,17 @@ function connectLiveFeed() {
         else if (['Phishing','Critical','High Risk'].includes(status)) color = 'var(--red)';
         else color = 'var(--amber)';
         msg = `<strong>${escapeHtml(target)}</strong> scanned — Verdict: <span style="color:${color}; font-weight:700;">${status}</span>`;
+      } else if (data.type === 'anonymous_network_risk') {
+        const netType = data.networkType || 'Network';
+        const ip = data.ip || 'Unknown IP';
+        const level = data.riskLevel || 'Low';
+        if (level === 'Critical' || level === 'High') color = 'var(--red)';
+        else if (level === 'Medium') color = 'var(--amber)';
+        else color = 'var(--green)';
+        msg = `<strong>${escapeHtml(netType)} Session</strong> from <code>${escapeHtml(ip)}</code> — Risk: <span style="color:${color}; font-weight:700;">${level} (${data.riskScore}/100)</span>`;
+        if (typeof fetchNetworkRiskData === 'function') {
+          fetchNetworkRiskData();
+        }
       } else {
         msg = `Event: ${escapeHtml(data.type || 'Activity')}`;
       }
@@ -599,6 +610,386 @@ function initDashboardBriefing() {
   }
 }
 
+// ── Anonymous Network Risk Detection (ANRD) Engine ─────────────────────────
+let anrdDebounceTimer = null;
+
+async function fetchNetworkRiskData() {
+  await Promise.all([
+    fetchNetworkRiskSummary(),
+    fetchNetworkRiskEvents()
+  ]);
+}
+
+async function fetchNetworkRiskSummary() {
+  try {
+    const res = await apiRequest('/network-risk/summary');
+    if (res && res.success && res.data) {
+      const d = res.data;
+      animateCountUp('stat-anrd-anonymous', d.anonymousSessions || 0);
+      animateCountUp('stat-anrd-vpn', d.vpnSessions || 0);
+      animateCountUp('stat-anrd-proxy', d.proxySessions || 0);
+      animateCountUp('stat-anrd-tor', d.torSessions || 0);
+      animateCountUp('stat-anrd-high', d.highRiskSessions || 0);
+      animateCountUp('stat-anrd-critical', d.criticalAlerts || 0);
+    }
+  } catch (err) {
+    console.warn('[ANRD Summary] notice:', err.message);
+  }
+}
+
+async function fetchNetworkRiskEvents() {
+  const tbody = document.getElementById('anrd-events-tbody');
+  if (!tbody) return;
+
+  const riskFilter = document.getElementById('anrd-filter-risk')?.value || 'all';
+  const typeFilter = document.getElementById('anrd-filter-type')?.value || 'all';
+  const statusFilter = document.getElementById('anrd-filter-status')?.value || 'all';
+  const sortFilter = document.getElementById('anrd-filter-sort')?.value || 'newest';
+  const search = document.getElementById('anrd-search-input')?.value || '';
+
+  const params = new URLSearchParams({
+    riskLevel: riskFilter,
+    networkType: typeFilter,
+    status: statusFilter,
+    sort: sortFilter,
+    search: search.trim(),
+    limit: 15
+  });
+
+  try {
+    const res = await apiRequest(`/network-risk/events?${params.toString()}`);
+    if (res && res.success && Array.isArray(res.data)) {
+      renderNetworkRiskEvents(res.data);
+    } else {
+      tbody.innerHTML = `<tr><td colspan="11" class="empty-state" style="padding:24px 0;"><i class="fas fa-shield-halved"></i><p>No anonymous network events matching filters.</p></td></tr>`;
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="11" class="empty-state" style="padding:24px 0; color:var(--text-muted);"><i class="fas fa-circle-exclamation"></i><p>Unable to load anonymous network events.</p></td></tr>`;
+  }
+}
+
+function renderNetworkRiskEvents(events) {
+  const tbody = document.getElementById('anrd-events-tbody');
+  if (!tbody) return;
+
+  if (!events || events.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11" class="empty-state" style="padding:24px 0;"><i class="fas fa-circle-check text-safe"></i><p>No suspicious or high-risk anonymous sessions recorded.</p></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = events.map(e => {
+    const time = new Date(e.createdAt).toLocaleTimeString([], { hour12: false });
+    const date = new Date(e.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+    // Indicators pills
+    const pills = [];
+    if (e.torDetected) pills.push('<span class="badge" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:10px; padding:2px 6px;">TOR</span>');
+    if (e.vpnDetected) pills.push('<span class="badge" style="background:rgba(0,200,150,0.2); color:#4ade80; border:1px solid rgba(0,200,150,0.4); font-size:10px; padding:2px 6px;">VPN</span>');
+    if (e.proxyDetected) pills.push('<span class="badge" style="background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); font-size:10px; padding:2px 6px;">PROXY</span>');
+    if (e.hostingDetected) pills.push('<span class="badge" style="background:rgba(0,212,255,0.2); color:#38bdf8; border:1px solid rgba(0,212,255,0.4); font-size:10px; padding:2px 6px;">HOSTING</span>');
+    if (pills.length === 0) pills.push('<span style="color:var(--text-muted); font-size:11px;">Residential</span>');
+
+    // Risk level styling
+    let levelHtml = '';
+    if (e.riskLevel === 'Critical') {
+      levelHtml = '<span class="severity-pill critical">CRITICAL</span>';
+    } else if (e.riskLevel === 'High') {
+      levelHtml = '<span class="severity-pill high" style="background:rgba(249,115,22,0.2); color:#fb923c; border-color:rgba(249,115,22,0.4);">HIGH</span>';
+    } else if (e.riskLevel === 'Medium') {
+      levelHtml = '<span class="severity-pill medium">MEDIUM</span>';
+    } else {
+      levelHtml = '<span class="severity-pill safe">LOW</span>';
+    }
+
+    // Status badge
+    const isReviewed = e.status === 'Reviewed';
+    const statusHtml = isReviewed
+      ? '<span style="color:var(--green); font-size:11px; font-weight:600;"><i class="fas fa-circle-check"></i> Reviewed</span>'
+      : '<span style="color:var(--cyan); font-size:11px; font-weight:600;"><i class="fas fa-clock"></i> Active</span>';
+
+    return `
+      <tr data-event-id="${e._id}">
+        <td style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); white-space:nowrap;">
+          <div>${date}</div>
+          <div style="color:var(--text-secondary); font-size:10px;">${time}</div>
+        </td>
+        <td style="font-weight:600; font-size:12px; color:var(--text-primary); max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+          ${escapeHtml(e.username || 'Anonymous')}
+        </td>
+        <td style="font-family:var(--font-mono); font-size:12px; color:var(--cyan); white-space:nowrap;">
+          ${escapeHtml(e.ipAddress)}
+        </td>
+        <td style="font-size:12px; font-weight:600; color:var(--text-secondary);">
+          ${escapeHtml(e.networkType || 'Unknown')}
+        </td>
+        <td style="font-size:11.5px; color:var(--text-muted); white-space:nowrap;">
+          ${escapeHtml(e.country || 'Unknown')}
+        </td>
+        <td style="white-space:nowrap;">
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">${pills.join(' ')}</div>
+        </td>
+        <td style="font-weight:800; font-family:var(--font-mono); font-size:12px;">
+          ${e.riskScore}/100
+        </td>
+        <td>${levelHtml}</td>
+        <td style="font-size:11.5px; color:var(--text-secondary); max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(e.explanation)}">
+          ${escapeHtml(e.explanation)}
+        </td>
+        <td style="white-space:nowrap;">${statusHtml}</td>
+        <td style="white-space:nowrap;">
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm btn-anrd-inspect" data-id="${e._id}" style="padding:3px 8px; font-size:11px;" title="Inspect Full Telemetry">
+              <i class="fas fa-search"></i>
+            </button>
+            ${!isReviewed ? `
+              <button class="btn btn-primary btn-sm btn-anrd-review" data-id="${e._id}" style="padding:3px 8px; font-size:11px;" title="Mark as Reviewed">
+                <i class="fas fa-check"></i>
+              </button>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Wire row action buttons
+  tbody.querySelectorAll('.btn-anrd-inspect').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      openNetworkRiskInvestigation(btn.dataset.id);
+    });
+  });
+
+  tbody.querySelectorAll('.btn-anrd-review').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      await markNetworkRiskReviewed(btn.dataset.id);
+    });
+  });
+}
+
+async function openNetworkRiskInvestigation(eventId) {
+  const backdrop = document.getElementById('anrd-modal-backdrop');
+  const container = document.getElementById('anrd-modal-content');
+  if (!backdrop || !container) return;
+
+  container.innerHTML = `
+    <div style="text-align:center; padding:40px 0;">
+      <i class="fas fa-spinner fa-spin text-cyan" style="font-size:28px;"></i>
+      <p style="margin-top:12px; color:var(--text-muted); font-size:13px;">Retrieving detailed telemetry & intelligence...</p>
+    </div>
+  `;
+  backdrop.style.display = 'flex';
+
+  try {
+    const res = await apiRequest(`/network-risk/events/${eventId}`);
+    if (!res || !res.success || !res.data) {
+      container.innerHTML = `<div class="empty-state" style="padding:20px 0;"><p>Event not found or failed to load.</p></div>`;
+      return;
+    }
+
+    const e = res.data;
+    const timeFormatted = new Date(e.createdAt).toLocaleString();
+
+    let levelBadge = '';
+    if (e.riskLevel === 'Critical') levelBadge = '<span class="severity-pill critical">CRITICAL</span>';
+    else if (e.riskLevel === 'High') levelBadge = '<span class="severity-pill high" style="background:rgba(249,115,22,0.2); color:#fb923c; border-color:rgba(249,115,22,0.4);">HIGH</span>';
+    else if (e.riskLevel === 'Medium') levelBadge = '<span class="severity-pill medium">MEDIUM</span>';
+    else levelBadge = '<span class="severity-pill safe">LOW</span>';
+
+    const signalsList = (e.signals && e.signals.length)
+      ? e.signals.map(s => `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; padding:8px 10px; background:rgba(255,255,255,0.02); border:1px solid var(--border-glass); border-radius:4px; margin-bottom:6px;">
+          <div>
+            <div style="font-weight:600; font-size:12.5px; color:var(--text-primary);">${escapeHtml(s.name)}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(s.detail)}</div>
+          </div>
+          <span style="font-family:var(--font-mono); font-weight:700; color:var(--cyan); font-size:12px;">+${s.weight}</span>
+        </div>
+      `).join('')
+      : '<div style="font-size:12px; color:var(--text-muted);">Standard network baseline signals only.</div>';
+
+    container.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-glass); padding-bottom:14px; margin-bottom:18px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; color:var(--text-primary); margin:0;">
+            <i class="fas fa-network-wired text-cyan" style="margin-right:8px;"></i> Session Risk Investigation
+          </h3>
+          <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Event ID: ${escapeHtml(e._id)} · ${timeFormatted}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${levelBadge}
+          <span class="badge" style="background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle);">${escapeHtml(e.status)}</span>
+        </div>
+      </div>
+
+      <!-- Score Summary Banner -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:rgba(0,212,255,0.04); border:1px solid rgba(0,212,255,0.2); border-radius:var(--radius-sm); margin-bottom:18px;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:600;">Composite Risk Score</div>
+          <div style="font-size:26px; font-weight:900; color:var(--text-primary); font-family:var(--font-mono); margin-top:2px;">
+            ${e.riskScore} <span style="font-size:14px; color:var(--text-muted);">/ 100</span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:600;">Network Topology</div>
+          <div style="font-size:15px; font-weight:700; color:var(--cyan); margin-top:2px;">
+            ${escapeHtml(e.networkType)}
+          </div>
+        </div>
+      </div>
+
+      <!-- Telemetry Details Grid -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+        <div class="glass-card" style="padding:14px;">
+          <h4 style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">
+            <i class="fas fa-globe text-cyan" style="margin-right:6px;"></i> Network Intelligence
+          </h4>
+          <div style="font-size:12px; display:flex; flex-direction:column; gap:6px;">
+            <div><span style="color:var(--text-muted);">Source IP:</span> <strong style="font-family:var(--font-mono); color:var(--cyan);">${escapeHtml(e.ipAddress)}</strong></div>
+            <div><span style="color:var(--text-muted);">Country / City:</span> <strong>${escapeHtml(e.country)} (${escapeHtml(e.city || 'N/A')})</strong></div>
+            <div><span style="color:var(--text-muted);">ISP / Org:</span> <strong>${escapeHtml(e.isp || 'N/A')}</strong></div>
+            <div><span style="color:var(--text-muted);">ASN:</span> <code style="color:var(--text-secondary);">${escapeHtml(e.asn || 'N/A')}</code></div>
+            <div><span style="color:var(--text-muted);">Tor Exit:</span> <strong>${e.torDetected ? '⚠️ Yes (Verified)' : 'No'}</strong></div>
+            <div><span style="color:var(--text-muted);">VPN Tunnel:</span> <strong>${e.vpnDetected ? 'Yes' : 'No'}</strong></div>
+            <div><span style="color:var(--text-muted);">Proxy:</span> <strong>${e.proxyDetected ? 'Yes' : 'No'}</strong></div>
+          </div>
+        </div>
+
+        <div class="glass-card" style="padding:14px;">
+          <h4 style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">
+            <i class="fas fa-user-shield text-cyan" style="margin-right:6px;"></i> Authentication Telemetry
+          </h4>
+          <div style="font-size:12px; display:flex; flex-direction:column; gap:6px;">
+            <div><span style="color:var(--text-muted);">Account:</span> <strong>${escapeHtml(e.username || 'Anonymous')}</strong></div>
+            <div><span style="color:var(--text-muted);">Failed Logins:</span> <strong style="color:${e.failedLoginCount >= 2 ? 'var(--red)' : 'var(--text-primary)'};">${e.failedLoginCount} attempts</strong></div>
+            <div><span style="color:var(--text-muted);">Suspicious Flag:</span> <strong>${e.suspiciousActivity ? 'Yes' : 'No'}</strong></div>
+            <div><span style="color:var(--text-muted);">Target Endpoint:</span> <code style="font-size:11px;">${escapeHtml(e.endpoint || 'General Traffic')}</code></div>
+            <div style="margin-top:4px; font-size:11px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              <span>UA:</span> ${escapeHtml(e.userAgent || 'Standard Agent')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contributing Signals Breakdown -->
+      <div style="margin-bottom:18px;">
+        <h4 style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">
+          <i class="fas fa-chart-pie text-cyan" style="margin-right:6px;"></i> Contributing Risk Signals
+        </h4>
+        <div>${signalsList}</div>
+      </div>
+
+      <!-- Objective Analysis Box -->
+      <div style="padding:12px 14px; background:rgba(0,212,255,0.03); border:1px solid rgba(0,212,255,0.2); border-left:4px solid var(--cyan); border-radius:4px; margin-bottom:14px; font-size:12.5px; line-height:1.5;">
+        <div style="font-weight:700; color:var(--cyan); margin-bottom:4px;"><i class="fas fa-circle-info"></i> Objective Security Analysis</div>
+        <div>${escapeHtml(e.explanation)}</div>
+      </div>
+
+      <!-- Recommended SOC Response Box -->
+      <div style="padding:12px 14px; background:rgba(0,200,150,0.03); border:1px solid rgba(0,200,150,0.2); border-left:4px solid var(--green); border-radius:4px; margin-bottom:20px; font-size:12.5px; line-height:1.5;">
+        <div style="font-weight:700; color:var(--green); margin-bottom:4px;"><i class="fas fa-shield-halved"></i> Actionable SOC Defense Guidance</div>
+        <div>${escapeHtml(e.recommendedAction)}</div>
+      </div>
+
+      <!-- Modal Actions -->
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-glass); padding-top:16px;">
+        <div style="font-size:11px; color:var(--text-muted);">
+          <i class="fas fa-scale-balanced" style="margin-right:4px;"></i> Baseline policy: VPN usage alone is Low Risk.
+        </div>
+        <div style="display:flex; gap:8px;">
+          ${e.status !== 'Reviewed' ? `
+            <button class="btn btn-primary btn-sm" id="anrd-modal-btn-review" data-id="${e._id}">
+              <i class="fas fa-check"></i> Mark Reviewed
+            </button>
+          ` : `
+            <span style="color:var(--green); font-size:12px; font-weight:600; padding:6px 10px;">
+              <i class="fas fa-circle-check"></i> Reviewed by ${escapeHtml(e.reviewedBy || 'Analyst')}
+            </span>
+          `}
+          <button class="btn btn-secondary btn-sm" id="anrd-modal-btn-close">Close</button>
+        </div>
+      </div>
+    `;
+
+    // Bind modal actions
+    const closeBtn = document.getElementById('anrd-modal-btn-close');
+    if (closeBtn) closeBtn.addEventListener('click', closeNetworkRiskInvestigation);
+
+    const reviewBtn = document.getElementById('anrd-modal-btn-review');
+    if (reviewBtn) {
+      reviewBtn.addEventListener('click', async () => {
+        await markNetworkRiskReviewed(reviewBtn.dataset.id);
+        openNetworkRiskInvestigation(reviewBtn.dataset.id);
+      });
+    }
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state" style="padding:20px 0;"><p>Error loading event details.</p></div>`;
+  }
+}
+
+function closeNetworkRiskInvestigation() {
+  const backdrop = document.getElementById('anrd-modal-backdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+async function markNetworkRiskReviewed(eventId) {
+  try {
+    const res = await apiRequest(`/network-risk/events/${eventId}/review`, 'PATCH');
+    if (res && res.success) {
+      if (typeof showToast === 'function') {
+        showToast('Event marked as reviewed.', 'success');
+      }
+      await fetchNetworkRiskData();
+    }
+  } catch (err) {
+    if (typeof showToast === 'function') {
+      showToast('Failed to review event.', 'error');
+    }
+  }
+}
+
+function initAnonymousNetworkRisk() {
+  const riskSection = document.getElementById('anonymous-risk-section');
+  if (!riskSection) return;
+
+  // Filter bindings
+  const filters = ['anrd-filter-risk', 'anrd-filter-type', 'anrd-filter-status', 'anrd-filter-sort'];
+  filters.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', fetchNetworkRiskEvents);
+  });
+
+  // Debounced search binding
+  const searchInput = document.getElementById('anrd-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      clearTimeout(anrdDebounceTimer);
+      anrdDebounceTimer = setTimeout(fetchNetworkRiskEvents, 350);
+    });
+  }
+
+  // Refresh button
+  const refreshBtn = document.getElementById('btn-refresh-network-risk');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', fetchNetworkRiskData);
+  }
+
+  // Modal close handlers
+  const modalClose = document.getElementById('anrd-modal-close');
+  if (modalClose) modalClose.addEventListener('click', closeNetworkRiskInvestigation);
+
+  const backdrop = document.getElementById('anrd-modal-backdrop');
+  if (backdrop) {
+    backdrop.addEventListener('click', (ev) => {
+      if (ev.target === backdrop) closeNetworkRiskInvestigation();
+    });
+  }
+
+  // Initial load
+  fetchNetworkRiskData();
+}
+
 // ── DOM Content Loaded Initialization ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   requireAuth();
@@ -606,6 +997,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initPeriodSwitchers();
   connectLiveFeed();
   initDashboardBriefing();
+  initAnonymousNetworkRisk();
 
   const backdrop = document.getElementById('drawer-backdrop');
   const closeBtn = document.getElementById('drawer-close');

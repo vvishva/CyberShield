@@ -127,6 +127,7 @@ app.use('/api/monitor', require('../routes/monitor'));
 app.use('/api/notifications', require('../routes/notification'));
 app.use('/api/incidents', require('../routes/incident'));
 app.use('/api/extension', require('../routes/extension'));
+app.use('/api/network-risk', require('../routes/networkRiskRoutes'));
 
 
 // Health Check Endpoint

@@ -8,6 +8,12 @@ const sendEmail = require('../utils/sendEmail');
 const sendSMS = require('../utils/sendSMS');
 const { normalizePhoneNumber } = require('../utils/phoneNormalizer');
 const { verifyGoogleToken } = require('../utils/googleAuth');
+const {
+  recordFailedLogin,
+  clearFailedLogin,
+  getFailedLoginCount,
+  evaluateSession
+} = require('../services/networkRiskService');
 
 const generateToken = (user) => {
   const secret = process.env.JWT_SECRET || 'cybershield_super_secret_jwt_key_2026';
@@ -469,11 +475,32 @@ exports.login = async (req, res, next) => {
     }
 
     if (!user) {
+      const clientIp = (req.ip || req.connection?.remoteAddress || '127.0.0.1').replace('::ffff:', '');
+      recordFailedLogin(clientIp, email || phoneNumber || 'Unknown');
+      setImmediate(() => {
+        evaluateSession({
+          req,
+          ip: clientIp,
+          failedLoginCount: getFailedLoginCount(clientIp),
+          contextNote: 'Authentication failure: user account not found'
+        }).catch(() => {});
+      });
       return res.status(401).json({ success: false, error: 'Invalid credentials or account not verified.' });
     }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
+      const clientIp = (req.ip || req.connection?.remoteAddress || '127.0.0.1').replace('::ffff:', '');
+      const failCount = recordFailedLogin(clientIp, user.username);
+      setImmediate(() => {
+        evaluateSession({
+          req,
+          user,
+          ip: clientIp,
+          failedLoginCount: failCount,
+          contextNote: 'Authentication failure: incorrect password'
+        }).catch(() => {});
+      });
       return res.status(401).json({ success: false, error: 'Invalid credentials.' });
     }
 
@@ -500,6 +527,7 @@ exports.login = async (req, res, next) => {
     if (/mobile|android|iphone/i.test(userAgent)) device = 'Mobile Phone';
     else if (/tablet|ipad/i.test(userAgent)) device = 'Tablet Device';
 
+    const isNewSession = Boolean(user.lastLoginIp && user.lastLoginIp !== reqIp);
     user.lastLoginAt = new Date();
     user.lastLoginIp = reqIp;
     user.lastLoginDevice = `${os} (${browser})`;
@@ -529,6 +557,19 @@ exports.login = async (req, res, next) => {
     if (user.securityActivity.length > 20) user.securityActivity = user.securityActivity.slice(0, 20);
 
     await user.save();
+
+    // Clear failed logins and evaluate network risk for the authenticated session
+    clearFailedLogin(reqIp, user.username);
+    setImmediate(() => {
+      evaluateSession({
+        req,
+        user,
+        ip: reqIp,
+        isNewSession,
+        failedLoginCount: 0,
+        contextNote: 'Successful authentication'
+      }).catch(() => {});
+    });
 
     // Audit Log
     try {

@@ -94,4 +94,88 @@ async function loadAdminData() {
       logAudit(`<span style="color:var(--red);">[ERROR] ${err.message}</span>`);
     }
   }
+
+  // Load Anonymous Network Risk Detection Configuration
+  await loadNetworkRiskConfig();
+}
+
+async function loadNetworkRiskConfig() {
+  try {
+    const res = await apiRequest('/network-risk/config');
+    if (res && res.success && res.data) {
+      const cfg = res.data;
+      const w = cfg.weights || {};
+
+      const enabledEl = document.getElementById('anrd-cfg-enabled');
+      if (enabledEl) enabledEl.checked = cfg.enabled !== false;
+
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val !== undefined) el.value = val;
+      };
+
+      setVal('anrd-cfg-w-vpn', w.vpn ?? 15);
+      setVal('anrd-cfg-w-proxy', w.proxy ?? 15);
+      setVal('anrd-cfg-w-tor', w.tor ?? 25);
+      setVal('anrd-cfg-w-hosting', w.hosting ?? 15);
+      setVal('anrd-cfg-w-failed', w.failedLogins ?? 20);
+      setVal('anrd-cfg-w-newsession', w.newSession ?? 10);
+      setVal('anrd-cfg-w-suspiciousapi', w.suspiciousApi ?? 20);
+      setVal('anrd-cfg-w-sensitive', w.sensitiveEndpoint ?? 15);
+      setVal('anrd-cfg-w-ratelimit', w.rateLimitViolation ?? 15);
+      setVal('anrd-cfg-alert-threshold', cfg.alertThreshold || 'High');
+      setVal('anrd-cfg-cooldown', cfg.cooldownMinutes ?? 5);
+      setVal('anrd-cfg-provider', cfg.provider || 'auto');
+
+      logAudit('Anonymous Network Risk Detection configuration loaded.');
+    }
+  } catch (err) {
+    console.warn('[ANRD Admin Config] load error:', err.message);
+  }
+
+  const saveBtn = document.getElementById('btn-save-anrd-config');
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+      const getNum = (id, d) => {
+        const el = document.getElementById(id);
+        return el ? parseInt(el.value, 10) || d : d;
+      };
+
+      const payload = {
+        enabled: document.getElementById('anrd-cfg-enabled')?.checked ?? true,
+        weights: {
+          vpn: getNum('anrd-cfg-w-vpn', 15),
+          proxy: getNum('anrd-cfg-w-proxy', 15),
+          tor: getNum('anrd-cfg-w-tor', 25),
+          hosting: getNum('anrd-cfg-w-hosting', 15),
+          failedLogins: getNum('anrd-cfg-w-failed', 20),
+          newSession: getNum('anrd-cfg-w-newsession', 10),
+          suspiciousApi: getNum('anrd-cfg-w-suspiciousapi', 20),
+          sensitiveEndpoint: getNum('anrd-cfg-w-sensitive', 15),
+          rateLimitViolation: getNum('anrd-cfg-w-ratelimit', 15)
+        },
+        alertThreshold: document.getElementById('anrd-cfg-alert-threshold')?.value || 'High',
+        cooldownMinutes: getNum('anrd-cfg-cooldown', 5),
+        provider: document.getElementById('anrd-cfg-provider')?.value || 'auto'
+      };
+
+      try {
+        const res = await apiRequest('/network-risk/config', 'PUT', payload);
+        if (res && res.success) {
+          showToast('Anonymous Network Risk Settings saved successfully.', 'success');
+          logAudit('<span style="color:var(--green);">[CONFIG] Network Risk scoring weights updated successfully.</span>');
+        } else {
+          showToast(res.error || 'Failed to update settings', 'danger');
+        }
+      } catch (e) {
+        showToast(e.message || 'Error updating settings', 'danger');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Risk Settings';
+      }
+    };
+  }
 }

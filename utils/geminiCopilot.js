@@ -158,6 +158,34 @@ async function getIncidentsData(userId, isAdmin = false) {
   }
 }
 
+async function getNetworkRiskContext(userId, isAdmin = false) {
+  try {
+    const NetworkRiskEvent = require('../models/NetworkRiskEvent');
+    const query = isAdmin ? {} : { userId };
+    const events = await NetworkRiskEvent.find(query).sort({ createdAt: -1 }).limit(10).lean();
+    return events.map(e => ({
+      id: e._id,
+      ip: e.ipAddress,
+      networkType: e.networkType,
+      vpn: e.vpnDetected,
+      proxy: e.proxyDetected,
+      tor: e.torDetected,
+      hosting: e.hostingDetected,
+      country: e.country,
+      failedLogins: e.failedLoginCount,
+      riskScore: e.riskScore,
+      riskLevel: e.riskLevel,
+      signals: (e.signals || []).map(s => `${s.name} (+${s.weight})`),
+      explanation: e.explanation,
+      recommendedAction: e.recommendedAction,
+      status: e.status,
+      timestamp: e.createdAt
+    }));
+  } catch (err) {
+    return [];
+  }
+}
+
 // ============================================================
 // SYSTEM PROMPT FOR CYBERSHIELD AI COPILOT
 // ============================================================
@@ -173,9 +201,14 @@ CORE PRINCIPLES:
    - When asked about the user's security score, active threats, vulnerabilities, monitored assets, or scans, use the provided CyberShield Data.
    - If specific CyberShield data is not present in the payload, clearly say: "No active scan data or findings recorded for this yet in your account. You can run a scan on the Security Scanner page."
    - NEVER invent or fabricate telemetry, IP addresses, or CVE findings.
-3. CONVERSATIONAL MEMORY:
+3. ANONYMOUS NETWORK RISK INTELLIGENCE:
+   - When asked about session risk, VPN, Proxy, Tor, or hosting infrastructure, analyze the correlated behavioral indicators (failed logins, rate limit breaches, admin access).
+   - Always remember: VPN or proxy usage alone does NOT prove malicious intent (it is categorized as Low risk).
+   - Provide objective, defensive investigation steps and recommendations.
+   - STRICT SAFETY RULE: NEVER provide instructions for bypassing detection, evading monitoring, or hiding malicious network activity.
+4. CONVERSATIONAL MEMORY:
    - Understand follow-up pronouns ("it", "that", "why is that", "how to fix it") referring to the previous conversation turns.
-4. TONE & CONCISENESS:
+5. TONE & CONCISENESS:
    - Be professional, sharp, direct, and concise. Avoid unnecessary conversational fluff or repetitive disclaimers.
    - For simple questions, give a direct 2-4 sentence/bullet explanation. For complex technical questions, provide clear step-by-step remediation.
 `;
@@ -322,6 +355,52 @@ function generateExpertSOCIntelligence(userPrompt, contextData, currentPage, his
   // =========================================================================
   // 1. CYBERSHIELD REAL-TIME DATA QUERIES
   // =========================================================================
+
+  // ── Anonymous Network Risk Detection Queries ────────────────────────────────
+  if (p.includes('anonymous network') || p.includes('why is this session high risk') || p.includes('vpn') || p.includes('proxy') || p.includes('tor') || p.includes('network risk') || p.includes('signals caused this risk score') || p.includes('defensive investigation steps')) {
+    const netEvents = contextData.networkRisk || [];
+    const recent = netEvents[0] || null;
+
+    if (recent) {
+      return `
+### 🌐 CyberShield Anonymous Network Risk Analysis
+
+- **Target IP / Session:** \`${recent.ip}\` (${recent.country})
+- **Network Type:** **${recent.networkType}** (Tor: ${recent.tor ? 'Yes' : 'No'}, VPN: ${recent.vpn ? 'Yes' : 'No'}, Proxy: ${recent.proxy ? 'Yes' : 'No'})
+- **Calculated Risk Score:** **${recent.riskScore}/100** (\`${recent.riskLevel}\`)
+- **Failed Login Attempts:** ${recent.failedLogins}
+- **Explanation:** ${recent.explanation}
+
+#### 🔍 Contributing Risk Signals:
+${recent.signals && recent.signals.length > 0 ? recent.signals.map(s => `- ${s}`).join('\n') : '- Standard network telemetry.'}
+
+#### 🛡️ Defensive SOC Investigation Guidance:
+1. **Corroborate Indicators:** Review whether the IP address performed rapid authentication attempts or requested sensitive APIs.
+2. **Context Matters:** Remember that VPN or proxy usage alone does *not* prove malicious intent (it is categorized as Low risk).
+3. **Identity Verification:** If High or Critical risk is sustained, prompt the user for step-up multi-factor authentication (2FA).
+4. **Action:** Open the **Anonymous Network Risk Detection** section on your Dashboard to inspect the full timeline.
+      `.trim();
+    }
+
+    return `
+### 🌐 Anonymous Network Risk Detection Overview
+
+CyberShield's **Anonymous Network Risk Detection** evaluates sessions originating from VPNs, proxies, Tor exit nodes, and hosting infrastructure by combining network classification with authentication and behavioral telemetry:
+
+- **Scoring Weights:**
+  - **VPN Tunnel:** +15 (Categorized as **Low** risk 0–30; never marked High on VPN alone)
+  - **Proxy Server:** +15
+  - **Tor Exit Node:** +25
+  - **Hosting/Datacenter Subnet:** +15
+  - **Repeated Failed Logins:** +20
+  - **Unrecognized Session:** +10
+  - **Sensitive/Admin Endpoint Access:** +15
+  - **Suspicious API Probing:** +20
+  - **Rate Limit Breaches:** +15
+
+- **Defensive SOC Principle:** Anonymous routing alone is legitimate privacy behavior. CyberShield only escalates risk to **High** or **Critical** when corroborating behavioral signals (e.g. repeated login failures or admin probing) are detected.
+    `.trim();
+  }
 
   // ── Compound & Specific Conceptual Comparisons First ───────────────────────
   
@@ -752,5 +831,6 @@ module.exports = {
   getMonitoringStatus,
   getAttackSurfaceData,
   getIncidentsData,
+  getNetworkRiskContext,
   callGeminiAPI
 };

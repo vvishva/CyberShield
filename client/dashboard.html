@@ -284,6 +284,128 @@
         </div>
       </div>
 
+      <!-- 3.5. Anonymous Network Risk Detection Section -->
+      <section class="glass-card" id="anonymous-risk-section" style="margin-top: 24px; margin-bottom: 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+          <div>
+            <h3 style="font-size:16px; font-weight:800; color:var(--text-primary); text-transform:uppercase; letter-spacing:0.5px; margin:0;">
+              <i class="fas fa-network-wired text-cyan" style="margin-right:8px;"></i> Anonymous Network Risk Detection
+            </h3>
+            <span style="font-size:12px; color:var(--text-muted);">
+              Correlates VPN, proxy, Tor, and datacenter infrastructure with authentication telemetry
+            </span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="system-status-pill" id="anrd-status-pill"><span class="pulse-dot"></span> Active Defense</span>
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-network-risk" title="Refresh Telemetry"><i class="fas fa-rotate"></i> Refresh</button>
+          </div>
+        </div>
+
+        <!-- 6 Metrics Cards Grid -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:20px;">
+          <div class="stat-card" style="padding:14px; background:rgba(0,212,255,0.04); border:1px solid rgba(0,212,255,0.2); border-radius:var(--radius-sm);">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:600;"><i class="fas fa-user-secret text-cyan"></i> Anonymous</div>
+            <div style="font-size:22px; font-weight:800; color:var(--text-primary); margin-top:4px;" id="stat-anrd-anonymous">0</div>
+            <div style="font-size:10px; color:var(--text-muted);">Total Anonymous Sessions</div>
+          </div>
+          <div class="stat-card" style="padding:14px; background:rgba(0,200,150,0.04); border:1px solid rgba(0,200,150,0.2); border-radius:var(--radius-sm);">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:600;"><i class="fas fa-shield-halved text-safe"></i> VPN</div>
+            <div style="font-size:22px; font-weight:800; color:var(--green);" id="stat-anrd-vpn">0</div>
+            <div style="font-size:10px; color:var(--text-muted);">VPN Tunnels (Low baseline)</div>
+          </div>
+          <div class="stat-card" style="padding:14px; background:rgba(245,158,11,0.04); border:1px solid rgba(245,158,11,0.2); border-radius:var(--radius-sm);">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:600;"><i class="fas fa-server text-warning"></i> Proxy</div>
+            <div style="font-size:22px; font-weight:800; color:var(--amber);" id="stat-anrd-proxy">0</div>
+            <div style="font-size:10px; color:var(--text-muted);">Forward Web Proxies</div>
+          </div>
+          <div class="stat-card" style="padding:14px; background:rgba(168,85,247,0.04); border:1px solid rgba(168,85,247,0.2); border-radius:var(--radius-sm);">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:600;"><i class="fas fa-globe text-purple"></i> Tor Relays</div>
+            <div style="font-size:22px; font-weight:800; color:#a855f7;" id="stat-anrd-tor">0</div>
+            <div style="font-size:10px; color:var(--text-muted);">Onion Exit Nodes</div>
+          </div>
+          <div class="stat-card" style="padding:14px; background:rgba(249,115,22,0.04); border:1px solid rgba(249,115,22,0.2); border-radius:var(--radius-sm);">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:600;"><i class="fas fa-triangle-exclamation" style="color:#f97316;"></i> High Risk</div>
+            <div style="font-size:22px; font-weight:800; color:#f97316;" id="stat-anrd-high">0</div>
+            <div style="font-size:10px; color:var(--text-muted);">Corroborated High Threats</div>
+          </div>
+          <div class="stat-card" style="padding:14px; background:rgba(239,68,68,0.04); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-sm);">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:600;"><i class="fas fa-skull text-danger"></i> Critical Alerts</div>
+            <div style="font-size:22px; font-weight:800; color:var(--red);" id="stat-anrd-critical">0</div>
+            <div style="font-size:10px; color:var(--text-muted);">Account Compromise Risk</div>
+          </div>
+        </div>
+
+        <!-- Filter and Search Toolbar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; padding:10px 14px; background:rgba(255,255,255,0.02); border:1px solid var(--border-glass); border-radius:var(--radius-sm);">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <select class="form-control" id="anrd-filter-risk" style="padding:6px 12px; font-size:12px; width:auto;">
+              <option value="all">All Risk Levels</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <select class="form-control" id="anrd-filter-type" style="padding:6px 12px; font-size:12px; width:auto;">
+              <option value="all">All Network Types</option>
+              <option value="VPN">VPN</option>
+              <option value="Proxy">Proxy</option>
+              <option value="Tor">Tor</option>
+              <option value="Hosting">Hosting / Cloud</option>
+              <option value="Residential">Residential</option>
+            </select>
+            <select class="form-control" id="anrd-filter-status" style="padding:6px 12px; font-size:12px; width:auto;">
+              <option value="all">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Reviewed">Reviewed</option>
+            </select>
+            <select class="form-control" id="anrd-filter-sort" style="padding:6px 12px; font-size:12px; width:auto;">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="risk_desc">Highest Risk</option>
+              <option value="risk_asc">Lowest Risk</option>
+            </select>
+          </div>
+          <div style="min-width:220px; flex:1; max-width:320px;">
+            <input type="text" class="form-control" id="anrd-search-input" placeholder="Search IP, User, Country..." style="padding:6px 12px; font-size:12px; width:100%;">
+          </div>
+        </div>
+
+        <!-- Privacy & Defensive Disclaimer Notice -->
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px; padding:8px 12px; background:rgba(0,212,255,0.03); border-left:3px solid var(--cyan); border-radius:2px;">
+          <i class="fas fa-circle-info text-cyan" style="margin-right:4px;"></i>
+          <strong>Defensive Protocol:</strong> Anonymous network usage (VPN/proxy) does not automatically indicate malicious intent. Risk scores reflect correlation between network topology and behavioral telemetry.
+        </div>
+
+        <!-- Events Table -->
+        <div class="table-responsive">
+          <table class="cyber-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User / Account</th>
+                <th>Source IP</th>
+                <th>Network Type</th>
+                <th>Country</th>
+                <th>Indicators</th>
+                <th>Risk Score</th>
+                <th>Risk Level</th>
+                <th>Explanation</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="anrd-events-tbody">
+              <tr>
+                <td colspan="11" class="empty-state" style="padding:30px 0;">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <p>Loading anonymous network telemetry...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- 4. Interactive Recent Operations Table -->
       <div class="glass-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -337,6 +459,16 @@
     <a href="#" id="drawer-btn-investigate" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Investigate</a>
     <button id="drawer-btn-rescan" class="btn btn-secondary btn-sm"><i class="fas fa-rotate"></i> Rescan</button>
     <a href="reports.html" id="drawer-btn-report" class="btn btn-secondary btn-sm"><i class="fas fa-file-pdf"></i> Report</a>
+  </div>
+</div>
+
+<!-- Anonymous Network Risk Investigation Modal -->
+<div class="modal-backdrop" id="anrd-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:16px;">
+  <div class="glass-card" style="max-width:760px; width:100%; max-height:90vh; overflow-y:auto; border:1px solid rgba(0,212,255,0.3); box-shadow:0 16px 50px rgba(0,0,0,0.9); padding:24px; position:relative;">
+    <button id="anrd-modal-close" style="position:absolute; top:16px; right:16px; background:transparent; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;"><i class="fas fa-times"></i></button>
+    <div id="anrd-modal-content">
+      <!-- Injected by js/dashboard.js -->
+    </div>
   </div>
 </div>
 

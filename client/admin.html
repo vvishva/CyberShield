@@ -125,6 +125,91 @@
           </div>
         </div>
 
+        <!-- Anonymous Network Risk Configuration -->
+        <div class="glass-card" style="margin-top:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div>
+              <h3 style="font-size:16px; font-weight:700; margin:0;">
+                <i class="fas fa-network-wired text-cyan" style="margin-right:10px;"></i> Anonymous Network Risk Detection Settings
+              </h3>
+              <span style="font-size:12px; color:var(--text-muted);">Adjust risk scoring weights, alert thresholds, and provider configurations</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-primary);">
+                <input type="checkbox" id="anrd-cfg-enabled" checked style="accent-color:var(--cyan); width:16px; height:16px;"> Feature Enabled
+              </label>
+            </div>
+          </div>
+
+          <form id="anrd-config-form" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">VPN Weight (+Score)</label>
+              <input type="number" class="form-control" id="anrd-cfg-w-vpn" value="15" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Proxy Weight (+Score)</label>
+              <input type="number" class="form-control" id="anrd-cfg-w-proxy" value="15" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Tor Exit Node (+Score)</label>
+              <input type="number" class="form-control" id="anrd-cfg-w-tor" value="25" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Cloud/Datacenter (+Score)</label>
+              <input type="number" class="form-control" id="anrd-cfg-w-hosting" value="15" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Failed Logins (+Score)</label>
+              <input type="number" class="form-control" id="anrd-cfg-w-failed" value="20" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">New Session (+Score)</label>
+              <input type="number" class="form-control" id="anrd-cfg-w-newsession" value="10" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Suspicious API (+Score)</label>
+              <input type="number" class="form-control" id="anrd-cfg-w-suspiciousapi" value="20" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Sensitive Access (+Score)</label>
+              <input type="number" class="form-control" id="anrd-cfg-w-sensitive" value="15" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Rate Limit Breach (+Score)</label>
+              <input type="number" class="form-control" id="anrd-cfg-w-ratelimit" value="15" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Alert Threshold</label>
+              <select class="form-control" id="anrd-cfg-alert-threshold">
+                <option value="Low">Low (Notify on 0+)</option>
+                <option value="Medium">Medium (Notify on 31+)</option>
+                <option value="High" selected>High (Notify on 61+)</option>
+                <option value="Critical">Critical (Notify on 81+)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Event Cooldown (Minutes)</label>
+              <input type="number" class="form-control" id="anrd-cfg-cooldown" value="5" min="1" max="60">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; color:var(--text-muted); font-weight:600;">IP Intel Provider</label>
+              <select class="form-control" id="anrd-cfg-provider">
+                <option value="auto" selected>Auto (Env Key or Local Heuristic)</option>
+                <option value="local_heuristic">Local Defensive Heuristic</option>
+                <option value="proxycheck">Proxycheck.io</option>
+                <option value="ipinfo">IPInfo.io</option>
+              </select>
+            </div>
+          </form>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11.5px; color:var(--text-muted);">
+              <i class="fas fa-circle-info text-cyan" style="margin-right:4px;"></i> Baseline constraint: VPN alone (+15) will not exceed Low risk.
+            </span>
+            <button class="btn btn-primary btn-sm" id="btn-save-anrd-config"><i class="fas fa-save"></i> Save Risk Settings</button>
+          </div>
+        </div>
+
         <!-- Audit Logs -->
         <div class="glass-card" style="margin-top:24px;">
           <h3 style="font-size:16px; font-weight:700; margin-bottom:20px;"><i class="fas fa-clipboard-list"
